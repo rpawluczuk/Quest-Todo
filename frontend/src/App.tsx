@@ -1,12 +1,28 @@
+import { useState } from 'react'
 import './App.css'
 
-const tasks = [
-  { id: 1, title: 'Poświęcić 20 minut na naukę Reacta', points: 20 },
-  { id: 2, title: 'Wybrać się na spacer', points: 15 },
-  { id: 3, title: 'Przeczytać rozdział książki', points: 10 },
+const initialTasks = [
+  { id: 1, title: 'Poświęcić 20 minut na naukę Reacta', points: 20, completed: false },
+  { id: 2, title: 'Wybrać się na spacer', points: 15, completed: false },
+  { id: 3, title: 'Przeczytać rozdział książki', points: 10, completed: false },
 ]
 
 function App() {
+  const [tasks, setTasks] = useState(initialTasks)
+
+  const points = tasks.reduce(
+    (total, task) => total + (task.completed ? task.points : 0),
+    0,
+  )
+
+  function toggleTask(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task,
+      ),
+    )
+  }
+
   return (
     <main className="quest-app">
       <header className="app-header">
@@ -17,7 +33,7 @@ function App() {
         </div>
         <div className="points-balance">
           <span>Twoje saldo</span>
-          <strong>0 punktów</strong>
+          <strong aria-live="polite">{points} punktów</strong>
         </div>
       </header>
 
@@ -28,8 +44,15 @@ function App() {
         </div>
         <ul className="task-list">
           {tasks.map((task) => (
-            <li className="task" key={task.id}>
-              <span className="task-title">{task.title}</span>
+            <li className={task.completed ? 'task task-completed' : 'task'} key={task.id}>
+              <label className="task-label">
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => toggleTask(task.id)}
+                />
+                <span className="task-title">{task.title}</span>
+              </label>
               <span className="task-points">{task.points} pkt</span>
             </li>
           ))}
