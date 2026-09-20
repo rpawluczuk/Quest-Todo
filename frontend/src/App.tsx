@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
+import Header from './components/Header'
 import './App.css'
 
 const initialTasks = [
@@ -125,17 +126,7 @@ function App() {
 
   return (
     <main className="quest-app">
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">Małe kroki, codzienne zwycięstwa</p>
-          <h1>Quest Todo</h1>
-          <p className="subtitle">Zrób miejsce na to, co ważne.</p>
-        </div>
-        <div className="points-balance">
-          <span>Twoje saldo</span>
-          <strong aria-live="polite">{points} punktów</strong>
-        </div>
-      </header>
+      <Header points={points} />
 
       {sections.map((section) => (
         <section className="tasks-section" aria-labelledby={`${section.id}-heading`} key={section.id}>
