@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Task } from './types/Task'
-import EditTaskForm from './components/EditTaskForm'
+import TaskItem from './components/TaskItem'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
@@ -100,50 +100,17 @@ function App() {
           )}
           <ul className="task-list">
             {section.tasks.map((task) => (
-              <li className={task.completed ? 'task task-completed' : 'task'} key={task.id}>
-                {editingTaskId === task.id ? (
-                  <EditTaskForm
-                    task={task}
-                    onSave={saveTask}
-                    onCancel={cancelEditing}
-                  />
-                ) : (
-                  <>
-                    <label className="task-label">
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        disabled={editingTaskId === task.id}
-                        onChange={() => toggleTask(task.id)}
-                      />
-                      <span className="task-title">{task.title}</span>
-                    </label>
-                    <div className="task-actions">
-                      <span className="task-points">{task.points} pkt</span>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => toggleFocus(task.id)}
-                        disabled={editingTaskId !== null}
-                        aria-label={`${task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}: ${task.title}`}
-                      >
-                        {task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}
-                      </button>
-                      {!task.completed && (
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => startEditing(task.id)}
-                          disabled={editingTaskId !== null}
-                          aria-label={`Edytuj zadanie: ${task.title}`}
-                        >
-                          Edytuj
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </li>
+              <TaskItem
+                key={task.id}
+                task={task}
+                isEditing={editingTaskId === task.id}
+                isAnyTaskEditing={editingTaskId !== null}
+                onToggleTask={toggleTask}
+                onToggleFocus={toggleFocus}
+                onStartEditing={startEditing}
+                onSave={saveTask}
+                onCancel={cancelEditing}
+              />
             ))}
           </ul>
         </section>
