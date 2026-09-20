@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Task } from './types/Task'
-import TaskItem from './components/TaskItem'
+import TaskSection from './components/TaskSection'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
@@ -18,8 +18,20 @@ function App() {
   const focusTasks = tasks.filter((task) => task.inFocus)
   const backlogTasks = tasks.filter((task) => !task.inFocus)
   const sections = [
-    { id: 'focus' as const, title: 'Focus', description: 'Zadania, które wybierasz do realizacji.', tasks: focusTasks },
-    { id: 'backlog' as const, title: 'Backlog', description: 'Zadania czekające na realizację. Przenieś wybrane do Focus.', tasks: backlogTasks },
+    {
+      id: 'focus',
+      title: 'Focus',
+      description: 'Zadania, które wybierasz do realizacji.',
+      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „Przenieś do Focus”.',
+      tasks: focusTasks,
+    },
+    {
+      id: 'backlog',
+      title: 'Backlog',
+      description: 'Zadania czekające na realizację. Przenieś wybrane do Focus.',
+      emptyMessage: 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focus.',
+      tasks: backlogTasks,
+    },
   ]
 
   const points = tasks.reduce(
@@ -83,37 +95,24 @@ function App() {
       <Header points={points} />
 
       {sections.map((section) => (
-        <section className="tasks-section" aria-labelledby={`${section.id}-heading`} key={section.id}>
-          <div className="section-header">
-            <h2 id={`${section.id}-heading`} lang="en">{section.title} ({section.tasks.length})</h2>
-            <p>{section.description}</p>
-          </div>
+        <TaskSection
+          key={section.id}
+          id={section.id}
+          title={section.title}
+          description={section.description}
+          emptyMessage={section.emptyMessage}
+          tasks={section.tasks}
+          editingTaskId={editingTaskId}
+          onToggleTask={toggleTask}
+          onToggleFocus={toggleFocus}
+          onStartEditing={startEditing}
+          onSave={saveTask}
+          onCancel={cancelEditing}
+        >
           {section.id === 'backlog' && (
             <CreateTaskForm onAddTask={addTask} />
           )}
-          {section.tasks.length === 0 && (
-            <p className="empty-state">
-              {section.id === 'focus'
-                ? 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „Przenieś do Focus”.'
-                : 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focus.'}
-            </p>
-          )}
-          <ul className="task-list">
-            {section.tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                isEditing={editingTaskId === task.id}
-                isAnyTaskEditing={editingTaskId !== null}
-                onToggleTask={toggleTask}
-                onToggleFocus={toggleFocus}
-                onStartEditing={startEditing}
-                onSave={saveTask}
-                onCancel={cancelEditing}
-              />
-            ))}
-          </ul>
-        </section>
+        </TaskSection>
       ))}
     </main>
   )
