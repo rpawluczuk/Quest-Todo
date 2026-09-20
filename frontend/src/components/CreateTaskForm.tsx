@@ -2,16 +2,18 @@ import { useState } from 'react'
 import type { SubmitEvent } from 'react'
 
 type CreateTaskFormProps = {
-  readonly onAddTask: (title: string, points: number) => void
+  readonly onAddTask: (title: string, points: number) => Promise<void>
 }
 
 function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
   const [formError, setFormError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isSaving) return
 
     const title = newTitle.trim()
     const taskPoints = Number(newPoints)
@@ -26,10 +28,22 @@ function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
       return
     }
 
-    onAddTask(title, taskPoints)
-    setNewTitle('')
-    setNewPoints('10')
+    if (taskPoints > 2147483647) {
+      setFormError('Maksymalna liczba punktów to 2147483647.')
+      return
+    }
+
+    setIsSaving(true)
     setFormError('')
+    try {
+      await onAddTask(title, taskPoints)
+      setNewTitle('')
+      setNewPoints('10')
+    } catch {
+      setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -38,6 +52,7 @@ function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
         <span>Nazwa zadania</span>
         <input
           type="text"
+          disabled={isSaving}
           value={newTitle}
           onChange={(event) => setNewTitle(event.target.value)}
           placeholder="Co chcesz zrobić?"
@@ -48,15 +63,16 @@ function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
         <span>Punkty</span>
         <input
           type="number"
+          disabled={isSaving}
           value={newPoints}
           onChange={(event) => setNewPoints(event.target.value)}
           min="1"
-          max={Number.MAX_SAFE_INTEGER}
+          max={2147483647}
           step="1"
           required
         />
       </label>
-      <button type="submit">Dodaj zadanie</button>
+      <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </form>
   )

@@ -1,8 +1,8 @@
 # Quest Todo — backend
 
 Java 21, Spring Boot 4.1.1 i Maven Wrapper. Na tym etapie backend udostępnia
-endpoint kontrolny i listę przykładowych zadań w pamięci; nie zapisuje jeszcze
-zmian ani nie łączy się z bazą.
+endpoint kontrolny oraz pobieranie i dodawanie zadań w pamięci. Nie łączy się
+jeszcze z bazą; restart backendu przywraca trzy przykładowe zadania.
 
 ## Uruchomienie (PowerShell)
 
@@ -33,8 +33,9 @@ przekazuje żądania `/api` do `http://localhost:8080`. Po zmianie konfiguracji
 Vite uruchom go ponownie. To proxy dotyczy pracy przez `npm run dev`;
 wdrożenie produkcyjne będzie wymagało osobnej konfiguracji kierowania `/api`.
 
-Dodawanie, edycja, wykonanie zadań i zakupy nadal działają lokalnie w React.
-Odświeżenie strony pobiera początkowe zadania z serwera i zeruje zakupy.
+Dodawanie zapisuje zadanie na backendzie. Edycja, wykonanie, przenoszenie zadań
+i zakupy nadal działają lokalnie w React. Odświeżenie strony zachowuje dodane
+zadania, ale przywraca ich stan z serwera i zeruje zakupy.
 Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
 
 ## Pobieranie zadań
@@ -42,7 +43,12 @@ Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
 Otwórz http://localhost:8080/api/tasks. `GET /api/tasks` zwraca tablicę trzech
 przykładowych zadań. Każde zawiera pola `id`, `title`, `points`, `completed`
 i `inFocus`, zgodne z nazwami pól frontendu. Zadania są przechowywane w pamięci
-w `TaskService`; endpoint na tym etapie obsługuje wyłącznie odczyt.
+w `TaskService`.
+
+`POST /api/tasks` przyjmuje np. `{"title":"Trening","points":15}` i zwraca
+HTTP 201 oraz nowe zadanie z ID nadanym przez serwer. Nowe zadanie ma
+`completed: false` i `inFocus: false`. Nazwa jest przycinana; pusta nazwa
+lub punkty inne niż liczba całkowita od 1 do 2147483647 powodują HTTP 400.
 
 Po zmianie kodu zatrzymaj i uruchom backend ponownie.
 

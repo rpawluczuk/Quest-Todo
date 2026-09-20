@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getTasks } from './api/taskApi'
+import { createTask, getTasks } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -85,17 +85,9 @@ function App() {
     })
   }
 
-  function addTask(title: string, taskPoints: number) {
-    setTasks((currentTasks) => [
-      ...currentTasks,
-      {
-        id: currentTasks.reduce((maxId, task) => Math.max(maxId, task.id), 0) + 1,
-        title,
-        points: taskPoints,
-        completed: false,
-        inFocus: false,
-      },
-    ])
+  async function addTask(title: string, taskPoints: number) {
+    const task = await createTask(title, taskPoints)
+    setTasks((currentTasks) => [...currentTasks, task])
   }
 
   function startEditing(taskId: number) {

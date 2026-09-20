@@ -171,7 +171,8 @@
   background: #f1ecfa;
 }
 
-.secondary-button:disabled {
+.secondary-button:disabled,
+.task-form button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
