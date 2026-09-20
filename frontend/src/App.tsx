@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createTask, getTasks, updateTask } from './api/taskApi'
+import { createTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -114,22 +114,19 @@ function App() {
     cancelEditing()
   }
 
-  function toggleFocus(taskId: number) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId ? { ...task, inFocus: !task.inFocus } : task,
-      ),
-    )
+  async function toggleFocus(taskId: number) {
+    const task = tasks.find((task) => task.id === taskId)
+    if (!task) return
+    const updatedTask = await updateTaskFocus(taskId, !task.inFocus)
+    setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
   }
 
-  function toggleTask(taskId: number) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task,
-      ),
-    )
+  async function toggleTask(taskId: number) {
+    const task = tasks.find((task) => task.id === taskId)
+    if (!task) return
+    const updatedTask = await updateTaskCompletion(taskId, !task.completed)
+    setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
   }
-
   return (
     <main className="quest-app">
       <Header points={points} />

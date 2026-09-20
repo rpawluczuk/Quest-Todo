@@ -1,5 +1,26 @@
 import type { Task } from '../types/Task'
 
+async function updateTaskState(id: number, endpoint: string, body: object): Promise<Task> {
+  const response = await fetch(`/api/tasks/${id}/${endpoint}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    if (response.status === 404) throw new Error('Zadanie nie istnieje na serwerze. Odśwież stronę.')
+    throw new Error(`Nie udało się zapisać zmiany (HTTP ${response.status}).`)
+  }
+  return response.json()
+}
+
+export function updateTaskCompletion(id: number, completed: boolean): Promise<Task> {
+  return updateTaskState(id, 'completion', { completed })
+}
+
+export function updateTaskFocus(id: number, inFocus: boolean): Promise<Task> {
+  return updateTaskState(id, 'focus', { inFocus })
+}
+
 export async function updateTask(id: number, title: string, points: number): Promise<Task> {
   const response = await fetch(`/api/tasks/${id}`, {
     method: 'PATCH',

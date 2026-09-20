@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
 
@@ -5,8 +6,8 @@ type TaskItemProps = {
   readonly task: Task
   readonly isEditing: boolean
   readonly isAnyTaskEditing: boolean
-  readonly onToggleTask: (taskId: number) => void
-  readonly onToggleFocus: (taskId: number) => void
+  readonly onToggleTask: (taskId: number) => Promise<void>
+  readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number) => Promise<void>
   readonly onCancel: () => void
@@ -22,6 +23,25 @@ function TaskItem({
   onSave,
   onCancel,
 }: TaskItemProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
+  const savingRef = useRef(false)
+
+  async function saveChange(action: (taskId: number) => Promise<void>) {
+    if (savingRef.current) return
+    savingRef.current = true
+    setIsSaving(true)
+    setError('')
+    try {
+      await action(task.id)
+    } catch {
+      setError('Nie udało się zapisać zmiany. Sprawdź połączenie z backendem i spróbuj ponownie.')
+    } finally {
+      savingRef.current = false
+      setIsSaving(false)
+    }
+  }
+
   return (
     <li className={task.completed ? 'task task-completed' : 'task'}>
       {isEditing ? (
@@ -32,7 +52,8 @@ function TaskItem({
             <input
               type="checkbox"
               checked={task.completed}
-              onChange={() => onToggleTask(task.id)}
+              disabled={isSaving}
+              onChange={() => void saveChange(onToggleTask)}
             />
             <span className="task-title">{task.title}</span>
           </label>
@@ -41,8 +62,8 @@ function TaskItem({
             <button
               type="button"
               className="secondary-button"
-              onClick={() => onToggleFocus(task.id)}
-              disabled={isAnyTaskEditing}
+              onClick={() => void saveChange(onToggleFocus)}
+              disabled={isAnyTaskEditing || isSaving}
               aria-label={`${task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}: ${task.title}`}
             >
               {task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}
@@ -52,7 +73,7 @@ function TaskItem({
                 type="button"
                 className="secondary-button"
                 onClick={() => onStartEditing(task.id)}
-                disabled={isAnyTaskEditing}
+                disabled={isAnyTaskEditing || isSaving}
                 aria-label={`Edytuj zadanie: ${task.title}`}
               >
                 Edytuj
@@ -61,6 +82,8 @@ function TaskItem({
           </div>
         </>
       )}
+      {isSaving && <span role="status">Zapisywanie…</span>}
+      {error && <p className="form-error" role="alert">{error}</p>}
     </li>
   )
 }

@@ -27,6 +27,29 @@ public class TaskService {
         return task;
     }
 
+    public synchronized Task updateCompletion(long id, boolean completed) {
+        int index = findTaskIndex(id);
+        Task task = tasks.get(index);
+        Task updated = new Task(id, task.title(), task.points(), completed, task.inFocus());
+        tasks.set(index, updated);
+        return updated;
+    }
+
+    public synchronized Task updateFocus(long id, boolean inFocus) {
+        int index = findTaskIndex(id);
+        Task task = tasks.get(index);
+        Task updated = new Task(id, task.title(), task.points(), task.completed(), inFocus);
+        tasks.set(index, updated);
+        return updated;
+    }
+
+    private int findTaskIndex(long id) {
+        for (int index = 0; index < tasks.size(); index++) {
+            if (tasks.get(index).id() == id) return index;
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje.");
+    }
+
     public synchronized Task updateTask(long id, String title, int points) {
         for (int index = 0; index < tasks.size(); index++) {
             Task task = tasks.get(index);

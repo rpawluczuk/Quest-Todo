@@ -5,8 +5,8 @@ import TaskItem from './TaskItem'
 type TaskSectionProps = {
   readonly section: TaskSectionData
   readonly editingTaskId: number | null
-  readonly onToggleTask: (taskId: number) => void
-  readonly onToggleFocus: (taskId: number) => void
+  readonly onToggleTask: (taskId: number) => Promise<void>
+  readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number) => Promise<void>
   readonly onCancel: () => void

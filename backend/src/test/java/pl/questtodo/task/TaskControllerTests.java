@@ -24,6 +24,47 @@ class TaskControllerTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @ParameterizedTest
+    @ValueSource(strings = {"completion", "focus"})
+    @DirtiesContext
+    void persistsStateAndRepeatedRequestsDoNotToggleIt(String endpoint) throws Exception {
+        String field = endpoint.equals("completion") ? "completed" : "inFocus";
+        String otherField = endpoint.equals("completion") ? "inFocus" : "completed";
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(patch("/api/tasks/1/" + endpoint).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"" + field + "\":true}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$." + field).value(true))
+                    .andExpect(jsonPath("$." + otherField).value(false))
+                    .andExpect(jsonPath("$.points").value(20));
+        }
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$[0]." + field).value(true));
+        if (endpoint.equals("completion")) {
+            mockMvc.perform(patch("/api/tasks/1").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"Test\",\"points\":10}"))
+                    .andExpect(status().isConflict());
+        }
+        mockMvc.perform(patch("/api/tasks/1/" + endpoint).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"" + field + "\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$." + field).value(false));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"completion", "focus"})
+    void rejectsMissingStateAndUnknownTask(String endpoint) throws Exception {
+        String field = endpoint.equals("completion") ? "completed" : "inFocus";
+        for (String body : new String[]{"{}", "{\"" + field + "\":null}"}) {
+            mockMvc.perform(patch("/api/tasks/1/" + endpoint).contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(patch("/api/tasks/999/" + endpoint).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"" + field + "\":true}"))
+                .andExpect(status().isNotFound());
+    }
+
     @Test
     @DirtiesContext
     void updatesTaskAndPreservesOtherFields() throws Exception {

@@ -42,6 +42,22 @@ public class TaskController {
         return taskService.updateTask(id, request.title().strip(), points);
     }
 
+    @PatchMapping("/{id}/completion")
+    public Task updateCompletion(@PathVariable long id, @RequestBody UpdateCompletionRequest request) {
+        if (request.completed() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pole completed jest wymagane.");
+        }
+        return taskService.updateCompletion(id, request.completed());
+    }
+
+    @PatchMapping("/{id}/focus")
+    public Task updateFocus(@PathVariable long id, @RequestBody UpdateFocusRequest request) {
+        if (request.inFocus() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pole inFocus jest wymagane.");
+        }
+        return taskService.updateFocus(id, request.inFocus());
+    }
+
     private int validateTask(String title, BigDecimal requestedPoints) {
         if (title == null || title.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nazwa zadania jest wymagana.");

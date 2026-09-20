@@ -33,10 +33,9 @@ przekazuje żądania `/api` do `http://localhost:8080`. Po zmianie konfiguracji
 Vite uruchom go ponownie. To proxy dotyczy pracy przez `npm run dev`;
 wdrożenie produkcyjne będzie wymagało osobnej konfiguracji kierowania `/api`.
 
-Dodawanie oraz edycja nazwy i punktów zapisują zmiany na backendzie.
-Wykonanie, przenoszenie zadań i zakupy nadal działają lokalnie w React.
-Odświeżenie strony zachowuje dodane zadania i ich edycję, ale przywraca
-stan wykonania i Focus z serwera oraz zeruje zakupy.
+Dodawanie, edycja, wykonanie i przenoszenie zadań zapisują zmiany na backendzie.
+Odświeżenie strony zachowuje zadania i ich stan. Zakupy nadal są lokalne
+w React i resetują się po odświeżeniu, więc wydane punkty nie są jeszcze trwałe.
 Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
 
 ## Pobieranie zadań
@@ -60,6 +59,13 @@ przy tworzeniu. Nieistniejące ID daje HTTP 404, a zadanie oznaczone na serwerze
 jako wykonane — HTTP 409. Zmiany pozostają w pamięci do restartu backendu.
 
 ## Testy i budowanie
+
+`PATCH /api/tasks/{id}/completion` przyjmuje `{"completed":true}` lub `false`.
+`PATCH /api/tasks/{id}/focus` przyjmuje `{"inFocus":true}` lub `false`.
+Oba endpointy zwracają HTTP 200 i aktualne zadanie, zachowując pozostałe pola.
+Brak wartości lub `null` daje HTTP 400, a nieistniejące ID — HTTP 404.
+Ponowienie identycznego żądania nie przełącza wartości. Dane nadal znikają
+po restarcie backendu.
 
 ```powershell
 .\mvnw.cmd verify
