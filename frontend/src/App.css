@@ -54,6 +54,32 @@
   margin-top: 24px;
 }
 
+.page-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page-navigation button[aria-pressed='true'] {
+  background: #5b42a6;
+  color: #fff;
+}
+
+.reward-status {
+  margin-top: 20px;
+  color: #51378e;
+}
+
+.reward-purchases h3 {
+  margin: 20px 0 8px;
+}
+
+.reward-purchases ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
 .empty-state {
   margin-top: 24px;
   color: #666173;

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Task } from './types/Task'
+import type { Reward } from './types/Reward'
+import RewardsPage from './pages/RewardsPage'
 import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
@@ -12,8 +14,16 @@ const initialTasks: Task[] = [
   { id: 3, title: 'Przeczytać rozdział książki', points: 10, completed: false, inFocus: false },
 ]
 
+const rewards: Reward[] = [
+  { id: 1, title: 'Odcinek ulubionego serialu', cost: 20 },
+  { id: 2, title: 'Godzina grania', cost: 40 },
+  { id: 3, title: 'Wieczór filmowy', cost: 60 },
+]
+
 function App() {
+  const [activePage, setActivePage] = useState<'tasks' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState(initialTasks)
+  const [purchases, setPurchases] = useState<Reward[]>([])
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
 
   const focusTasks = tasks.filter((task) => task.inFocus)
@@ -35,10 +45,24 @@ function App() {
     },
   ]
 
-  const points = tasks.reduce(
+  const earnedPoints = tasks.reduce(
     (total, task) => total + (task.completed ? task.points : 0),
     0,
   )
+  const spentPoints = purchases.reduce((total, reward) => total + reward.cost, 0)
+  const points = earnedPoints - spentPoints
+
+  function buyReward(rewardId: number) {
+    const reward = rewards.find((reward) => reward.id === rewardId)
+    if (!reward) return
+
+    setPurchases((currentPurchases) => {
+      const currentSpentPoints = currentPurchases.reduce((total, purchase) => total + purchase.cost, 0)
+      if (earnedPoints - currentSpentPoints < reward.cost) return currentPurchases
+
+      return [...currentPurchases, { ...reward }]
+    })
+  }
 
   function addTask(title: string, taskPoints: number) {
     setTasks((currentTasks) => [
@@ -94,23 +118,53 @@ function App() {
   return (
     <main className="quest-app">
       <Header points={points} />
-
-      {sections.map((section) => (
-        <TaskSection
-          key={section.id}
-          section={section}
-          editingTaskId={editingTaskId}
-          onToggleTask={toggleTask}
-          onToggleFocus={toggleFocus}
-          onStartEditing={startEditing}
-          onSave={saveTask}
-          onCancel={cancelEditing}
+      <nav className="page-navigation" aria-label="Widoki aplikacji">
+        <button
+          type="button"
+          className="secondary-button"
+          aria-pressed={activePage === 'tasks'}
+          aria-controls="tasks-page"
+          onClick={() => setActivePage('tasks')}
         >
-          {section.id === 'backlog' && (
-            <CreateTaskForm onAddTask={addTask} />
-          )}
-        </TaskSection>
-      ))}
+          Zadania
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          aria-pressed={activePage === 'rewards'}
+          aria-controls="rewards-page"
+          onClick={() => setActivePage('rewards')}
+        >
+          Nagrody
+        </button>
+      </nav>
+
+      <div id="tasks-page" hidden={activePage !== 'tasks'}>
+        {sections.map((section) => (
+          <TaskSection
+            key={section.id}
+            section={section}
+            editingTaskId={editingTaskId}
+            onToggleTask={toggleTask}
+            onToggleFocus={toggleFocus}
+            onStartEditing={startEditing}
+            onSave={saveTask}
+            onCancel={cancelEditing}
+          >
+            {section.id === 'backlog' && (
+              <CreateTaskForm onAddTask={addTask} />
+            )}
+          </TaskSection>
+        ))}
+      </div>
+      <div id="rewards-page" hidden={activePage !== 'rewards'}>
+        <RewardsPage
+          rewards={rewards}
+          purchases={purchases}
+          points={points}
+          onBuyReward={buyReward}
+        />
+      </div>
     </main>
   )
 }
