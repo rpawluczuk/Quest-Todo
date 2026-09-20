@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
+import type { Task } from '../types/Task'
 
 type EditTaskFormProps = {
-  readonly title: string
-  readonly points: number
+  readonly task: Task
   readonly onSave: (title: string, points: number) => void
   readonly onCancel: () => void
 }
 
-function EditTaskForm({ title, points, onSave, onCancel }: EditTaskFormProps) {
-  const [editTitle, setEditTitle] = useState(title)
-  const [editPoints, setEditPoints] = useState(String(points))
+function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
+  const [editTitle, setEditTitle] = useState(task.title)
+  const [editPoints, setEditPoints] = useState(String(task.points))
   const [editError, setEditError] = useState('')
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {

@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import type { Task } from './types/Task'
 import EditTaskForm from './components/EditTaskForm'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
 
-const initialTasks = [
+const initialTasks: Task[] = [
   { id: 1, title: 'Poświęcić 20 minut na naukę Reacta', points: 20, completed: false, inFocus: false },
   { id: 2, title: 'Wybrać się na spacer', points: 15, completed: false, inFocus: false },
   { id: 3, title: 'Przeczytać rozdział książki', points: 10, completed: false, inFocus: false },
@@ -102,8 +103,7 @@ function App() {
               <li className={task.completed ? 'task task-completed' : 'task'} key={task.id}>
                 {editingTaskId === task.id ? (
                   <EditTaskForm
-                    title={task.title}
-                    points={task.points}
+                    task={task}
                     onSave={saveTask}
                     onCancel={cancelEditing}
                   />
