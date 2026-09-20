@@ -1,67 +1,56 @@
 package pl.questtodo.task;
 
 import java.util.List;
-import java.util.ArrayList;
 
-import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@Transactional
 public class TaskService {
+    private final TaskRepository taskRepository;
 
-    private final List<Task> tasks = new ArrayList<>(List.of(
-            new Task(1, "Poświęcić 20 minut na naukę Reacta", 20, false, false),
-            new Task(2, "Wybrać się na spacer", 15, false, false),
-            new Task(3, "Przeczytać rozdział książki", 10, false, false)
-    ));
-    private long nextId = 4;
-
-    public synchronized List<Task> getTasks() {
-        return List.copyOf(tasks);
+    public TaskService(TaskRepository taskRepository) {
+        this.taskRepository = taskRepository;
     }
 
-    public synchronized Task createTask(String title, int points) {
-        Task task = new Task(nextId++, title, points, false, false);
-        tasks.add(task);
-        return task;
+    @Transactional(readOnly = true)
+    public List<Task> getTasks() {
+        return taskRepository.findAll(Sort.by("id")).stream()
+                .map(TaskEntity::toTask)
+                .toList();
     }
 
-    public synchronized Task updateCompletion(long id, boolean completed) {
-        int index = findTaskIndex(id);
-        Task task = tasks.get(index);
-        Task updated = new Task(id, task.title(), task.points(), completed, task.inFocus());
-        tasks.set(index, updated);
-        return updated;
+    public Task createTask(String title, int points) {
+        return taskRepository.save(new TaskEntity(title, points)).toTask();
     }
 
-    public synchronized Task updateFocus(long id, boolean inFocus) {
-        int index = findTaskIndex(id);
-        Task task = tasks.get(index);
-        Task updated = new Task(id, task.title(), task.points(), task.completed(), inFocus);
-        tasks.set(index, updated);
-        return updated;
+    public Task updateCompletion(long id, boolean completed) {
+        TaskEntity task = findForUpdate(id);
+        task.setCompleted(completed);
+        return task.toTask();
     }
 
-    private int findTaskIndex(long id) {
-        for (int index = 0; index < tasks.size(); index++) {
-            if (tasks.get(index).id() == id) return index;
+    public Task updateFocus(long id, boolean inFocus) {
+        TaskEntity task = findForUpdate(id);
+        task.setInFocus(inFocus);
+        return task.toTask();
+    }
+
+    public Task updateTask(long id, String title, int points) {
+        TaskEntity task = findForUpdate(id);
+        if (task.isCompleted()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie można edytować wykonanego zadania.");
         }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje.");
+        task.updateDetails(title, points);
+        return task.toTask();
     }
 
-    public synchronized Task updateTask(long id, String title, int points) {
-        for (int index = 0; index < tasks.size(); index++) {
-            Task task = tasks.get(index);
-            if (task.id() == id) {
-                if (task.completed()) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie można edytować wykonanego zadania.");
-                }
-                Task updatedTask = new Task(id, title, points, task.completed(), task.inFocus());
-                tasks.set(index, updatedTask);
-                return updatedTask;
-            }
-        }
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje.");
+    private TaskEntity findForUpdate(long id) {
+        return taskRepository.findForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje."));
     }
 }

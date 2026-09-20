@@ -1,85 +1,85 @@
 # Quest Todo — backend
 
-Java 21, Spring Boot 4.1.1 i Maven Wrapper. Na tym etapie backend udostępnia
-endpoint kontrolny oraz pobieranie, dodawanie i edycję zadań w pamięci. Nie łączy się
-jeszcze z bazą; restart backendu przywraca trzy przykładowe zadania.
+Java 21, Spring Boot, PostgreSQL, Spring Data JPA i Flyway.
 
-## Uruchomienie (PowerShell)
+## Uruchomienie lokalne
 
-W folderze `backend`:
+1. Uruchom Docker Desktop.
+2. W głównym katalogu repozytorium wykonaj:
 
 ```powershell
-$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.5.11-hotspot'
+docker compose up -d --wait
+```
+
+3. W katalogu `backend` uruchom:
+
+```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-Powyższa ścieżka odpowiada obecnie zainstalowanej Javie 21 na komputerze autora.
-Na innym komputerze podaj katalog własnego JDK 21. Ustawienie dotyczy tylko
-bieżącego terminala. Jest potrzebne, jeśli `JAVA_HOME` wskazuje starszą Javę;
-wersję używaną przez Maven sprawdzisz poleceniem `.\mvnw.cmd -v`.
+Maven wymaga JDK 21. Sprawdź `.\mvnw.cmd -v`. Jeśli `JAVA_HOME` wskazuje starszą
+Javę, ustaw w PowerShell `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.5.11-hotspot'`
+(lub ścieżkę swojego JDK). W CMD użyj `set "JAVA_HOME=C:\ścieżka\do\jdk-21"`.
 
-Pierwsze uruchomienie wymaga internetu: wrapper pobiera Maven i zależności.
-Java 21 musi być dostępna przez `JAVA_HOME` lub `PATH`.
+Frontend uruchom osobno w `frontend` przez `npm run dev`. Proxy Vite przekazuje
+`/api` do localhost:8080. Konfiguracja proxy dotyczy serwera deweloperskiego.
 
-Otwórz http://localhost:8080/api/health — oczekiwana odpowiedź:
+## Baza danych
 
-```json
-{"status":"UP"}
-```
+Compose udostępnia PostgreSQL 17 tylko na `localhost:5432`:
 
-Zatrzymanie serwera: `Ctrl+C`. Frontend uruchamiamy osobno w `frontend` przez
-`npm run dev`. Frontend pobiera zadania z `/api/tasks`; serwer deweloperski Vite
-przekazuje żądania `/api` do `http://localhost:8080`. Po zmianie konfiguracji
-Vite uruchom go ponownie. To proxy dotyczy pracy przez `npm run dev`;
-wdrożenie produkcyjne będzie wymagało osobnej konfiguracji kierowania `/api`.
+- baza: `quest_todo`
+- użytkownik: `quest_todo`
+- hasło lokalne: `quest_todo_local`
 
-Dodawanie, edycja, wykonanie i przenoszenie zadań zapisują zmiany na backendzie.
-Odświeżenie strony zachowuje zadania i ich stan. Zakupy nadal są lokalne
-w React i resetują się po odświeżeniu, więc wydane punkty nie są jeszcze trwałe.
-Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
+To dane do lokalnej nauki. Backend pozwala je zastąpić przez `DB_URL`, `DB_USER`
+i `DB_PASSWORD`. Wolumen `quest-todo_postgres_data` przechowuje dane po restarcie
+backendu i kontenera. `docker compose stop` zatrzymuje bazę; `docker compose up -d --wait`
+uruchamia ją ponownie. Nie używaj `docker compose down -v`, jeśli chcesz zachować dane:
+opcja `-v` usuwa wolumen.
 
-## Pobieranie zadań
+Flyway uruchamia migracje z `src/main/resources/db/migration` i zapamiętuje wykonane
+wersje w bazie. `V1__create_tasks.sql` tworzy tabelę i dodaje trzy przykładowe zadania
+jednorazowo. Kolejne zmiany struktury dodawaj jako nowe migracje — nie edytuj wykonanych.
+Hibernate sprawdza strukturę (`ddl-auto=validate`), ale jej nie zmienia.
 
-Otwórz http://localhost:8080/api/tasks. `GET /api/tasks` zwraca tablicę trzech
-przykładowych zadań. Każde zawiera pola `id`, `title`, `points`, `completed`
-i `inFocus`, zgodne z nazwami pól frontendu. Zadania są przechowywane w pamięci
-w `TaskService`.
+Zadania zapisane wcześniej w pamięci starego backendu nie są automatycznie przenoszone.
+Zakupy nagród nadal pozostają w React i resetują się po odświeżeniu strony.
 
-`POST /api/tasks` przyjmuje np. `{"title":"Trening","points":15}` i zwraca
-HTTP 201 oraz nowe zadanie z ID nadanym przez serwer. Nowe zadanie ma
-`completed: false` i `inFocus: false`. Nazwa jest przycinana; pusta nazwa
-lub punkty inne niż liczba całkowita od 1 do 2147483647 powodują HTTP 400.
+## API
 
-Po zmianie kodu zatrzymaj i uruchom backend ponownie.
+- `GET /api/health` — `{"status":"UP"}` (informacja o działaniu HTTP, nie test bazy).
+- `GET /api/tasks` — zadania uporządkowane według ID.
+- `POST /api/tasks` — `{"title":"Trening","points":15}`, odpowiedź 201 i nowe zadanie.
+- `PATCH /api/tasks/{id}` — oba pola `title` i `points`, odpowiedź 200; wykonane zadanie daje 409.
+- `PATCH /api/tasks/{id}/completion` — `{"completed":true}` lub `false`.
+- `PATCH /api/tasks/{id}/focus` — `{"inFocus":true}` lub `false`.
 
-`PATCH /api/tasks/{id}` przyjmuje oba pola `title` i `points`, np.
-`{"title":"Trening wieczorem","points":25}`. Zwraca HTTP 200 i zaktualizowane
-zadanie. Nie zmienia `completed` ani `inFocus`. Walidacja jest taka sama jak
-przy tworzeniu. Nieistniejące ID daje HTTP 404, a zadanie oznaczone na serwerze
-jako wykonane — HTTP 409. Zmiany pozostają w pamięci do restartu backendu.
+Nazwa nie może być pusta; punkty muszą być całkowite, od 1 do 2147483647.
+Błędne dane dają 400, nieistniejące zadanie — 404. Powtórzenie żądania zmiany
+stanu nie przełącza wartości. Restart backendu nie usuwa zadań.
 
-## Testy i budowanie
+## Podział kodu
 
-`PATCH /api/tasks/{id}/completion` przyjmuje `{"completed":true}` lub `false`.
-`PATCH /api/tasks/{id}/focus` przyjmuje `{"inFocus":true}` lub `false`.
-Oba endpointy zwracają HTTP 200 i aktualne zadanie, zachowując pozostałe pola.
-Brak wartości lub `null` daje HTTP 400, a nieistniejące ID — HTTP 404.
-Ponowienie identycznego żądania nie przełącza wartości. Dane nadal znikają
-po restarcie backendu.
+- `TaskController` — HTTP i walidacja żądań.
+- `TaskService` — operacje w transakcjach i reguły edycji.
+- `TaskRepository` — dostęp do tabeli przez JPA; zmiany blokują aktualizowany wiersz,
+  aby równoległe żądania nie nadpisywały innych pól.
+- `TaskEntity` — encja JPA mapowana na tabelę `tasks`.
+- `Task` — rekord odpowiedzi API; format JSON frontendu pozostaje bez zmian.
+
+## Testy
+
+W folderze `backend`:
 
 ```powershell
 .\mvnw.cmd verify
 ```
 
-Ta komenda uruchamia testy i tworzy wykonywalny plik JAR w `target/`.
+Testy korzystają z osobnej H2 w pamięci (tryb zgodności PostgreSQL) i tych samych
+migracji Flyway. Nie wymagają Dockera i nie modyfikują lokalnego PostgreSQL.
+H2 nie zastępuje sprawdzenia na prawdziwym PostgreSQL.
+
+Ręcznie: dodaj zadanie, zmień nazwę, przenieś do Focus i wykonaj. Zatrzymaj backend
+przez Ctrl+C, uruchom ponownie i odśwież frontend. Zadanie i jego stan powinny pozostać.
 Na Linux/macOS użyj `./mvnw` zamiast `.\mvnw.cmd`.
-
-## Pliki
-
-- `pom.xml` — zależności oraz konfiguracja budowania Maven.
-- `mvnw`, `mvnw.cmd`, `.mvn/` — wrapper, dzięki któremu nie trzeba instalować Maven globalnie.
-- `src/main/java/pl/questtodo/QuestTodoApplication.java` — punkt wejścia aplikacji.
-- `src/main/java/pl/questtodo/health/HealthController.java` — obsługa `GET /api/health`.
-- `src/main/java/pl/questtodo/task/` — rekord `Task`, serwis z danymi i kontroler HTTP.
-- `src/main/resources/application.properties` — konfiguracja aplikacji.
-- `src/test/java/` — test uruchomienia kontekstu i odpowiedzi endpointu.

@@ -3,10 +3,10 @@ package pl.questtodo.task;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,8 +17,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(TaskController.class)
-@Import(TaskService.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@Sql("/reset-tasks.sql")
 class TaskControllerTests {
 
     @Autowired
@@ -26,7 +27,6 @@ class TaskControllerTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"completion", "focus"})
-    @DirtiesContext
     void persistsStateAndRepeatedRequestsDoNotToggleIt(String endpoint) throws Exception {
         String field = endpoint.equals("completion") ? "completed" : "inFocus";
         String otherField = endpoint.equals("completion") ? "inFocus" : "completed";
@@ -66,7 +66,6 @@ class TaskControllerTests {
     }
 
     @Test
-    @DirtiesContext
     void updatesTaskAndPreservesOtherFields() throws Exception {
         mockMvc.perform(patch("/api/tasks/1").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"  Nowa nazwa  \",\"points\":25}"))
@@ -91,7 +90,6 @@ class TaskControllerTests {
     }
 
     @Test
-    @DirtiesContext
     void createsTaskAndIncludesItInNextRead() throws Exception {
         mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"  Trening  \",\"points\":15}"))
