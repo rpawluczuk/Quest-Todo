@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
 import Header from './components/Header'
+import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
 
 const initialTasks = [
@@ -12,9 +13,6 @@ const initialTasks = [
 function App() {
   const [tasks, setTasks] = useState(initialTasks)
   const [editingSection, setEditingSection] = useState<'backlog' | 'focus' | null>(null)
-  const [newTitle, setNewTitle] = useState('')
-  const [newPoints, setNewPoints] = useState('10')
-  const [formError, setFormError] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editPoints, setEditPoints] = useState('')
@@ -32,22 +30,7 @@ function App() {
     0,
   )
 
-  function addTask(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const title = newTitle.trim()
-    const taskPoints = Number(newPoints)
-
-    if (!title) {
-      setFormError('Wpisz nazwę zadania — same spacje nie wystarczą.')
-      return
-    }
-
-    if (!Number.isSafeInteger(taskPoints) || taskPoints <= 0) {
-      setFormError('Punkty muszą być dodatnią liczbą całkowitą.')
-      return
-    }
-
+  function addTask(title: string, taskPoints: number) {
     setTasks((currentTasks) => [
       ...currentTasks,
       {
@@ -58,9 +41,6 @@ function App() {
         inFocus: false,
       },
     ])
-    setNewTitle('')
-    setNewPoints('10')
-    setFormError('')
   }
 
   function startEditing(taskId: number, sectionId: 'backlog' | 'focus') {
@@ -135,32 +115,7 @@ function App() {
             <p>{section.description}</p>
           </div>
           {section.id === 'backlog' && (
-            <form className="task-form" onSubmit={addTask}>
-              <label className="form-field">
-                <span>Nazwa zadania</span>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(event) => setNewTitle(event.target.value)}
-                  placeholder="Co chcesz zrobić?"
-                  required
-                />
-              </label>
-              <label className="form-field">
-                <span>Punkty</span>
-                <input
-                  type="number"
-                  value={newPoints}
-                  onChange={(event) => setNewPoints(event.target.value)}
-                  min="1"
-                  max={Number.MAX_SAFE_INTEGER}
-                  step="1"
-                  required
-                />
-              </label>
-              <button type="submit">Dodaj zadanie</button>
-              {formError && <p className="form-error" role="alert">{formError}</p>}
-            </form>
+            <CreateTaskForm onAddTask={addTask} />
           )}
           {section.tasks.length === 0 && (
             <p className="empty-state">
