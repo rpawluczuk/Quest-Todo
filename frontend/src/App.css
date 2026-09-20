@@ -89,7 +89,8 @@
   font-weight: 400;
 }
 
-.task-form button {
+.task-form button,
+.secondary-button {
   padding: 10px 16px;
   border: 1px solid #5b42a6;
   border-radius: 8px;
@@ -106,9 +107,38 @@
 }
 
 .task-form input:focus-visible,
-.task-form button:focus-visible {
+.task-form button:focus-visible,
+.secondary-button:focus-visible {
   outline: 2px solid #5b42a6;
   outline-offset: 3px;
+}
+
+.edit-form {
+  width: 100%;
+  margin-top: 0;
+}
+
+.task-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secondary-button,
+.task-form .secondary-button {
+  background: #fff;
+  color: #5b42a6;
+}
+
+.secondary-button:hover,
+.task-form .secondary-button:hover {
+  background: #f1ecfa;
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .form-error {
@@ -197,6 +227,7 @@
   }
 
   .task {
+    flex-wrap: wrap;
     padding: 14px 12px;
   }
 }
