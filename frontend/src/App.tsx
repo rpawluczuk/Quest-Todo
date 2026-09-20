@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { SubmitEvent } from 'react'
+import EditTaskForm from './components/EditTaskForm'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
@@ -12,11 +12,7 @@ const initialTasks = [
 
 function App() {
   const [tasks, setTasks] = useState(initialTasks)
-  const [editingSection, setEditingSection] = useState<'backlog' | 'focus' | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
-  const [editTitle, setEditTitle] = useState('')
-  const [editPoints, setEditPoints] = useState('')
-  const [editError, setEditError] = useState('')
 
   const focusTasks = tasks.filter((task) => task.inFocus)
   const backlogTasks = tasks.filter((task) => !task.inFocus)
@@ -43,41 +39,18 @@ function App() {
     ])
   }
 
-  function startEditing(taskId: number, sectionId: 'backlog' | 'focus') {
+  function startEditing(taskId: number) {
     const task = tasks.find((task) => task.id === taskId)
     if (!task || task.completed) return
 
     setEditingTaskId(task.id)
-    setEditingSection(sectionId)
-    setEditTitle(task.title)
-    setEditPoints(String(task.points))
-    setEditError('')
   }
 
   function cancelEditing() {
     setEditingTaskId(null)
-    setEditingSection(null)
-    setEditTitle('')
-    setEditPoints('')
-    setEditError('')
   }
 
-  function saveTask(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const title = editTitle.trim()
-    const taskPoints = Number(editPoints)
-
-    if (!title) {
-      setEditError('Wpisz nazwę zadania — same spacje nie wystarczą.')
-      return
-    }
-
-    if (!Number.isSafeInteger(taskPoints) || taskPoints <= 0) {
-      setEditError('Punkty muszą być dodatnią liczbą całkowitą.')
-      return
-    }
-
+  function saveTask(title: string, taskPoints: number) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
         task.id === editingTaskId && !task.completed
@@ -127,37 +100,13 @@ function App() {
           <ul className="task-list">
             {section.tasks.map((task) => (
               <li className={task.completed ? 'task task-completed' : 'task'} key={task.id}>
-                {editingTaskId === task.id && editingSection === section.id ? (
-                  <form className="task-form edit-form" onSubmit={saveTask}>
-                    <label className="form-field">
-                      <span>Nazwa zadania</span>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(event) => setEditTitle(event.target.value)}
-                        required
-                      />
-                    </label>
-                    <label className="form-field">
-                      <span>Punkty</span>
-                      <input
-                        type="number"
-                        value={editPoints}
-                        onChange={(event) => setEditPoints(event.target.value)}
-                        min="1"
-                        max={Number.MAX_SAFE_INTEGER}
-                        step="1"
-                        required
-                      />
-                    </label>
-                    <div className="task-actions">
-                      <button type="submit">Zapisz</button>
-                      <button type="button" className="secondary-button" onClick={cancelEditing}>
-                        Anuluj
-                      </button>
-                    </div>
-                    {editError && <p className="form-error" role="alert">{editError}</p>}
-                  </form>
+                {editingTaskId === task.id ? (
+                  <EditTaskForm
+                    title={task.title}
+                    points={task.points}
+                    onSave={saveTask}
+                    onCancel={cancelEditing}
+                  />
                 ) : (
                   <>
                     <label className="task-label">
@@ -184,7 +133,7 @@ function App() {
                         <button
                           type="button"
                           className="secondary-button"
-                          onClick={() => startEditing(task.id, section.id)}
+                          onClick={() => startEditing(task.id)}
                           disabled={editingTaskId !== null}
                           aria-label={`Edytuj zadanie: ${task.title}`}
                         >
