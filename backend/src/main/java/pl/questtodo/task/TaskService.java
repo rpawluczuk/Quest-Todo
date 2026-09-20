@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class TaskService {
@@ -23,5 +25,20 @@ public class TaskService {
         Task task = new Task(nextId++, title, points, false, false);
         tasks.add(task);
         return task;
+    }
+
+    public synchronized Task updateTask(long id, String title, int points) {
+        for (int index = 0; index < tasks.size(); index++) {
+            Task task = tasks.get(index);
+            if (task.id() == id) {
+                if (task.completed()) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie można edytować wykonanego zadania.");
+                }
+                Task updatedTask = new Task(id, title, points, task.completed(), task.inFocus());
+                tasks.set(index, updatedTask);
+                return updatedTask;
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje.");
     }
 }

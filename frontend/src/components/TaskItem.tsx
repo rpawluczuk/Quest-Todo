@@ -8,7 +8,7 @@ type TaskItemProps = {
   readonly onToggleTask: (taskId: number) => void
   readonly onToggleFocus: (taskId: number) => void
   readonly onStartEditing: (taskId: number) => void
-  readonly onSave: (title: string, points: number) => void
+  readonly onSave: (title: string, points: number) => Promise<void>
   readonly onCancel: () => void
 }
 

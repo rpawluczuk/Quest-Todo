@@ -1,6 +1,9 @@
 package pl.questtodo.task;
 
 import java.util.List;
+import java.math.BigDecimal;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,21 +32,32 @@ public class TaskController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTask(@RequestBody CreateTaskRequest request) {
-        if (request.title() == null || request.title().isBlank()) {
+        int points = validateTask(request.title(), request.points());
+        return taskService.createTask(request.title().strip(), points);
+    }
+
+    @PatchMapping("/{id}")
+    public Task updateTask(@PathVariable long id, @RequestBody UpdateTaskRequest request) {
+        int points = validateTask(request.title(), request.points());
+        return taskService.updateTask(id, request.title().strip(), points);
+    }
+
+    private int validateTask(String title, BigDecimal requestedPoints) {
+        if (title == null || title.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nazwa zadania jest wymagana.");
         }
-        if (request.points() == null) {
+        if (requestedPoints == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty są wymagane.");
         }
         int points;
         try {
-            points = request.points().intValueExact();
+            points = requestedPoints.intValueExact();
         } catch (ArithmeticException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty muszą być liczbą całkowitą w zakresie int.");
         }
         if (points <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty muszą być dodatnie.");
         }
-        return taskService.createTask(request.title().strip(), points);
+        return points;
     }
 }

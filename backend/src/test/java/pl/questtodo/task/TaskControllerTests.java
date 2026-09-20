@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,6 +23,31 @@ class TaskControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    @DirtiesContext
+    void updatesTaskAndPreservesOtherFields() throws Exception {
+        mockMvc.perform(patch("/api/tasks/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"  Nowa nazwa  \",\"points\":25}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.title").value("Nowa nazwa"))
+                .andExpect(jsonPath("$.points").value(25))
+                .andExpect(jsonPath("$.completed").value(false))
+                .andExpect(jsonPath("$.inFocus").value(false));
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].title").value("Nowa nazwa"))
+                .andExpect(jsonPath("$[0].points").value(25))
+                .andExpect(jsonPath("$[1].points").value(15));
+    }
+
+    @Test
+    void returnsNotFoundForMissingTask() throws Exception {
+        mockMvc.perform(patch("/api/tasks/999").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Test\",\"points\":10}"))
+                .andExpect(status().isNotFound());
+    }
 
     @Test
     @DirtiesContext
@@ -54,10 +80,13 @@ class TaskControllerTests {
             "{\"title\":\"Test\",\"points\":2147483648}"
     })
     void rejectsInvalidTasksWithoutSaving(String body) throws Exception {
+        mockMvc.perform(patch("/api/tasks/1").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/tasks"))
-                .andExpect(jsonPath("$.length()").value(3));
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].points").value(20));
     }
 
     @Test

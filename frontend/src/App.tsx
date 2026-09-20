@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createTask, getTasks } from './api/taskApi'
+import { createTask, getTasks, updateTask } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -101,11 +101,13 @@ function App() {
     setEditingTaskId(null)
   }
 
-  function saveTask(title: string, taskPoints: number) {
+  async function saveTask(title: string, taskPoints: number) {
+    if (editingTaskId === null) return
+    const updatedTask = await updateTask(editingTaskId, title, taskPoints)
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
         task.id === editingTaskId && !task.completed
-          ? { ...task, title, points: taskPoints }
+          ? { ...task, title: updatedTask.title, points: updatedTask.points }
           : task,
       ),
     )

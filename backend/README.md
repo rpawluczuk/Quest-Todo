@@ -1,7 +1,7 @@
 # Quest Todo — backend
 
 Java 21, Spring Boot 4.1.1 i Maven Wrapper. Na tym etapie backend udostępnia
-endpoint kontrolny oraz pobieranie i dodawanie zadań w pamięci. Nie łączy się
+endpoint kontrolny oraz pobieranie, dodawanie i edycję zadań w pamięci. Nie łączy się
 jeszcze z bazą; restart backendu przywraca trzy przykładowe zadania.
 
 ## Uruchomienie (PowerShell)
@@ -33,9 +33,10 @@ przekazuje żądania `/api` do `http://localhost:8080`. Po zmianie konfiguracji
 Vite uruchom go ponownie. To proxy dotyczy pracy przez `npm run dev`;
 wdrożenie produkcyjne będzie wymagało osobnej konfiguracji kierowania `/api`.
 
-Dodawanie zapisuje zadanie na backendzie. Edycja, wykonanie, przenoszenie zadań
-i zakupy nadal działają lokalnie w React. Odświeżenie strony zachowuje dodane
-zadania, ale przywraca ich stan z serwera i zeruje zakupy.
+Dodawanie oraz edycja nazwy i punktów zapisują zmiany na backendzie.
+Wykonanie, przenoszenie zadań i zakupy nadal działają lokalnie w React.
+Odświeżenie strony zachowuje dodane zadania i ich edycję, ale przywraca
+stan wykonania i Focus z serwera oraz zeruje zakupy.
 Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
 
 ## Pobieranie zadań
@@ -51,6 +52,12 @@ HTTP 201 oraz nowe zadanie z ID nadanym przez serwer. Nowe zadanie ma
 lub punkty inne niż liczba całkowita od 1 do 2147483647 powodują HTTP 400.
 
 Po zmianie kodu zatrzymaj i uruchom backend ponownie.
+
+`PATCH /api/tasks/{id}` przyjmuje oba pola `title` i `points`, np.
+`{"title":"Trening wieczorem","points":25}`. Zwraca HTTP 200 i zaktualizowane
+zadanie. Nie zmienia `completed` ani `inFocus`. Walidacja jest taka sama jak
+przy tworzeniu. Nieistniejące ID daje HTTP 404, a zadanie oznaczone na serwerze
+jako wykonane — HTTP 409. Zmiany pozostają w pamięci do restartu backendu.
 
 ## Testy i budowanie
 
