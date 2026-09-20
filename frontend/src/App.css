@@ -50,7 +50,16 @@
   font-size: 1.4rem;
 }
 
-.today-section {
+.tasks-section + .tasks-section {
+  margin-top: 24px;
+}
+
+.empty-state {
+  margin-top: 24px;
+  color: #666173;
+}
+
+.tasks-section {
   padding: 28px;
   border: 1px solid #e5e1eb;
   border-radius: 20px;
@@ -157,6 +166,7 @@
 
 .task {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -222,7 +232,7 @@
     margin-bottom: 24px;
   }
 
-  .today-section {
+  .tasks-section {
     padding: 20px 16px;
   }
 
