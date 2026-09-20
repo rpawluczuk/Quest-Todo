@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getTasks } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -8,12 +9,6 @@ import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
 
-const initialTasks: Task[] = [
-  { id: 1, title: 'Poświęcić 20 minut na naukę Reacta', points: 20, completed: false, inFocus: false },
-  { id: 2, title: 'Wybrać się na spacer', points: 15, completed: false, inFocus: false },
-  { id: 3, title: 'Przeczytać rozdział książki', points: 10, completed: false, inFocus: false },
-]
-
 const rewards: Reward[] = [
   { id: 1, title: 'Odcinek ulubionego serialu', cost: 20 },
   { id: 2, title: 'Godzina grania', cost: 40 },
@@ -22,9 +17,35 @@ const rewards: Reward[] = [
 
 function App() {
   const [activePage, setActivePage] = useState<'tasks' | 'rewards'>('tasks')
-  const [tasks, setTasks] = useState(initialTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [purchases, setPurchases] = useState<Reward[]>([])
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadTasks() {
+      try {
+        const loadedTasks = await getTasks(controller.signal)
+        if (!controller.signal.aborted) {
+          setTasks(loadedTasks)
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setLoadError('Nie udało się pobrać zadań. Sprawdź, czy backend działa, i odśwież stronę.')
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadTasks()
+    return () => controller.abort()
+  }, [])
 
   const focusTasks = tasks.filter((task) => task.inFocus)
   const backlogTasks = tasks.filter((task) => !task.inFocus)
@@ -140,7 +161,9 @@ function App() {
       </nav>
 
       <div id="tasks-page" hidden={activePage !== 'tasks'}>
-        {sections.map((section) => (
+        {isLoading && <p role="status">Ładowanie zadań…</p>}
+        {loadError && <p className="form-error" role="alert">{loadError}</p>}
+        {!isLoading && !loadError && sections.map((section) => (
           <TaskSection
             key={section.id}
             section={section}

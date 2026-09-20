@@ -28,7 +28,14 @@ Otwórz http://localhost:8080/api/health — oczekiwana odpowiedź:
 ```
 
 Zatrzymanie serwera: `Ctrl+C`. Frontend uruchamiamy osobno w `frontend` przez
-`npm run dev`; nie jest jeszcze połączony z backendem.
+`npm run dev`. Frontend pobiera zadania z `/api/tasks`; serwer deweloperski Vite
+przekazuje żądania `/api` do `http://localhost:8080`. Po zmianie konfiguracji
+Vite uruchom go ponownie. To proxy dotyczy pracy przez `npm run dev`;
+wdrożenie produkcyjne będzie wymagało osobnej konfiguracji kierowania `/api`.
+
+Dodawanie, edycja, wykonanie zadań i zakupy nadal działają lokalnie w React.
+Odświeżenie strony pobiera początkowe zadania z serwera i zeruje zakupy.
+Przy wyłączonym backendzie frontend pokazuje komunikat błędu zamiast listy.
 
 ## Pobieranie zadań
 
