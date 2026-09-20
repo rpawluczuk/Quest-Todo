@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Task } from './types/Task'
+import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
@@ -17,7 +18,7 @@ function App() {
 
   const focusTasks = tasks.filter((task) => task.inFocus)
   const backlogTasks = tasks.filter((task) => !task.inFocus)
-  const sections = [
+  const sections: TaskSectionData[] = [
     {
       id: 'focus',
       title: 'Focus',
@@ -97,11 +98,7 @@ function App() {
       {sections.map((section) => (
         <TaskSection
           key={section.id}
-          id={section.id}
-          title={section.title}
-          description={section.description}
-          emptyMessage={section.emptyMessage}
-          tasks={section.tasks}
+          section={section}
           editingTaskId={editingTaskId}
           onToggleTask={toggleTask}
           onToggleFocus={toggleFocus}

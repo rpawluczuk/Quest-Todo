@@ -1,13 +1,9 @@
 import type { ReactNode } from 'react'
-import type { Task } from '../types/Task'
+import type { TaskSectionData } from '../types/TaskSectionData'
 import TaskItem from './TaskItem'
 
 type TaskSectionProps = {
-  readonly id: string
-  readonly title: string
-  readonly description: string
-  readonly emptyMessage: string
-  readonly tasks: readonly Task[]
+  readonly section: TaskSectionData
   readonly editingTaskId: number | null
   readonly onToggleTask: (taskId: number) => void
   readonly onToggleFocus: (taskId: number) => void
@@ -18,11 +14,7 @@ type TaskSectionProps = {
 }
 
 function TaskSection({
-  id,
-  title,
-  description,
-  emptyMessage,
-  tasks,
+  section,
   editingTaskId,
   onToggleTask,
   onToggleFocus,
@@ -31,6 +23,8 @@ function TaskSection({
   onCancel,
   children,
 }: TaskSectionProps) {
+  const { id, title, description, emptyMessage, tasks } = section
+
   return (
     <section className="tasks-section" aria-labelledby={`${id}-heading`}>
       <div className="section-header">
