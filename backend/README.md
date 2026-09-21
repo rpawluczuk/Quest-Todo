@@ -50,6 +50,7 @@ Zakupy nagród nadal pozostają w React i resetują się po odświeżeniu strony
 
 - `GET /api/health` — `{"status":"UP"}` (informacja o działaniu HTTP, nie test bazy).
 - `GET /api/tasks` — zadania uporządkowane według ID.
+- `GET /api/rewards` — nagrody z PostgreSQL, uporządkowane według ID; pola `id`, `title`, `cost`.
 - `POST /api/tasks` — `{"title":"Trening","points":15}`, odpowiedź 201 i nowe zadanie.
 - `PATCH /api/tasks/{id}` — oba pola `title` i `points`, odpowiedź 200; wykonane zadanie daje 409.
 - `PATCH /api/tasks/{id}/completion` — `{"completed":true}` lub `false`.
@@ -60,6 +61,11 @@ Błędne dane dają 400, nieistniejące zadanie — 404. Powtórzenie żądania 
 stanu nie przełącza wartości. Restart backendu nie usuwa zadań.
 
 ## Podział kodu
+
+Pakiet `reward` udostępnia odczyt nagród przez kontroler, serwis i repozytorium JPA.
+Migracja `V2__create_rewards.sql` tworzy tabelę i jednorazowo dodaje trzy nagrody.
+Frontend pobiera je przez `rewardApi.ts`. Kupowanie i saldo nadal są obsługiwane
+lokalnie — ta zmiana nie zapisuje zakupów w bazie.
 
 - `TaskController` — HTTP i walidacja żądań.
 - `TaskService` — operacje w transakcjach i reguły edycji.

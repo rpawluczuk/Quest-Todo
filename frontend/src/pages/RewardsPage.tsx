@@ -20,6 +20,7 @@ function RewardsPage({ rewards, purchases, points, onBuyReward }: RewardsPagePro
         </p>
       )}
       <ul className="task-list">
+        {rewards.length === 0 && <li className="empty-state">Brak dostępnych nagród.</li>}
         {rewards.map((reward) => (
           <li className="task" key={reward.id}>
             <span className="task-title">{reward.title}</span>

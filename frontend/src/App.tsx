@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getRewards } from './api/rewardApi'
 import { createTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
@@ -9,19 +10,34 @@ import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import './App.css'
 
-const rewards: Reward[] = [
-  { id: 1, title: 'Odcinek ulubionego serialu', cost: 20 },
-  { id: 2, title: 'Godzina grania', cost: 40 },
-  { id: 3, title: 'Wieczór filmowy', cost: 60 },
-]
-
 function App() {
   const [activePage, setActivePage] = useState<'tasks' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [rewardsLoading, setRewardsLoading] = useState(true)
+  const [rewardsError, setRewardsError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [purchases, setPurchases] = useState<Reward[]>([])
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadRewards() {
+      try {
+        const loadedRewards = await getRewards(controller.signal)
+        if (!controller.signal.aborted) setRewards(loadedRewards)
+      } catch {
+        if (!controller.signal.aborted) {
+          setRewardsError('Nie udało się pobrać nagród. Sprawdź backend i odśwież stronę.')
+        }
+      } finally {
+        if (!controller.signal.aborted) setRewardsLoading(false)
+      }
+    }
+    void loadRewards()
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -172,12 +188,16 @@ function App() {
         ))}
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
+        {rewardsLoading && <p role="status">Ładowanie nagród…</p>}
+        {rewardsError && <p className="form-error" role="alert">{rewardsError}</p>}
+        {!rewardsLoading && !rewardsError && (
         <RewardsPage
           rewards={rewards}
           purchases={purchases}
           points={points}
           onBuyReward={buyReward}
         />
+        )}
       </div>
     </main>
   )

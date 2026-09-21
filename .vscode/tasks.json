@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Quest Todo: baza — start",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "up", "-d", "--wait"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Quest Todo: frontend",
+      "type": "shell",
+      "command": "npm",
+      "windows": { "command": "npm.cmd" },
+      "args": ["run", "dev"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Quest Todo: backend",
+      "type": "shell",
+      "command": "./mvnw",
+      "windows": {
+        "command": ".\\mvnw.cmd",
+        "options": {
+          "cwd": "${workspaceFolder}/backend",
+          "env": {
+            "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.5.11-hotspot"
+          }
+        }
+      },
+      "args": ["spring-boot:run"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "dependsOn": ["Quest Todo: baza — start"],
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Quest Todo: uruchom wszystko",
+      "dependsOn": ["Quest Todo: frontend", "Quest Todo: backend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Quest Todo: baza — stop",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "stop"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    }
+  ]
+}
