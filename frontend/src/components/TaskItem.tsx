@@ -11,6 +11,7 @@ type TaskItemProps = {
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number) => Promise<void>
   readonly onCancel: () => void
+  readonly onDelete: (taskId: number) => Promise<void>
 }
 
 function TaskItem({
@@ -22,12 +23,16 @@ function TaskItem({
   onStartEditing,
   onSave,
   onCancel,
+  onDelete,
 }: TaskItemProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const savingRef = useRef(false)
 
-  async function saveChange(action: (taskId: number) => Promise<void>) {
+  async function saveChange(
+    action: (taskId: number) => Promise<void>,
+    errorMessage = 'Nie udało się zapisać zmiany. Sprawdź połączenie z backendem i spróbuj ponownie.',
+  ) {
     if (savingRef.current) return
     savingRef.current = true
     setIsSaving(true)
@@ -35,7 +40,7 @@ function TaskItem({
     try {
       await action(task.id)
     } catch {
-      setError('Nie udało się zapisać zmiany. Sprawdź połączenie z backendem i spróbuj ponownie.')
+      setError(errorMessage)
     } finally {
       savingRef.current = false
       setIsSaving(false)
@@ -58,6 +63,16 @@ function TaskItem({
             <span className="task-title">{task.title}</span>
           </label>
           <div className="task-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={isAnyTaskEditing || isSaving}
+              onClick={() => void saveChange(onDelete, 'Nie udało się usunąć zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')}
+              aria-label={`Usuń zadanie: ${task.title}`}
+              title={task.completed ? 'Usunięcie odejmie punkty za to zadanie.' : 'Usuń zadanie'}
+            >
+              Usuń
+            </button>
             <span className="task-points">{task.points} pkt</span>
             <button
               type="button"

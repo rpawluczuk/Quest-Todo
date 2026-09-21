@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -24,6 +25,37 @@ class TaskControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void deletesTaskPermanentlyIncludingCompletedFocusTask(boolean completed) throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":" + completed + "}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/tasks/1/focus").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inFocus\":true}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/tasks/1"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[1].id").value(3));
+        mockMvc.perform(delete("/api/tasks/1"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(patch("/api/tasks/1/focus").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inFocus\":false}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deletingUnknownTaskDoesNotChangeOthers() throws Exception {
+        mockMvc.perform(delete("/api/tasks/999"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$.length()").value(3));
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"completion", "focus"})

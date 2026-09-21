@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getRewards } from './api/rewardApi'
-import { createTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
+import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -130,6 +130,11 @@ function App() {
     cancelEditing()
   }
 
+  async function removeTask(taskId: number) {
+    await deleteTask(taskId)
+    setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskId))
+  }
+
   async function toggleFocus(taskId: number) {
     const task = tasks.find((task) => task.id === taskId)
     if (!task) return
@@ -176,6 +181,7 @@ function App() {
             section={section}
             editingTaskId={editingTaskId}
             onToggleTask={toggleTask}
+            onDelete={removeTask}
             onToggleFocus={toggleFocus}
             onStartEditing={startEditing}
             onSave={saveTask}

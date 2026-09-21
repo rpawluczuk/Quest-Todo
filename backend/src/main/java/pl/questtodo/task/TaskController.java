@@ -1,6 +1,7 @@
 package pl.questtodo.task;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import java.math.BigDecimal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +57,12 @@ public class TaskController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pole inFocus jest wymagane.");
         }
         return taskService.updateFocus(id, request.inFocus());
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTask(@PathVariable long id) {
+        taskService.deleteTask(id);
     }
 
     private int validateTask(String title, BigDecimal requestedPoints) {

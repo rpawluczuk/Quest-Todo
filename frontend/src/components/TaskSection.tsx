@@ -10,6 +10,7 @@ type TaskSectionProps = {
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number) => Promise<void>
   readonly onCancel: () => void
+  readonly onDelete: (taskId: number) => Promise<void>
   readonly children?: ReactNode
 }
 
@@ -21,6 +22,7 @@ function TaskSection({
   onStartEditing,
   onSave,
   onCancel,
+  onDelete,
   children,
 }: TaskSectionProps) {
   const { id, title, description, emptyMessage, tasks } = section
@@ -45,6 +47,7 @@ function TaskSection({
             onStartEditing={onStartEditing}
             onSave={onSave}
             onCancel={onCancel}
+            onDelete={onDelete}
           />
         ))}
       </ul>

@@ -1,5 +1,13 @@
 import type { Task } from '../types/Task'
 
+export async function deleteTask(id: number): Promise<void> {
+  const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+  // Zadanie mogło zostać usunięte w innym oknie lub podczas poprzedniej próby.
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Nie udało się usunąć zadania (HTTP ${response.status}).`)
+  }
+}
+
 async function updateTaskState(id: number, endpoint: string, body: object): Promise<Task> {
   const response = await fetch(`/api/tasks/${id}/${endpoint}`, {
     method: 'PATCH',

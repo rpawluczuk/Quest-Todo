@@ -49,6 +49,10 @@ public class TaskService {
         return task.toTask();
     }
 
+    public void deleteTask(long id) {
+        taskRepository.delete(findForUpdate(id));
+    }
+
     private TaskEntity findForUpdate(long id) {
         return taskRepository.findForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje."));
