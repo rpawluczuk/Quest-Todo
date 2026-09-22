@@ -6,10 +6,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import pl.questtodo.user.UserEntity;
 
 @Entity
 @Table(name = "tasks")
 public class TaskEntity {
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserEntity user;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,7 +36,8 @@ public class TaskEntity {
     protected TaskEntity() {
     }
 
-    public TaskEntity(String title, int points) {
+    public TaskEntity(String title, int points, UserEntity user) {
+        this.user = user;
         this.title = title;
         this.points = points;
     }
@@ -37,6 +45,8 @@ public class TaskEntity {
     public boolean isCompleted() {
         return completed;
     }
+
+    public int getPoints() { return points; }
 
     public void updateDetails(String title, int points) {
         this.title = title;

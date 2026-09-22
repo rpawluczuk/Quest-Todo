@@ -1,3 +1,5 @@
+DELETE FROM purchases;
+UPDATE users SET points = 0;
 DELETE FROM tasks;
 ALTER TABLE tasks ALTER COLUMN id RESTART WITH 1;
 INSERT INTO tasks (title, points, completed, in_focus) VALUES

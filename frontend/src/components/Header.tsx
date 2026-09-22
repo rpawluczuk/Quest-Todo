@@ -1,5 +1,5 @@
 type HeaderProps = {
-  points: number
+  points: number | null
 }
 
 function Header({ points }: HeaderProps) {
@@ -12,7 +12,7 @@ function Header({ points }: HeaderProps) {
       </div>
       <div className="points-balance">
         <span>Twoje saldo</span>
-        <strong aria-live="polite">{points} punktów</strong>
+        <strong aria-live="polite">{points === null ? 'Saldo niedostępne' : `${points} punktów`}</strong>
       </div>
     </header>
   )

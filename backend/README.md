@@ -44,9 +44,23 @@ jednorazowo. Kolejne zmiany struktury dodawaj jako nowe migracje — nie edytuj 
 Hibernate sprawdza strukturę (`ddl-auto=validate`), ale jej nie zmienia.
 
 Zadania zapisane wcześniej w pamięci starego backendu nie są automatycznie przenoszone.
-Zakupy nagród nadal pozostają w React i resetują się po odświeżeniu strony.
+Migracja V3 tworzy domyślnego użytkownika `Gracz` (ID 1), przypisuje mu istniejące
+zadania i ustawia saldo na sumę punktów ukończonych zadań. Saldo i nowe zakupy
+są przechowywane w bazie. Dawnych zakupów z pamięci React nie można odtworzyć.
+Na tym etapie aplikacja korzysta z jednego użytkownika, bez logowania.
+
+Ukończenie zadania dodaje punkty tylko przy zmianie statusu. Cofnięcie ukończenia
+odejmuje je (saldo może stać się ujemne po wcześniejszych zakupach). Usunięcie
+zadania zachowuje zdobyte punkty. Zakup zapisuje nazwę i koszt nagrody z chwili zakupu;
+sprawdzenie salda, odjęcie punktów i zapis zakupu odbywają się w jednej transakcji.
+Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
 
 ## API
+
+- `GET /api/users/me` — domyślny użytkownik: `id`, `name`, `points`.
+- `GET /api/rewards/purchases` — historia zakupów: `id`, `rewardId`, `title`, `cost`.
+- `POST /api/rewards/{id}/purchases` — zakup, odpowiedź 201; brak punktów daje 409,
+  brak nagrody 404. Każde żądanie oznacza osobny zakup.
 
 - `GET /api/health` — `{"status":"UP"}` (informacja o działaniu HTTP, nie test bazy).
 - `GET /api/tasks` — zadania uporządkowane według ID.

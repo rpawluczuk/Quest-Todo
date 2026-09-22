@@ -1,20 +1,22 @@
+import type { Purchase } from '../api/userApi'
 import type { Reward } from '../types/Reward'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
-  readonly purchases: readonly Reward[]
-  readonly points: number
+  readonly purchases: readonly Purchase[]
+  readonly points: number | null
+  readonly buying: boolean
   readonly onBuyReward: (rewardId: number) => void
 }
 
-function RewardsPage({ rewards, purchases, points, onBuyReward }: RewardsPageProps) {
+function RewardsPage({ rewards, purchases, points, buying, onBuyReward }: RewardsPageProps) {
   return (
     <section className="tasks-section" aria-labelledby="rewards-heading">
       <div className="section-header">
         <h2 id="rewards-heading">Nagrody</h2>
         <p>Wymień zdobyte punkty na coś dla siebie.</p>
       </div>
-      {points < 0 && (
+      {points !== null && points < 0 && (
         <p className="empty-state">
           Masz ujemne saldo po cofnięciu wykonania zadań. Zdobądź punkty, aby ponownie kupować nagrody.
         </p>
@@ -29,13 +31,13 @@ function RewardsPage({ rewards, purchases, points, onBuyReward }: RewardsPagePro
               <button
                 type="button"
                 className="secondary-button"
-                disabled={points < reward.cost}
+                disabled={buying || points === null || points < reward.cost}
                 onClick={() => onBuyReward(reward.id)}
                 aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
               >
                 Kup nagrodę
               </button>
-              {points < reward.cost && (
+              {points !== null && points < reward.cost && (
                 <span>Brakuje {reward.cost - points} pkt</span>
               )}
             </div>
@@ -51,10 +53,9 @@ function RewardsPage({ rewards, purchases, points, onBuyReward }: RewardsPagePro
         <div className="reward-purchases">
           <h3>Kupione nagrody</h3>
           <ul>
-            {rewards.map((reward) => {
-              const count = purchases.filter((purchase) => purchase.id === reward.id).length
-              return count > 0 ? <li key={reward.id}>{reward.title} × {count}</li> : null
-            })}
+            {purchases.map((purchase) => (
+              <li key={purchase.id}>{purchase.title} — {purchase.cost} pkt</li>
+            ))}
           </ul>
         </div>
       )}

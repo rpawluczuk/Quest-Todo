@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { getUser, getPurchases, purchaseReward, type Purchase } from './api/userApi'
+import { useEffect, useRef, useState } from 'react'
 import { getRewards } from './api/rewardApi'
 import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
@@ -18,8 +19,38 @@ function App() {
   const [rewardsError, setRewardsError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [purchases, setPurchases] = useState<Reward[]>([])
+  const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [points, setPoints] = useState<number | null>(null)
+  const [accountError, setAccountError] = useState('')
+  const [buying, setBuying] = useState(false)
+  const buyingRef = useRef(false)
+  const accountRequest = useRef(0)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+
+  async function refreshAccount(signal?: AbortSignal) {
+    const request = ++accountRequest.current
+    try {
+      const [user, history] = await Promise.all([getUser(signal), getPurchases(signal)])
+      if (!signal?.aborted && request === accountRequest.current) {
+        setPoints(user.points)
+        setPurchases(history)
+        setAccountError('')
+      }
+    } catch {
+      if (!signal?.aborted && request === accountRequest.current) {
+        setPoints(null)
+        setAccountError('Nie udało się odświeżyć salda i zakupów. Odśwież stronę.')
+      }
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController()
+    // State updates in refreshAccount run only after the API requests settle.
+    // oxlint-disable-next-line react/set-state-in-effect
+    void refreshAccount(controller.signal)
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -82,23 +113,21 @@ function App() {
     },
   ]
 
-  const earnedPoints = tasks.reduce(
-    (total, task) => total + (task.completed ? task.points : 0),
-    0,
-  )
-  const spentPoints = purchases.reduce((total, reward) => total + reward.cost, 0)
-  const points = earnedPoints - spentPoints
-
-  function buyReward(rewardId: number) {
-    const reward = rewards.find((reward) => reward.id === rewardId)
-    if (!reward) return
-
-    setPurchases((currentPurchases) => {
-      const currentSpentPoints = currentPurchases.reduce((total, purchase) => total + purchase.cost, 0)
-      if (earnedPoints - currentSpentPoints < reward.cost) return currentPurchases
-
-      return [...currentPurchases, { ...reward }]
-    })
+  async function buyReward(rewardId: number) {
+    if (buyingRef.current || points === null) return
+    buyingRef.current = true
+    setBuying(true)
+    let purchaseError = ''
+    try {
+      await purchaseReward(rewardId)
+    } catch (error) {
+      purchaseError = error instanceof Error ? error.message : 'Nie udało się kupić nagrody.'
+    } finally {
+      await refreshAccount()
+      if (purchaseError) setAccountError(purchaseError)
+      buyingRef.current = false
+      setBuying(false)
+    }
   }
 
   async function addTask(title: string, taskPoints: number) {
@@ -145,12 +174,17 @@ function App() {
   async function toggleTask(taskId: number) {
     const task = tasks.find((task) => task.id === taskId)
     if (!task) return
-    const updatedTask = await updateTaskCompletion(taskId, !task.completed)
-    setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
+    try {
+      const updatedTask = await updateTaskCompletion(taskId, !task.completed)
+      setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
+    } finally {
+      await refreshAccount()
+    }
   }
   return (
     <main className="quest-app">
       <Header points={points} />
+      {accountError && <p className="form-error" role="alert">{accountError}</p>}
       <nav className="page-navigation" aria-label="Widoki aplikacji">
         <button
           type="button"
@@ -201,6 +235,7 @@ function App() {
           rewards={rewards}
           purchases={purchases}
           points={points}
+          buying={buying}
           onBuyReward={buyReward}
         />
         )}
