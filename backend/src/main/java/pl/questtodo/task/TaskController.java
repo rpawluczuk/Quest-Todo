@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,15 +34,17 @@ public class TaskController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Task createTask(@RequestBody CreateTaskRequest request) {
-        int points = validateTask(request.title(), request.points());
-        return taskService.createTask(request.title().strip(), points);
+    public Task createTask(@Valid @RequestBody CreateTaskRequest request) {
+        String title = request.title().strip();
+        int points = request.points().intValueExact();
+        return taskService.createTask(title, points);
     }
 
     @PatchMapping("/{id}")
-    public Task updateTask(@PathVariable long id, @RequestBody UpdateTaskRequest request) {
-        int points = validateTask(request.title(), request.points());
-        return taskService.updateTask(id, request.title().strip(), points);
+    public Task updateTask(@PathVariable long id, @Valid @RequestBody UpdateTaskRequest request) {
+        String title = request.title().strip();
+        int points = request.points().intValueExact();
+        return taskService.updateTask(id, title, points);
     }
 
     @PatchMapping("/{id}/completion")
@@ -63,24 +67,5 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(@PathVariable long id) {
         taskService.deleteTask(id);
-    }
-
-    private int validateTask(String title, BigDecimal requestedPoints) {
-        if (title == null || title.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nazwa zadania jest wymagana.");
-        }
-        if (requestedPoints == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty są wymagane.");
-        }
-        int points;
-        try {
-            points = requestedPoints.intValueExact();
-        } catch (ArithmeticException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty muszą być liczbą całkowitą w zakresie int.");
-        }
-        if (points <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Punkty muszą być dodatnie.");
-        }
-        return points;
     }
 }

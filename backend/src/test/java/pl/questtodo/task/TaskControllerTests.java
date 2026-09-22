@@ -140,6 +140,23 @@ class TaskControllerTests {
                 .andExpect(jsonPath("$[3].title").value("Trening"));
     }
 
+    @Test
+    void acceptsMaximumPointsAndRejectsValueAboveMaximum() throws Exception {
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Maksymalne punkty\",\"points\":1000}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.points").value(1000));
+
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Za dużo punktów\",\"points\":1001}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Maksymalna liczba punktów za zadanie to 1000."));
+
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$.length()").value(4));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "{\"title\":\"   \",\"points\":10}",

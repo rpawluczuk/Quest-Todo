@@ -1,5 +1,17 @@
 import type { Task } from '../types/Task'
 
+async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body: unknown = await response.json()
+    if (typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string') {
+      return body.detail
+    }
+  } catch {
+    // Odpowiedź błędu nie zawsze zawiera JSON, np. gdy backend jest niedostępny za proxy.
+  }
+  return `${fallback} (HTTP ${response.status}).`
+}
+
 export async function deleteTask(id: number): Promise<void> {
   const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
   // Zadanie mogło zostać usunięte w innym oknie lub podczas poprzedniej próby.
@@ -53,7 +65,7 @@ export async function createTask(title: string, points: number): Promise<Task> {
   })
 
   if (!response.ok) {
-    throw new Error(`Zapis zadania nie powiódł się (HTTP ${response.status}).`)
+    throw new Error(await responseErrorMessage(response, 'Zapis zadania nie powiódł się'))
   }
 
   return response.json()

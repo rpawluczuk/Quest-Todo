@@ -28,8 +28,8 @@ function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
       return
     }
 
-    if (taskPoints > 2147483647) {
-      setFormError('Maksymalna liczba punktów to 2147483647.')
+    if (taskPoints > 1000) {
+      setFormError('Maksymalna liczba punktów to 1000.')
       return
     }
 
