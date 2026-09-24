@@ -2,6 +2,41 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Quest Todo: backend (Neon)",
+      "type": "shell",
+      "command": "./mvnw",
+      "windows": {
+        "command": ".\\mvnw.cmd",
+        "options": {
+          "cwd": "${workspaceFolder}/backend",
+          "env": {
+            "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.5.11-hotspot",
+            "DB_URL": "jdbc:postgresql://ep-muddy-fog-b2412vo8.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+            "DB_USER": "${input:neonUser}",
+            "DB_PASSWORD": "${input:neonPassword}"
+          }
+        }
+      },
+      "args": ["spring-boot:run"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "DB_URL": "jdbc:postgresql://ep-muddy-fog-b2412vo8.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+          "DB_USER": "${input:neonUser}",
+          "DB_PASSWORD": "${input:neonPassword}"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Quest Todo: uruchom wszystko (Neon)",
+      "dependsOn": ["Quest Todo: frontend", "Quest Todo: backend (Neon)"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
       "label": "Quest Todo: baza — start",
       "type": "shell",
       "command": "docker",
@@ -55,6 +90,19 @@
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "presentation": { "panel": "dedicated", "reveal": "always" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "neonUser",
+      "type": "promptString",
+      "description": "Użytkownik bazy Neon"
+    },
+    {
+      "id": "neonPassword",
+      "type": "promptString",
+      "description": "Hasło bazy Neon",
+      "password": true
     }
   ]
 }

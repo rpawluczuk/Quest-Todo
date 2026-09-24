@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Quest Todo: backend (Neon)",
+      "request": "launch",
+      "mainClass": "pl.questtodo.QuestTodoApplication",
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "env": {
+        "DB_URL": "jdbc:postgresql://ep-muddy-fog-b2412vo8.c-6.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+        "DB_USER": "${input:neonUser}",
+        "DB_PASSWORD": "${input:neonPassword}"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "neonUser",
+      "type": "promptString",
+      "description": "Użytkownik bazy Neon"
+    },
+    {
+      "id": "neonPassword",
+      "type": "promptString",
+      "description": "Hasło bazy Neon",
+      "password": true
+    }
+  ]
+}
