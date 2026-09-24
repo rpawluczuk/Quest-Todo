@@ -2,6 +2,20 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Quest Todo: przenies lokalna baze do Neon",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/scripts/Import-LocalDatabaseToNeon.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "focus": true },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
       "label": "Quest Todo: backend (Neon)",
       "type": "shell",
       "command": "./mvnw",
