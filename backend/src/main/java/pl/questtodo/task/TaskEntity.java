@@ -1,5 +1,7 @@
 package pl.questtodo.task;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -30,6 +32,9 @@ public class TaskEntity {
     @Column(nullable = false)
     private boolean completed;
 
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
     @Column(name = "in_focus", nullable = false)
     private boolean inFocus;
 
@@ -54,6 +59,9 @@ public class TaskEntity {
     }
 
     public void setCompleted(boolean completed) {
+        if (this.completed != completed) {
+            this.completedAt = completed ? Instant.now() : null;
+        }
         this.completed = completed;
     }
 
@@ -62,6 +70,6 @@ public class TaskEntity {
     }
 
     public Task toTask() {
-        return new Task(id, title, points, completed, inFocus);
+        return new Task(id, title, points, completed, inFocus, completedAt);
     }
 }

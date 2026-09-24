@@ -3,5 +3,6 @@ export type Task = {
   title: string
   points: number
   completed: boolean
+  completedAt: string | null
   inFocus: boolean
 }

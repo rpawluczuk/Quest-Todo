@@ -9,6 +9,7 @@ import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
+import CompletionNotice from './components/CompletionNotice'
 import './App.css'
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
   const buyingRef = useRef(false)
   const accountRequest = useRef(0)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+  const [lastCompletedId, setLastCompletedId] = useState<number | null>(null)
+  const completionRequests = useRef(new Set<number>())
 
   async function refreshAccount(signal?: AbortSignal) {
     const request = ++accountRequest.current
@@ -94,8 +97,13 @@ function App() {
     return () => controller.abort()
   }, [])
 
-  const focusTasks = tasks.filter((task) => task.inFocus)
-  const backlogTasks = tasks.filter((task) => !task.inFocus)
+  const focusTasks = tasks.filter((task) => !task.completed && task.inFocus)
+  const backlogTasks = tasks.filter((task) => !task.completed && !task.inFocus)
+  const completedTasks = tasks.filter((task) => task.completed).sort((a, b) =>
+    (b.completedAt ? Date.parse(b.completedAt) : 0) - (a.completedAt ? Date.parse(a.completedAt) : 0)
+    || b.id - a.id,
+  )
+  const lastCompletedTask = tasks.find((task) => task.id === lastCompletedId && task.completed)
   const sections: TaskSectionData[] = [
     {
       id: 'focus',
@@ -110,6 +118,13 @@ function App() {
       description: 'Zadania czekające na realizację. Przenieś wybrane do Focus.',
       emptyMessage: 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focus.',
       tasks: backlogTasks,
+    },
+    {
+      id: 'completed',
+      title: 'Ukończone',
+      description: 'Najnowsze ukończenia są na górze. Cofnij ukończenie, aby przywrócić zadanie do poprzedniej listy.',
+      emptyMessage: 'Nie masz jeszcze ukończonych zadań.',
+      tasks: completedTasks,
     },
   ]
 
@@ -173,11 +188,15 @@ function App() {
 
   async function toggleTask(taskId: number) {
     const task = tasks.find((task) => task.id === taskId)
-    if (!task) return
+    if (!task || completionRequests.current.has(taskId)) return
+    completionRequests.current.add(taskId)
     try {
       const updatedTask = await updateTaskCompletion(taskId, !task.completed)
       setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
+      if (updatedTask.completed) setLastCompletedId(taskId)
+      else setLastCompletedId((currentId) => currentId === taskId ? null : currentId)
     } finally {
+      completionRequests.current.delete(taskId)
       await refreshAccount()
     }
   }
@@ -226,6 +245,14 @@ function App() {
             )}
           </TaskSection>
         ))}
+        {lastCompletedTask && (
+          <CompletionNotice
+            key={lastCompletedTask.id}
+            task={lastCompletedTask}
+            onUndo={toggleTask}
+            onDismiss={() => setLastCompletedId(null)}
+          />
+        )}
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {rewardsLoading && <p role="status">Ładowanie nagród…</p>}

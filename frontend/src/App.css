@@ -244,6 +244,47 @@
   font-weight: 600;
 }
 
+.completed-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.completed-toggle:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 4px;
+}
+
+.show-more {
+  margin-top: 20px;
+}
+
+.completion-notice {
+  position: sticky;
+  bottom: 16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #ded5f5;
+  border-radius: 12px;
+  background: #f1ecfa;
+  box-shadow: 0 4px 20px #30204a1a;
+}
+
+.completion-notice p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 600px) {
   .task-form {
     grid-template-columns: minmax(0, 1fr);

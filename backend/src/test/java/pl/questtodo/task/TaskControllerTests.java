@@ -1,5 +1,7 @@
 package pl.questtodo.task;
 
+import com.jayway.jsonpath.JsonPath;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -25,6 +27,40 @@ class TaskControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void completionDatePersistsAndUndoKeepsOriginalList(boolean inFocus) throws Exception {
+        mockMvc.perform(patch("/api/tasks/1/focus").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inFocus\":" + inFocus + "}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/tasks/1/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+        String tasksJson = mockMvc.perform(get("/api/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].inFocus").value(inFocus))
+                .andReturn().getResponse().getContentAsString();
+        String completedAt = JsonPath.read(tasksJson, "$[0].completedAt");
+        // Retrying completion must not change the date or award points twice.
+        mockMvc.perform(patch("/api/tasks/1/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedAt").value(completedAt));
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(jsonPath("$.points").value(20));
+        mockMvc.perform(patch("/api/tasks/1/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedAt").isEmpty())
+                .andExpect(jsonPath("$.inFocus").value(inFocus));
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(jsonPath("$[0].completed").value(false))
+                .andExpect(jsonPath("$[0].completedAt").isEmpty());
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(jsonPath("$.points").value(0));
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})

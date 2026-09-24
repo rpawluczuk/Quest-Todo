@@ -53,15 +53,19 @@ function TaskItem({
         <EditTaskForm task={task} onSave={onSave} onCancel={onCancel} />
       ) : (
         <>
-          <label className="task-label">
-            <input
-              type="checkbox"
-              checked={task.completed}
-              disabled={isSaving}
-              onChange={() => void saveChange(onToggleTask)}
-            />
+          {task.completed ? (
             <span className="task-title">{task.title}</span>
-          </label>
+          ) : (
+            <label className="task-label">
+              <input
+                type="checkbox"
+                checked={task.completed}
+                disabled={isSaving}
+                onChange={() => void saveChange(onToggleTask)}
+              />
+              <span className="task-title">{task.title}</span>
+            </label>
+          )}
           <div className="task-actions">
             <button
               type="button"
@@ -69,20 +73,32 @@ function TaskItem({
               disabled={isAnyTaskEditing || isSaving}
               onClick={() => void saveChange(onDelete, 'Nie udało się usunąć zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')}
               aria-label={`Usuń zadanie: ${task.title}`}
-              title={task.completed ? 'Usunięcie odejmie punkty za to zadanie.' : 'Usuń zadanie'}
+              title="Usuń zadanie"
             >
               Usuń
             </button>
             <span className="task-points">{task.points} pkt</span>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => void saveChange(onToggleFocus)}
-              disabled={isAnyTaskEditing || isSaving}
-              aria-label={`${task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}: ${task.title}`}
-            >
-              {task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}
-            </button>
+            {task.completed ? (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={isAnyTaskEditing || isSaving}
+                onClick={() => void saveChange(onToggleTask)}
+                aria-label={`Cofnij ukończenie: ${task.title}`}
+              >
+                Cofnij ukończenie
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void saveChange(onToggleFocus)}
+                disabled={isAnyTaskEditing || isSaving}
+                aria-label={`${task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}: ${task.title}`}
+              >
+                {task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}
+              </button>
+            )}
             {!task.completed && (
               <button
                 type="button"
