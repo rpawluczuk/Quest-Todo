@@ -24,9 +24,13 @@ public class RewardController {
     }
 
     @GetMapping("/purchases")
-    public List<PurchaseEntity.Purchase> getPurchases() { return rewardService.getPurchases(); }
+    public List<PurchaseEntity.Purchase> getPurchases() { 
+        return rewardService.getPurchases(); 
+    }
 
     @PostMapping("/{id}/purchases")
     @ResponseStatus(HttpStatus.CREATED)
-    public PurchaseEntity.Purchase buyReward(@PathVariable long id) { return rewardService.buyReward(id); }
+    public PurchaseEntity.Purchase buyReward(@PathVariable long id) { 
+        return rewardService.buyReward(id); 
+    }
 }

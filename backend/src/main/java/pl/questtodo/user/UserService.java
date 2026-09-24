@@ -10,7 +10,9 @@ public class UserService {
     public static final long CURRENT_USER_ID = 1L;
     private final UserRepository users;
 
-    public UserService(UserRepository users) { this.users = users; }
+    public UserService(UserRepository users) { 
+        this.users = users; 
+    }
 
     @Transactional(readOnly = true)
     public UserEntity.User getCurrentUser() {

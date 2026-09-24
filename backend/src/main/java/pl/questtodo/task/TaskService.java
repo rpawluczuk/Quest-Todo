@@ -12,11 +12,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 public class TaskService {
     private final TaskRepository taskRepository;
-    private final UserService users;
+    private final UserService userService;
 
-    public TaskService(TaskRepository taskRepository, UserService users) {
+    public TaskService(TaskRepository taskRepository, UserService userService) {
         this.taskRepository = taskRepository;
-        this.users = users;
+        this.userService = userService;
     }
 
     @Transactional(readOnly = true)
@@ -27,13 +27,13 @@ public class TaskService {
     }
 
     public Task createTask(String title, int points) {
-        return taskRepository.save(new TaskEntity(title, points, users.currentReference())).toTask();
+        return taskRepository.save(new TaskEntity(title, points, userService.currentReference())).toTask();
     }
 
     public Task updateCompletion(long id, boolean completed) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted() != completed) {
-            users.lockCurrentUser().addPoints(completed ? task.getPoints() : -(long) task.getPoints());
+            userService.lockCurrentUser().addPoints(completed ? task.getPoints() : -(long) task.getPoints());
         }
         task.setCompleted(completed);
         return task.toTask();
