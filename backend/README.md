@@ -57,6 +57,12 @@ Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
 
 ## API
 
+- `POST /api/rewards` — tworzy nagrodę, np. `{"title":"Wyjście do kina","cost":120}`;
+  odpowiedź 201 zawiera `id`, `title` i `cost`. Nazwa nie może być pusta, a koszt
+  musi być liczbą całkowitą od 1 do 2147483647. Błędne dane dają 400.
+  Tworzenie nagrody nie zmienia salda; punkty odejmowane są dopiero przy zakupie.
+  Formularz dodawania jest dostępny w widoku „Nagrody”.
+
 - `GET /api/users/me` — domyślny użytkownik: `id`, `name`, `points`.
 - `GET /api/rewards/purchases` — historia zakupów: `id`, `rewardId`, `title`, `cost`.
 - `POST /api/rewards/{id}/purchases` — zakup, odpowiedź 201; brak punktów daje 409,

@@ -23,6 +23,11 @@ public class RewardEntity {
     protected RewardEntity() {
     }
 
+    public RewardEntity(String title, int cost) {
+        this.title = title;
+        this.cost = cost;
+    }
+
     public Reward toReward() {
         return new Reward(id, title, cost);
     }

@@ -44,4 +44,9 @@ public class RewardService {
                 .map(RewardEntity::toReward)
                 .toList();
     }
+
+    @Transactional
+    public Reward createReward(String title, int cost) {
+        return rewardRepository.save(new RewardEntity(title, cost)).toReward();
+    }
 }

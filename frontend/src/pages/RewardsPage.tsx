@@ -1,5 +1,6 @@
 import type { Purchase } from '../api/userApi'
 import type { Reward } from '../types/Reward'
+import CreateRewardForm from '../components/CreateRewardForm'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
@@ -7,15 +8,17 @@ type RewardsPageProps = {
   readonly points: number | null
   readonly buying: boolean
   readonly onBuyReward: (rewardId: number) => void
+  readonly onAddReward: (title: string, cost: number) => Promise<void>
 }
 
-function RewardsPage({ rewards, purchases, points, buying, onBuyReward }: RewardsPageProps) {
+function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward }: RewardsPageProps) {
   return (
     <section className="tasks-section" aria-labelledby="rewards-heading">
       <div className="section-header">
         <h2 id="rewards-heading">Nagrody</h2>
         <p>Wymień zdobyte punkty na coś dla siebie.</p>
       </div>
+      <CreateRewardForm onAddReward={onAddReward} />
       {points !== null && points < 0 && (
         <p className="empty-state">
           Masz ujemne saldo po cofnięciu wykonania zadań. Zdobądź punkty, aby ponownie kupować nagrody.

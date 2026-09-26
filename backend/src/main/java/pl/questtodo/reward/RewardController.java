@@ -1,6 +1,8 @@
 package pl.questtodo.reward;
 
 import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,12 @@ public class RewardController {
     @GetMapping
     public List<Reward> getRewards() {
         return rewardService.getRewards();
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Reward createReward(@Valid @RequestBody CreateRewardRequest request) {
+        return rewardService.createReward(request.title().strip(), request.cost().intValueExact());
     }
 
     @GetMapping("/purchases")
