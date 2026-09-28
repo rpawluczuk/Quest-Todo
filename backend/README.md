@@ -2,6 +2,8 @@
 
 Java 21, Spring Boot, PostgreSQL, Spring Data JPA i Flyway.
 
+Wdrożenie backendu na Render Free z bazą Neon: [instrukcja krok po kroku](RENDER.md).
+
 ## Uruchomienie lokalne
 
 1. Uruchom Docker Desktop.
