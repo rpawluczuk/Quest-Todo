@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { Purchase } from '../api/userApi'
 import type { Reward } from '../types/Reward'
 import CreateRewardForm from '../components/CreateRewardForm'
+import EditRewardForm from '../components/EditRewardForm'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
@@ -9,9 +11,12 @@ type RewardsPageProps = {
   readonly buying: boolean
   readonly onBuyReward: (rewardId: number) => void
   readonly onAddReward: (title: string, cost: number) => Promise<void>
+  readonly onSaveReward: (id: number, title: string, cost: number) => Promise<void>
 }
 
-function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward }: RewardsPageProps) {
+function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward, onSaveReward }: RewardsPageProps) {
+  const [editingRewardId, setEditingRewardId] = useState<number | null>(null)
+
   return (
     <section className="tasks-section" aria-labelledby="rewards-heading">
       <div className="section-header">
@@ -28,22 +33,41 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
         {rewards.length === 0 && <li className="empty-state">Brak dostępnych nagród.</li>}
         {rewards.map((reward) => (
           <li className="task" key={reward.id}>
-            <span className="task-title">{reward.title}</span>
-            <div className="task-actions">
-              <span className="task-points">{reward.cost} pkt</span>
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={buying || points === null || points < reward.cost}
-                onClick={() => onBuyReward(reward.id)}
-                aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
-              >
-                Kup nagrodę
-              </button>
-              {points !== null && points < reward.cost && (
-                <span>Brakuje {reward.cost - points} pkt</span>
-              )}
-            </div>
+            {editingRewardId === reward.id ? (
+              <EditRewardForm
+                reward={reward}
+                onSave={onSaveReward}
+                onCancel={() => setEditingRewardId(null)}
+              />
+            ) : (
+              <>
+                <span className="task-title">{reward.title}</span>
+                <div className="task-actions">
+                  <span className="task-points">{reward.cost} pkt</span>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={buying || editingRewardId !== null}
+                    onClick={() => setEditingRewardId(reward.id)}
+                    aria-label={`Edytuj nagrodę: ${reward.title}`}
+                  >
+                    Edytuj
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={buying || editingRewardId !== null || points === null || points < reward.cost}
+                    onClick={() => onBuyReward(reward.id)}
+                    aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
+                  >
+                    Kup nagrodę
+                  </button>
+                  {points !== null && points < reward.cost && (
+                    <span>Brakuje {reward.cost - points} pkt</span>
+                  )}
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>

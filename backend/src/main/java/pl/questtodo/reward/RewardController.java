@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
@@ -27,8 +28,13 @@ public class RewardController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Reward createReward(@Valid @RequestBody CreateRewardRequest request) {
+    public Reward createReward(@Valid @RequestBody RewardDetailsRequest request) {
         return rewardService.createReward(request.title().strip(), request.cost().intValueExact());
+    }
+
+    @PatchMapping("/{id}")
+    public Reward updateReward(@PathVariable long id, @Valid @RequestBody RewardDetailsRequest request) {
+        return rewardService.updateReward(id, request.title().strip(), request.cost().intValueExact());
     }
 
     @GetMapping("/purchases")

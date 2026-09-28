@@ -49,4 +49,12 @@ public class RewardService {
     public Reward createReward(String title, int cost) {
         return rewardRepository.save(new RewardEntity(title, cost)).toReward();
     }
+
+    @Transactional
+    public Reward updateReward(long id, String title, int cost) {
+        var reward = rewardRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
+        reward.updateDetails(title, cost);
+        return reward.toReward();
+    }
 }

@@ -16,15 +16,25 @@ docker compose up -d --wait
 3. W katalogu `backend` uruchom:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
 Maven wymaga JDK 21. Sprawdź `.\mvnw.cmd -v`. Jeśli `JAVA_HOME` wskazuje starszą
 Javę, ustaw w PowerShell `$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.5.11-hotspot'`
 (lub ścieżkę swojego JDK). W CMD użyj `set "JAVA_HOME=C:\ścieżka\do\jdk-21"`.
 
-Frontend uruchom osobno w `frontend` przez `npm run dev`. Proxy Vite przekazuje
-`/api` do localhost:8080. Konfiguracja proxy dotyczy serwera deweloperskiego.
+Profil `local` wybiera bazę PostgreSQL z Compose i port 8080, także jeśli zwykłe
+zmienne `DB_URL`, `DB_USER` i `DB_PASSWORD` wskazują Neon. Nie włączaj tego profilu na Render.
+
+Przed lokalnym testem ustaw w `frontend/.env.local`:
+
+```dotenv
+DEV_API_TARGET=http://localhost:8080
+```
+
+Frontend uruchom osobno w `frontend` przez `npm run dev`. Po zmianie `.env.local`
+zrestartuj Vite. Proxy przekazuje `/api` do lokalnego backendu.
+Konfiguracja proxy dotyczy serwera deweloperskiego.
 
 ## Baza danych
 
@@ -58,6 +68,12 @@ sprawdzenie salda, odjęcie punktów i zapis zakupu odbywają się w jednej tran
 Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
 
 ## API
+
+- `PATCH /api/rewards/{id}` — edytuje nazwę i koszt nagrody, np.
+  `{"title":"Wyjście do kina","cost":100}`. Oba pola są wymagane, odpowiedź 200
+  zawiera aktualną nagrodę. Walidacja jak przy tworzeniu; brak nagrody daje 404.
+  Edycja nie zmienia salda ani wcześniejszych zakupów. Kolejny zakup używa nowej ceny.
+  W widoku „Nagrody” wybierz „Edytuj”, następnie „Zapisz” lub „Anuluj”.
 
 - `POST /api/rewards` — tworzy nagrodę, np. `{"title":"Wyjście do kina","cost":120}`;
   odpowiedź 201 zawiera `id`, `title` i `cost`. Nazwa nie może być pusta, a koszt
@@ -116,3 +132,20 @@ H2 nie zastępuje sprawdzenia na prawdziwym PostgreSQL.
 Ręcznie: dodaj zadanie, zmień nazwę, przenieś do Focus i wykonaj. Zatrzymaj backend
 przez Ctrl+C, uruchom ponownie i odśwież frontend. Zadanie i jego stan powinny pozostać.
 Na Linux/macOS użyj `./mvnw` zamiast `.\mvnw.cmd`.
+
+## Od lokalnego testu do Render
+
+1. Uruchom lokalną bazę, backend z profilem `local` i frontend zgodnie z instrukcją wyżej.
+2. W „Nagrody” zmień nazwę i koszt, zapisz i odśwież stronę. Sprawdź również „Anuluj”,
+   pustą nazwę i niedodatni koszt. Historia wcześniejszych zakupów powinna pozostać bez zmian.
+3. Po własnym sprawdzeniu zacommituj kod i wyślij go na gałąź podłączoną do Render.
+   Przykładowy commit: `feat: add reward editing`.
+4. Poczekaj na status **Live** nowego wdrożenia. Jeśli automatyczne wdrożenia są wyłączone,
+   wybierz w Render **Manual Deploy → Deploy latest commit**.
+5. Zmień `DEV_API_TARGET` w `frontend/.env.local` na adres swojego backendu Render
+   (bez `/api`), a następnie zrestartuj Vite. Korzystasz wtedy z nowego kodu frontendu
+   na komputerze oraz nowego backendu na Render i bazy Neon.
+
+Plik `.env.local` jest ignorowany przez Git. Commit i push przenoszą kod, a nie dane:
+nagrody zmienione lokalnie nie nadpiszą nagród w Neon. Edycja nagród nie wymaga nowej
+migracji bazy. Hosting publicznego frontendu jest osobnym krokiem.

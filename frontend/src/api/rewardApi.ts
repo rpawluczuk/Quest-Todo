@@ -1,8 +1,16 @@
 import type { Reward } from '../types/Reward'
 
 export async function createReward(title: string, cost: number): Promise<Reward> {
-  const response = await fetch('/api/rewards', {
-    method: 'POST',
+  return saveReward('/api/rewards', 'POST', title, cost)
+}
+
+export async function updateReward(id: number, title: string, cost: number): Promise<Reward> {
+  return saveReward(`/api/rewards/${id}`, 'PATCH', title, cost)
+}
+
+async function saveReward(url: string, method: 'POST' | 'PATCH', title: string, cost: number): Promise<Reward> {
+  const response = await fetch(url, {
+    method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, cost }),
   })

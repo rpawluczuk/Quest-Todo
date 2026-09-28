@@ -1,6 +1,6 @@
 import { getUser, getPurchases, purchaseReward, type Purchase } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
-import { createReward, getRewards } from './api/rewardApi'
+import { createReward, getRewards, updateReward } from './api/rewardApi'
 import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
@@ -155,6 +155,13 @@ function App() {
     setRewards((currentRewards) => [...currentRewards, reward])
   }
 
+  async function saveReward(id: number, title: string, cost: number) {
+    const updatedReward = await updateReward(id, title, cost)
+    setRewards((currentRewards) =>
+      currentRewards.map((reward) => reward.id === id ? updatedReward : reward),
+    )
+  }
+
   function startEditing(taskId: number) {
     const task = tasks.find((task) => task.id === taskId)
     if (!task || task.completed) return
@@ -270,6 +277,7 @@ function App() {
           buying={buying}
           onBuyReward={buyReward}
           onAddReward={addReward}
+          onSaveReward={saveReward}
         />
         )}
       </div>

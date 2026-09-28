@@ -31,4 +31,9 @@ public class RewardEntity {
     public Reward toReward() {
         return new Reward(id, title, cost);
     }
+
+    public void updateDetails(String title, int cost) {
+        this.title = title;
+        this.cost = cost;
+    }
 }

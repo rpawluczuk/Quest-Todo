@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -29,6 +30,103 @@ class RewardControllerTests {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Test
+    @Sql("/reset-tasks.sql")
+    void editsRewardAndPersistsDetailsWithoutSpendingPoints() throws Exception {
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"  Nowa nagroda  \",\"cost\":35}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.title").value("Nowa nagroda"))
+                .andExpect(jsonPath("$.cost").value(35));
+        entityManager.flush();
+        entityManager.clear();
+        mockMvc.perform(get("/api/rewards"))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Nowa nagroda"))
+                .andExpect(jsonPath("$[0].cost").value(35));
+        mockMvc.perform(get("/api/users/me")).andExpect(jsonPath("$.points").value(0));
+        mockMvc.perform(get("/api/rewards/purchases")).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @Sql(scripts = "/reset-tasks.sql", statements = "UPDATE users SET points = 100")
+    void editingPreservesPastPurchasesAndUsesNewDetailsForNextPurchase() throws Exception {
+        mockMvc.perform(post("/api/rewards/1/purchases"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Nowa nagroda\",\"cost\":35}"))
+                .andExpect(status().isOk());
+        entityManager.flush();
+        entityManager.clear();
+        mockMvc.perform(get("/api/users/me")).andExpect(jsonPath("$.points").value(80));
+        mockMvc.perform(get("/api/rewards/purchases"))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].title").value("Odcinek ulubionego serialu"))
+                .andExpect(jsonPath("$[0].cost").value(20));
+        mockMvc.perform(post("/api/rewards/1/purchases"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Nowa nagroda"))
+                .andExpect(jsonPath("$.cost").value(35));
+        mockMvc.perform(get("/api/users/me")).andExpect(jsonPath("$.points").value(45));
+        mockMvc.perform(get("/api/rewards/purchases"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].cost").value(20))
+                .andExpect(jsonPath("$[1].cost").value(35));
+    }
+
+    @Test
+    void cannotBuyRewardWhenEditedCostExceedsBalance() throws Exception {
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Droższa nagroda\",\"cost\":2147483647}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/rewards/1/purchases"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void returnsNotFoundWhenEditingMissingReward() throws Exception {
+        mockMvc.perform(patch("/api/rewards/999999").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Nagroda\",\"cost\":10}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 1001, Integer.MAX_VALUE})
+    void acceptsEditedCostsWithinDatabaseRange(int cost) throws Exception {
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Nagroda\",\"cost\":" + cost + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cost").value(cost));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}",
+            "{\"title\":\"   \",\"cost\":10}",
+            "{\"title\":null,\"cost\":10}",
+            "{\"cost\":10}",
+            "{\"title\":\"Nagroda\"}",
+            "{\"title\":\"Nagroda\",\"cost\":null}",
+            "{\"title\":\"Nagroda\",\"cost\":0}",
+            "{\"title\":\"Nagroda\",\"cost\":-1}",
+            "{\"title\":\"Nagroda\",\"cost\":1.5}",
+            "{\"title\":\"Nagroda\",\"cost\":2147483648}"
+    })
+    void rejectsInvalidEditsWithoutChangingReward(String body) throws Exception {
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").isNotEmpty());
+        entityManager.flush();
+        entityManager.clear();
+        mockMvc.perform(get("/api/rewards"))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].title").value("Odcinek ulubionego serialu"))
+                .andExpect(jsonPath("$[0].cost").value(20));
+    }
 
     @Test
     @Sql("/reset-tasks.sql")
