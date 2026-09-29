@@ -102,8 +102,9 @@ także lokalny backend. Przeglądarka wysyła `/api` do lokalnego Vite, a Vite d
 ten układ nie wymaga dodawania CORS w backendzie.
 
 Usuń `DEV_API_TARGET` z `.env.local` i zrestartuj Vite, aby wrócić do `localhost:8080`.
-Ta konfiguracja dotyczy serwera deweloperskiego. Publiczny hosting frontendu będzie
-wymagał osobnego skonfigurowania przekazywania `/api` lub adresu API i CORS.
+Ta konfiguracja dotyczy serwera deweloperskiego. Publiczny frontend na Render Static Site
+korzysta z `VITE_API_BASE_URL` i `CORS_ALLOWED_ORIGINS` — zobacz
+[instrukcję publikacji frontendu](../frontend/RENDER.md).
 
 ## Typowe problemy
 

@@ -1,4 +1,5 @@
 import type { Task } from '../types/Task'
+import { apiFetch } from './apiFetch'
 
 async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
@@ -13,7 +14,7 @@ async function responseErrorMessage(response: Response, fallback: string): Promi
 }
 
 export async function deleteTask(id: number): Promise<void> {
-  const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+  const response = await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
   // Zadanie mogło zostać usunięte w innym oknie lub podczas poprzedniej próby.
   if (!response.ok && response.status !== 404) {
     throw new Error(`Nie udało się usunąć zadania (HTTP ${response.status}).`)
@@ -21,7 +22,7 @@ export async function deleteTask(id: number): Promise<void> {
 }
 
 async function updateTaskState(id: number, endpoint: string, body: object): Promise<Task> {
-  const response = await fetch(`/api/tasks/${id}/${endpoint}`, {
+  const response = await apiFetch(`/api/tasks/${id}/${endpoint}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -42,7 +43,7 @@ export function updateTaskFocus(id: number, inFocus: boolean): Promise<Task> {
 }
 
 export async function updateTask(id: number, title: string, points: number): Promise<Task> {
-  const response = await fetch(`/api/tasks/${id}`, {
+  const response = await apiFetch(`/api/tasks/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, points }),
@@ -58,7 +59,7 @@ export async function updateTask(id: number, title: string, points: number): Pro
 }
 
 export async function createTask(title: string, points: number): Promise<Task> {
-  const response = await fetch('/api/tasks', {
+  const response = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, points }),
@@ -72,7 +73,7 @@ export async function createTask(title: string, points: number): Promise<Task> {
 }
 
 export async function getTasks(signal: AbortSignal): Promise<Task[]> {
-  const response = await fetch('/api/tasks', { signal })
+  const response = await apiFetch('/api/tasks', { signal })
 
   if (!response.ok) {
     throw new Error(`Pobieranie zadań nie powiodło się (HTTP ${response.status}).`)

@@ -1,4 +1,5 @@
 import type { Reward } from '../types/Reward'
+import { apiFetch } from './apiFetch'
 
 export async function createReward(title: string, cost: number): Promise<Reward> {
   return saveReward('/api/rewards', 'POST', title, cost)
@@ -9,7 +10,7 @@ export async function updateReward(id: number, title: string, cost: number): Pro
 }
 
 async function saveReward(url: string, method: 'POST' | 'PATCH', title: string, cost: number): Promise<Reward> {
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, cost }),
@@ -30,7 +31,7 @@ async function saveReward(url: string, method: 'POST' | 'PATCH', title: string, 
 }
 
 export async function getRewards(signal: AbortSignal): Promise<Reward[]> {
-  const response = await fetch('/api/rewards', { signal })
+  const response = await apiFetch('/api/rewards', { signal })
   if (!response.ok) {
     throw new Error(`Pobieranie nagród nie powiodło się (HTTP ${response.status}).`)
   }
