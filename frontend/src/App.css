@@ -6,16 +6,11 @@
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 40px;
-}
-
-.eyebrow {
-  color: #5b42a6;
-  font-size: 0.8rem;
-  font-weight: 600;
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
 .app-header h1 {
@@ -25,29 +20,23 @@
   letter-spacing: -0.04em;
 }
 
-.subtitle,
 .section-header p {
   color: #666173;
 }
 
 .points-balance {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 24px;
-  border: 1px solid #ded5f5;
-  border-radius: 16px;
-  background: #eee8fb;
-  color: #51378e;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f1ecfa;
+  color: #5b42a6;
   white-space: nowrap;
-}
-
-.points-balance span {
   font-size: 0.85rem;
+  font-weight: 400;
 }
 
-.points-balance strong {
-  font-size: 1.4rem;
+.points-balance-value {
+  font-weight: 600;
 }
 
 .tasks-section + .tasks-section {
@@ -478,9 +467,7 @@
   }
 
   .app-header {
-    align-items: flex-start;
-    flex-direction: column;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .tasks-section {
