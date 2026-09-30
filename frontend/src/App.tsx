@@ -1,4 +1,4 @@
-import { getUser, getPurchases, purchaseReward, type Purchase } from './api/userApi'
+import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
 import { createReward, getRewards, updateReward } from './api/rewardApi'
 import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
@@ -150,6 +150,16 @@ function App() {
     setTasks((currentTasks) => [...currentTasks, task])
   }
 
+  async function redeemPurchase(id: number) {
+    try {
+      const updated = await consumePurchase(id)
+      accountRequest.current++
+      setPurchases((current) => current.map((purchase) => purchase.id === id ? updated : purchase))
+    } finally {
+      await refreshAccount()
+    }
+  }
+
   async function addReward(title: string, cost: number) {
     const reward = await createReward(title, cost)
     setRewards((currentRewards) => [...currentRewards, reward])
@@ -278,6 +288,7 @@ function App() {
           onBuyReward={buyReward}
           onAddReward={addReward}
           onSaveReward={saveReward}
+          onUsePurchase={redeemPurchase}
         />
         )}
       </div>

@@ -3,6 +3,7 @@ import type { Purchase } from '../api/userApi'
 import type { Reward } from '../types/Reward'
 import CreateRewardForm from '../components/CreateRewardForm'
 import EditRewardForm from '../components/EditRewardForm'
+import RewardInventory from '../components/RewardInventory'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
@@ -12,9 +13,10 @@ type RewardsPageProps = {
   readonly onBuyReward: (rewardId: number) => void
   readonly onAddReward: (title: string, cost: number) => Promise<void>
   readonly onSaveReward: (id: number, title: string, cost: number) => Promise<void>
+  readonly onUsePurchase: (id: number) => Promise<void>
 }
 
-function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward, onSaveReward }: RewardsPageProps) {
+function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward, onSaveReward, onUsePurchase }: RewardsPageProps) {
   const [editingRewardId, setEditingRewardId] = useState<number | null>(null)
 
   return (
@@ -71,21 +73,7 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
           </li>
         ))}
       </ul>
-      <p className="reward-status" role="status">
-        {purchases.length > 0
-          ? `Liczba zakupów: ${purchases.length}. Ostatnia nagroda: ${purchases[purchases.length - 1].title}.`
-          : 'Nie kupiono jeszcze żadnej nagrody.'}
-      </p>
-      {purchases.length > 0 && (
-        <div className="reward-purchases">
-          <h3>Kupione nagrody</h3>
-          <ul>
-            {purchases.map((purchase) => (
-              <li key={purchase.id}>{purchase.title} — {purchase.cost} pkt</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <RewardInventory purchases={purchases} onUsePurchase={onUsePurchase} />
     </section>
   )
 }

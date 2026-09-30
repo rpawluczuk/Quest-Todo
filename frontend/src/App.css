@@ -65,8 +65,28 @@
   overflow-wrap: anywhere;
 }
 
-.reward-purchases h3 {
-  margin: 20px 0 8px;
+.reward-inventory,
+.reward-purchases {
+  margin-top: 24px;
+  overflow-wrap: anywhere;
+}
+
+.reward-inventory h3 {
+  margin: 0 0 8px;
+}
+
+.reward-purchases summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reward-purchases li {
+  margin-top: 12px;
+}
+
+.purchase-details {
+  color: #666173;
+  font-size: 0.85rem;
 }
 
 .reward-purchases ul {

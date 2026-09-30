@@ -47,4 +47,9 @@ public class RewardController {
     public PurchaseEntity.Purchase buyReward(@PathVariable long id) { 
         return rewardService.buyReward(id); 
     }
+
+    @PostMapping("/purchases/{id}/use")
+    public PurchaseEntity.Purchase usePurchase(@PathVariable long id) {
+        return rewardService.usePurchase(id);
+    }
 }

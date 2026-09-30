@@ -1,6 +1,7 @@
 package pl.questtodo.reward;
 
 import java.util.List;
+import java.time.Instant;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,17 @@ public class RewardService {
         return rewardRepository.findAll(Sort.by("id")).stream()
                 .map(RewardEntity::toReward)
                 .toList();
+    }
+
+    @Transactional
+    public PurchaseEntity.Purchase usePurchase(long id) {
+        int updated = purchases.useIfAvailable(id, UserService.CURRENT_USER_ID, Instant.now());
+        var purchase = purchases.findByIdAndUserId(id, UserService.CURRENT_USER_ID)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zakup nie istnieje."));
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ta nagroda została już wykorzystana.");
+        }
+        return purchase.toPurchase();
     }
 
     @Transactional

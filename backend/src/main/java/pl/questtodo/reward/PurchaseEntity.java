@@ -1,6 +1,7 @@
 package pl.questtodo.reward;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import pl.questtodo.user.UserEntity;
 
 @Entity
@@ -18,6 +19,10 @@ public class PurchaseEntity {
     private String title;
     @Column(nullable = false)
     private int cost;
+    @Column(name = "purchased_at")
+    private Instant purchasedAt;
+    @Column(name = "used_at")
+    private Instant usedAt;
 
     protected PurchaseEntity() {}
 
@@ -26,9 +31,10 @@ public class PurchaseEntity {
         this.rewardId = reward.id();
         this.title = reward.title();
         this.cost = reward.cost();
+        this.purchasedAt = Instant.now();
     }
 
-    public Purchase toPurchase() { return new Purchase(id, rewardId, title, cost); }
+    public Purchase toPurchase() { return new Purchase(id, rewardId, title, cost, purchasedAt, usedAt); }
 
-    public record Purchase(long id, long rewardId, String title, int cost) {}
+    public record Purchase(long id, long rewardId, String title, int cost, Instant purchasedAt, Instant usedAt) {}
 }
