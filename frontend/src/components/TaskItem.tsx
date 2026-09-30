@@ -108,7 +108,7 @@ function TaskItem({
             </button>
           )}
           <TaskActionsMenu
-            taskTitle={task.title}
+            itemTitle={task.title}
             disabled={disabled}
             actions={[
               ...(!task.completed ? [{ label: 'Edytuj', onSelect: () => onStartEditing(task.id) }] : []),

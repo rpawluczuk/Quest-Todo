@@ -7,12 +7,13 @@ type TaskMenuAction = {
 }
 
 type TaskActionsMenuProps = {
-  readonly taskTitle: string
+  readonly itemTitle: string
+  readonly itemType?: 'zadania' | 'nagrody'
   readonly disabled: boolean
   readonly actions: readonly TaskMenuAction[]
 }
 
-export default function TaskActionsMenu({ taskTitle, disabled, actions }: TaskActionsMenuProps) {
+export default function TaskActionsMenu({ itemTitle, itemType = 'zadania', disabled, actions }: TaskActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuId = useId()
   const container = useRef<HTMLDivElement>(null)
@@ -81,7 +82,7 @@ export default function TaskActionsMenu({ taskTitle, disabled, actions }: TaskAc
         ref={trigger}
         type="button"
         className="task-menu-trigger"
-        aria-label={`Więcej opcji dla zadania „${taskTitle}”`}
+        aria-label={`Więcej opcji dla ${itemType} „${itemTitle}”`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -102,7 +103,7 @@ export default function TaskActionsMenu({ taskTitle, disabled, actions }: TaskAc
         <span aria-hidden="true">⋮</span>
       </button>
       {open && (
-        <div ref={menu} id={menuId} className="task-menu-panel" role="menu" aria-label={`Akcje zadania: ${taskTitle}`} onKeyDown={handleMenuKey}>
+        <div ref={menu} id={menuId} className="task-menu-panel" role="menu" aria-label={`Akcje ${itemType}: ${itemTitle}`} onKeyDown={handleMenuKey}>
           {actions.map((action, index) => (
             <Fragment key={action.label}>
               {action.destructive && index > 0 && <div className="task-menu-separator" role="separator" />}

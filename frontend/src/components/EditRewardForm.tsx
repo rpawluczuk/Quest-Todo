@@ -47,6 +47,7 @@ export default function EditRewardForm({ reward, onSave, onCancel }: EditRewardF
       <label className="form-field">
         <span>Nazwa nagrody</span>
         <input
+          autoFocus
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}

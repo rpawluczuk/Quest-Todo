@@ -191,15 +191,6 @@
   background: #f1ecfa;
 }
 
-.reward-delete-button {
-  color: #a12626;
-  border-color: #a12626;
-}
-
-.reward-delete-button:hover {
-  background: #fff1f1;
-}
-
 .secondary-button:disabled,
 .task-form button:disabled {
   opacity: 0.5;
@@ -234,6 +225,50 @@
 .task-title {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.reward-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 40px;
+  grid-template-areas: 'title points buy menu' 'shortfall shortfall shortfall shortfall';
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 12px;
+}
+
+.reward-card-editing {
+  display: block;
+  padding: 12px;
+}
+
+.reward-card-title {
+  grid-area: title;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reward-card-points {
+  grid-area: points;
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.secondary-button.reward-buy-button {
+  grid-area: buy;
+  justify-self: start;
+  background: #5b42a6;
+  color: #fff;
+}
+
+.secondary-button.reward-buy-button:hover:not(:disabled) {
+  background: #493486;
+}
+
+.reward-card-shortfall {
+  grid-area: shortfall;
+  color: #666173;
+  font-size: 0.85rem;
 }
 
 .task-points {
@@ -482,6 +517,12 @@
 }
 
 @media (max-width: 600px) {
+  .reward-card {
+    grid-template-columns: minmax(0, 1fr) auto 40px;
+    grid-template-areas: 'title title menu' 'points buy buy' 'shortfall shortfall shortfall';
+    column-gap: 8px;
+  }
+
   .task-card {
     grid-template-columns: minmax(0, 1fr) auto 40px;
     grid-template-areas: 'title title menu' 'points primary primary';

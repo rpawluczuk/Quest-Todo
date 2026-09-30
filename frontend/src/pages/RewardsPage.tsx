@@ -4,6 +4,7 @@ import type { Reward } from '../types/Reward'
 import CreateRewardForm from '../components/CreateRewardForm'
 import EditRewardForm from '../components/EditRewardForm'
 import RewardInventory from '../components/RewardInventory'
+import TaskActionsMenu from '../components/TaskActionsMenu'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
@@ -56,7 +57,7 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
       <ul className="task-list">
         {rewards.length === 0 && <li className="empty-state">Brak dostępnych nagród.</li>}
         {rewards.map((reward) => (
-          <li className="task" key={reward.id}>
+          <li className={`task reward-card${editingRewardId === reward.id ? ' reward-card-editing' : ''}`} key={reward.id}>
             {editingRewardId === reward.id ? (
               <EditRewardForm
                 reward={reward}
@@ -65,40 +66,29 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
               />
             ) : (
               <>
-                <span className="task-title">{reward.title}</span>
-                <div className="task-actions">
-                  <span className="task-points">{reward.cost} pkt</span>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={buying || deletingId !== null || editingRewardId !== null}
-                    onClick={() => setEditingRewardId(reward.id)}
-                    aria-label={`Edytuj nagrodę: ${reward.title}`}
-                  >
-                    Edytuj
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-button reward-delete-button"
-                    disabled={buying || deletingId !== null || editingRewardId !== null}
-                    onClick={() => void remove(reward)}
-                    aria-label={`Usuń nagrodę: ${reward.title}`}
-                  >
-                    {deletingId === reward.id ? 'Usuwanie…' : 'Usuń'}
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={buying || deletingId !== null || editingRewardId !== null || points === null || points < reward.cost}
-                    onClick={() => onBuyReward(reward.id)}
-                    aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
-                  >
-                    Kup nagrodę
-                  </button>
-                  {points !== null && points < reward.cost && (
-                    <span>Brakuje {reward.cost - points} pkt</span>
-                  )}
-                </div>
+                <span className="task-title reward-card-title">{reward.title}</span>
+                <span className="task-points reward-card-points">{reward.cost} pkt</span>
+                <button
+                  type="button"
+                  className="secondary-button reward-buy-button"
+                  disabled={buying || deletingId !== null || editingRewardId !== null || points === null || points < reward.cost}
+                  onClick={() => onBuyReward(reward.id)}
+                  aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
+                >
+                  Kup nagrodę
+                </button>
+                <TaskActionsMenu
+                  itemTitle={reward.title}
+                  itemType="nagrody"
+                  disabled={buying || deletingId !== null || editingRewardId !== null}
+                  actions={[
+                    { label: 'Edytuj', onSelect: () => setEditingRewardId(reward.id) },
+                    { label: 'Usuń', destructive: true, onSelect: () => void remove(reward) },
+                  ]}
+                />
+                {points !== null && points < reward.cost && (
+                  <span className="reward-card-shortfall">Brakuje {reward.cost - points} pkt</span>
+                )}
               </>
             )}
           </li>
