@@ -30,7 +30,7 @@ public class RewardService {
     @Transactional
     public PurchaseEntity.Purchase buyReward(long id) {
         var user = users.lockCurrentUser();
-        var reward = rewardRepository.findById(id)
+        var reward = rewardRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."))
                 .toReward();
         if (user.getPoints() < reward.cost()) {
@@ -41,7 +41,7 @@ public class RewardService {
     }
 
     public List<Reward> getRewards() {
-        return rewardRepository.findAll(Sort.by("id")).stream()
+        return rewardRepository.findByDeletedFalse(Sort.by("id")).stream()
                 .map(RewardEntity::toReward)
                 .toList();
     }
@@ -64,9 +64,19 @@ public class RewardService {
 
     @Transactional
     public Reward updateReward(long id, String title, int cost) {
-        var reward = rewardRepository.findById(id)
+        users.lockCurrentUser();
+        var reward = rewardRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
         reward.updateDetails(title, cost);
         return reward.toReward();
+    }
+
+    @Transactional
+    public void deleteReward(long id) {
+        // Serialize with purchases so an offer cannot be bought after its deletion commits.
+        users.lockCurrentUser();
+        var reward = rewardRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
+        reward.delete();
     }
 }

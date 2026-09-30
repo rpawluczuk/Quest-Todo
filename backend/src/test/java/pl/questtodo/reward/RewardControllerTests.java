@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +31,40 @@ class RewardControllerTests {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Test
+    @Sql(scripts = "/reset-tasks.sql", statements = "UPDATE users SET points = 100")
+    void deletionPreservesPurchasesAndBalanceButPreventsNewPurchasesAndEdits() throws Exception {
+        String json = mockMvc.perform(post("/api/rewards/1/purchases"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Number purchaseId = JsonPath.read(json, "$.id");
+        mockMvc.perform(delete("/api/rewards/1")).andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+        mockMvc.perform(get("/api/rewards"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(2));
+        mockMvc.perform(post("/api/rewards/1/purchases")).andExpect(status().isNotFound());
+        mockMvc.perform(patch("/api/rewards/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Nie przywracaj\",\"cost\":10}")).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/rewards/1")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/rewards/purchases"))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].title").value("Odcinek ulubionego serialu"))
+                .andExpect(jsonPath("$[0].cost").value(20));
+        mockMvc.perform(post("/api/rewards/purchases/{id}/use", purchaseId.longValue()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.usedAt").isNotEmpty());
+        mockMvc.perform(get("/api/users/me")).andExpect(jsonPath("$.points").value(80));
+    }
+
+    @Test
+    @Sql("/reset-tasks.sql")
+    void deletesUnpurchasedRewardAndRejectsMissingId() throws Exception {
+        mockMvc.perform(delete("/api/rewards/999999")).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/rewards/1")).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/rewards")).andExpect(jsonPath("$.length()").value(2));
+        mockMvc.perform(get("/api/users/me")).andExpect(jsonPath("$.points").value(0));
+    }
 
     @Test
     @Sql("/reset-tasks.sql")

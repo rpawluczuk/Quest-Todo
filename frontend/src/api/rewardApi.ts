@@ -9,6 +9,13 @@ export async function updateReward(id: number, title: string, cost: number): Pro
   return saveReward(`/api/rewards/${id}`, 'PATCH', title, cost)
 }
 
+export async function deleteReward(id: number): Promise<void> {
+  const response = await apiFetch(`/api/rewards/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    throw new Error('Nie udało się usunąć nagrody. Spróbuj ponownie.')
+  }
+}
+
 async function saveReward(url: string, method: 'POST' | 'PATCH', title: string, cost: number): Promise<Reward> {
   const response = await apiFetch(url, {
     method,

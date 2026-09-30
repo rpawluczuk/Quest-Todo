@@ -20,6 +20,13 @@ public class RewardEntity {
     @Column(nullable = false)
     private int cost;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
+    public void delete() {
+        deleted = true;
+    }
+
     protected RewardEntity() {
     }
 

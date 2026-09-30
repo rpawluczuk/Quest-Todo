@@ -191,6 +191,15 @@
   background: #f1ecfa;
 }
 
+.reward-delete-button {
+  color: #a12626;
+  border-color: #a12626;
+}
+
+.reward-delete-button:hover {
+  background: #fff1f1;
+}
+
 .secondary-button:disabled,
 .task-form button:disabled {
   opacity: 0.5;
