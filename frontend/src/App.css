@@ -60,6 +60,11 @@
   color: #51378e;
 }
 
+.reward-status,
+.reward-purchases {
+  overflow-wrap: anywhere;
+}
+
 .reward-purchases h3 {
   margin: 20px 0 8px;
 }
