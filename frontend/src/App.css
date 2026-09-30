@@ -167,7 +167,8 @@
   margin-top: 0;
 }
 
-.add-task-toggle {
+.add-task-toggle,
+.add-reward-toggle {
   margin-top: 24px;
   padding: 8px 12px;
 }

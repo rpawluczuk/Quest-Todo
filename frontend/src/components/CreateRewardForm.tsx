@@ -1,16 +1,33 @@
-import { useRef, useState, type SubmitEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 
 type CreateRewardFormProps = {
   readonly onAddReward: (title: string, cost: number) => Promise<void>
 }
 
 export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [cost, setCost] = useState('20')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const saving = useRef(false)
+  const addButton = useRef<HTMLButtonElement>(null)
+  const titleInput = useRef<HTMLInputElement>(null)
+  const wasExpanded = useRef(false)
+
+  useEffect(() => {
+    if (isExpanded) titleInput.current?.focus()
+    else if (wasExpanded.current) addButton.current?.focus()
+    wasExpanded.current = isExpanded
+  }, [isExpanded])
+
+  function cancel() {
+    setTitle('')
+    setCost('20')
+    setError('')
+    setIsExpanded(false)
+  }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,6 +52,7 @@ export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps)
       setTitle('')
       setCost('20')
       setSuccess(`Dodano nagrodę: ${rewardTitle}.`)
+      setIsExpanded(false)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Nie udało się zapisać nagrody. Spróbuj ponownie.')
     } finally {
@@ -45,10 +63,11 @@ export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps)
 
   return (
     <div>
-      <form className="task-form" aria-label="Dodaj nagrodę" onSubmit={handleSubmit}>
+      {isExpanded ? <form className="task-form" aria-label="Dodaj nagrodę" onSubmit={handleSubmit}>
         <label className="form-field">
           <span>Nazwa nagrody</span>
           <input
+            ref={titleInput}
             type="text"
             value={title}
             onChange={(event) => { setTitle(event.target.value); setSuccess('') }}
@@ -70,9 +89,12 @@ export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps)
             required
           />
         </label>
-        <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj nagrodę'}</button>
+        <div className="task-actions">
+          <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj nagrodę'}</button>
+          <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>
+        </div>
         {error && <p className="form-error" role="alert">{error}</p>}
-      </form>
+      </form> : <button ref={addButton} type="button" className="secondary-button add-reward-toggle" onClick={() => { setSuccess(''); setIsExpanded(true) }}>+ Dodaj nagrodę</button>}
       {success && <p className="reward-status" role="status">{success}</p>}
     </div>
   )
