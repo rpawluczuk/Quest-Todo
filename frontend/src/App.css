@@ -147,6 +147,11 @@
   margin-top: 0;
 }
 
+.add-task-toggle {
+  margin-top: 24px;
+  padding: 8px 12px;
+}
+
 .task-actions {
   display: flex;
   align-items: center;

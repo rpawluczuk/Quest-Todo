@@ -109,13 +109,13 @@ function App() {
       id: 'focus',
       title: 'Focus',
       description: 'Zadania, które wybierasz do realizacji.',
-      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „+ Focus”.',
+      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „Do Focusu”.',
       tasks: focusTasks,
     },
     {
       id: 'backlog',
       title: 'Backlog',
-      description: 'Zadania czekające na realizację. Przenieś wybrane do Focus.',
+      description: 'Zadania czekające na realizację.',
       emptyMessage: 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focus.',
       tasks: backlogTasks,
     },
@@ -240,7 +240,7 @@ function App() {
       <div id="tasks-page" hidden={activePage !== 'tasks'}>
         {isLoading && <p role="status">Ładowanie zadań…</p>}
         {loadError && <p className="form-error" role="alert">{loadError}</p>}
-        {!isLoading && !loadError && sections.map((section) => (
+        {!isLoading && !loadError && sections.filter((section) => section.id !== 'completed' || section.tasks.length > 0).map((section) => (
           <TaskSection
             key={section.id}
             section={section}

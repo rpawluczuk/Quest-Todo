@@ -93,7 +93,7 @@ function TaskItem({
               onClick={() => void saveChange(onToggleFocus)}
               aria-label={`Przenieś do Focus: ${task.title}`}
             >
-              + Focus
+              Do Focusu
             </button>
           )}
           {task.completed && (
