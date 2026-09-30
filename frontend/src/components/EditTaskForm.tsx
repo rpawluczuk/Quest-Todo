@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
 
@@ -13,6 +13,9 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editPoints, setEditPoints] = useState(String(task.points))
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const titleInput = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { titleInput.current?.focus() }, [])
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,6 +54,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
       <label className="form-field">
         <span>Nazwa zadania</span>
         <input
+          ref={titleInput}
           type="text"
           disabled={isSaving}
           value={editTitle}

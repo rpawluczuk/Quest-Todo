@@ -202,33 +202,6 @@
   border-radius: 12px;
 }
 
-.task-label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.task-label input {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  accent-color: #5b42a6;
-  cursor: pointer;
-}
-
-.task-label input:focus-visible {
-  outline: 2px solid #5b42a6;
-  outline-offset: 4px;
-}
-
-.task-completed .task-title {
-  color: #666173;
-  text-decoration: line-through;
-}
-
 .task-title {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -252,6 +225,200 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+#tasks-page .task-list {
+  gap: 8px;
+}
+
+.task-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 40px;
+  grid-template-areas: 'title points primary menu';
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid #e9e5ef;
+  border-radius: 12px;
+}
+
+.task-card-focus {
+  grid-template-columns: 32px minmax(0, 1fr) auto 40px;
+  grid-template-areas: 'check title points menu';
+}
+
+.task-card-title {
+  grid-area: title;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.task-card-focus .task-card-title {
+  cursor: pointer;
+}
+
+.task-card-completed .task-card-title {
+  color: #666173;
+  text-decoration: line-through;
+}
+
+.task-card-check {
+  grid-area: check;
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+/* Expand hit areas without changing the card grid or visible controls. */
+.task-card-check::before {
+  content: '';
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.task-card-check input {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: #5b42a6;
+  cursor: pointer;
+}
+
+.task-card-check input:focus-visible,
+.task-menu-trigger:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 2px;
+}
+
+.task-card-points {
+  grid-area: points;
+  justify-self: start;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.task-card-primary {
+  grid-area: primary;
+  justify-self: end;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.task-card-editing {
+  display: block;
+  padding: 12px;
+}
+
+.task-card-status,
+.task-card > .form-error {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+}
+
+.task-card-status {
+  color: #666173;
+}
+
+.task-menu {
+  grid-area: menu;
+  position: relative;
+  align-self: start;
+}
+
+.task-menu-trigger {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #666173;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.task-menu-trigger::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+}
+
+.task-menu-trigger:hover,
+.task-menu-trigger[aria-expanded='true'] {
+  background: #f1ecfa;
+  color: #5b42a6;
+}
+
+.task-menu-trigger:disabled,
+.task-card-check input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-menu-panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 4px);
+  right: 0;
+  width: min(220px, calc(100vw - 48px));
+  padding: 4px;
+  border: 1px solid #e5e1eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 20px #30204a26;
+}
+
+.task-menu-separator {
+  margin: 4px 6px;
+  border-top: 1px solid #e9e5ef;
+}
+
+.task-menu-item {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #262133;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-menu-item:hover,
+.task-menu-item:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: -2px;
+  background: #f1ecfa;
+}
+
+.task-menu-item-danger {
+  color: #a12626;
+}
+
+.task-menu-item-danger:hover,
+.task-menu-item-danger:focus-visible {
+  outline-color: #a12626;
+  background: #fff1f1;
 }
 
 .completed-toggle:focus-visible {
@@ -286,6 +453,22 @@
 }
 
 @media (max-width: 600px) {
+  .task-card {
+    grid-template-columns: minmax(0, 1fr) auto 40px;
+    grid-template-areas: 'title title menu' 'points primary primary';
+    column-gap: 8px;
+    row-gap: 2px;
+  }
+
+  .task-card-focus {
+    grid-template-columns: 32px minmax(0, 1fr) 40px;
+    grid-template-areas: 'check title menu' '. points .';
+  }
+
+  .task-card-check {
+    align-self: start;
+  }
+
   .task-form {
     grid-template-columns: minmax(0, 1fr);
   }

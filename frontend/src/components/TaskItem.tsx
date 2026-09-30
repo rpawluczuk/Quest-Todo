@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
+import TaskActionsMenu from './TaskActionsMenu'
 
 type TaskItemProps = {
   readonly task: Task
@@ -28,6 +29,19 @@ function TaskItem({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const savingRef = useRef(false)
+  const titleId = useId()
+  const checkboxId = useId()
+  const card = useRef<HTMLLIElement>(null)
+  const wasEditing = useRef(isEditing)
+  const disabled = isAnyTaskEditing || isSaving
+  const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
+
+  useEffect(() => {
+    if (wasEditing.current && !isEditing) {
+      card.current?.querySelector<HTMLButtonElement>('.task-menu-trigger')?.focus()
+    }
+    wasEditing.current = isEditing
+  }, [isEditing])
 
   async function saveChange(
     action: (taskId: number) => Promise<void>,
@@ -48,72 +62,67 @@ function TaskItem({
   }
 
   return (
-    <li className={task.completed ? 'task task-completed' : 'task'}>
+    <li ref={card} className={`task-card task-card-${variant}${isEditing ? ' task-card-editing' : ''}`} aria-busy={isSaving}>
       {isEditing ? (
         <EditTaskForm task={task} onSave={onSave} onCancel={onCancel} />
       ) : (
         <>
-          {task.completed ? (
-            <span className="task-title">{task.title}</span>
-          ) : (
-            <label className="task-label">
+          {variant === 'focus' && (
+            <label className="task-card-check" htmlFor={checkboxId}>
               <input
+                id={checkboxId}
                 type="checkbox"
+                aria-labelledby={titleId}
                 checked={task.completed}
-                disabled={isSaving}
+                disabled={disabled}
                 onChange={() => void saveChange(onToggleTask)}
               />
-              <span className="task-title">{task.title}</span>
             </label>
           )}
-          <div className="task-actions">
+          {variant === 'focus' ? (
+            <label className="task-card-title" id={titleId} htmlFor={checkboxId}>{task.title}</label>
+          ) : (
+            <span className="task-card-title" id={titleId}>{task.title}</span>
+          )}
+          <span className="task-points task-card-points">{task.points} pkt</span>
+          {variant === 'backlog' && (
             <button
               type="button"
-              className="secondary-button"
-              disabled={isAnyTaskEditing || isSaving}
-              onClick={() => void saveChange(onDelete, 'Nie udało się usunąć zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')}
-              aria-label={`Usuń zadanie: ${task.title}`}
-              title="Usuń zadanie"
+              className="secondary-button task-card-primary"
+              disabled={disabled}
+              onClick={() => void saveChange(onToggleFocus)}
+              aria-label={`Przenieś do Focus: ${task.title}`}
             >
-              Usuń
+              + Focus
             </button>
-            <span className="task-points">{task.points} pkt</span>
-            {task.completed ? (
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={isAnyTaskEditing || isSaving}
-                onClick={() => void saveChange(onToggleTask)}
-                aria-label={`Cofnij ukończenie: ${task.title}`}
-              >
-                Cofnij ukończenie
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => void saveChange(onToggleFocus)}
-                disabled={isAnyTaskEditing || isSaving}
-                aria-label={`${task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}: ${task.title}`}
-              >
-                {task.inFocus ? 'Przenieś do Backlogu' : 'Przenieś do Focus'}
-              </button>
-            )}
-            {!task.completed && (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => onStartEditing(task.id)}
-                disabled={isAnyTaskEditing || isSaving}
-                aria-label={`Edytuj zadanie: ${task.title}`}
-              >
-                Edytuj
-              </button>
-            )}
-          </div>
+          )}
+          {task.completed && (
+            <button
+              type="button"
+              className="secondary-button task-card-primary"
+              disabled={disabled}
+              onClick={() => void saveChange(onToggleTask)}
+              aria-label={`Cofnij ukończenie: ${task.title}`}
+            >
+              Cofnij ukończenie
+            </button>
+          )}
+          <TaskActionsMenu
+            taskTitle={task.title}
+            disabled={disabled}
+            actions={[
+              ...(!task.completed ? [{ label: 'Edytuj', onSelect: () => onStartEditing(task.id) }] : []),
+              ...(variant === 'focus' ? [{ label: 'Przenieś do Backlogu', onSelect: () => void saveChange(onToggleFocus) }] : []),
+              {
+                label: 'Usuń',
+                destructive: true,
+                onSelect: () => void saveChange(onDelete, 'Nie udało się usunąć zadania. Sprawdź połączenie z backendem i spróbuj ponownie.'),
+              },
+            ]}
+          />
         </>
       )}
-      {isSaving && <span role="status">Zapisywanie…</span>}
+      {isSaving && <span className="task-card-status" role="status">Zapisywanie…</span>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </li>
   )

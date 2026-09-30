@@ -109,7 +109,7 @@ function App() {
       id: 'focus',
       title: 'Focus',
       description: 'Zadania, które wybierasz do realizacji.',
-      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „Przenieś do Focus”.',
+      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „+ Focus”.',
       tasks: focusTasks,
     },
     {
