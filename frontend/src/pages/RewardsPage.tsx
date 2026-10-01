@@ -43,9 +43,10 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
   }
 
   return (
-    <section className="tasks-section" aria-labelledby="rewards-heading">
+    <div className="rewards-sections">
+      <section className="tasks-section" aria-labelledby="rewards-heading">
       <div className="section-header">
-        <h2 id="rewards-heading">Nagrody</h2>
+        <h2 id="rewards-heading">Dostępne nagrody</h2>
         <p>Wymień zdobyte punkty na coś dla siebie.</p>
       </div>
       <CreateRewardForm onAddReward={onAddReward} />
@@ -96,8 +97,9 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
       </ul>
       <p className="reward-status" role="status">{deleteNotice}</p>
       {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
+      </section>
       <RewardInventory purchases={purchases} onUsePurchase={onUsePurchase} />
-    </section>
+    </div>
   )
 }
 

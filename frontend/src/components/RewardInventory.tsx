@@ -25,6 +25,8 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
     else groups.set(key, { purchase, count: 1 })
   }
 
+  const availableCount = [...groups.values()].reduce((total, group) => total + group.count, 0)
+
   async function redeem(purchase: Purchase) {
     if (using.current) return
     using.current = true
@@ -45,8 +47,10 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
 
   return (
     <>
-      <section className="reward-inventory" aria-labelledby="inventory-heading">
-        <h3 id="inventory-heading" ref={heading} tabIndex={-1}>Do wykorzystania</h3>
+      <section className="tasks-section reward-inventory" aria-labelledby="inventory-heading">
+        <div className="section-header">
+          <h2 id="inventory-heading" ref={heading} tabIndex={-1}>Do wykorzystania ({availableCount})</h2>
+        </div>
         {groups.size === 0 ? <p>Nie masz nagród do wykorzystania.</p> : (
           <ul className="task-list">
             {[...groups.entries()].map(([key, { purchase, count }]) => (
@@ -71,10 +75,9 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
         <p className="reward-status" role="status">{notice}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
       </section>
-      {purchases.length > 0 && (
-        <details className="reward-purchases">
+      <details className="tasks-section reward-purchases">
           <summary>Historia zakupów ({purchases.length})</summary>
-          <ul>
+          {purchases.length > 0 && <ul>
             {[...purchases].sort((a, b) => b.id - a.id).map((purchase) => (
               <li key={purchase.id}>
                 <span>{purchase.title} — {purchase.cost} pkt</span>
@@ -89,9 +92,8 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
                 </div>
               </li>
             ))}
-          </ul>
+          </ul>}
         </details>
-      )}
     </>
   )
 }
