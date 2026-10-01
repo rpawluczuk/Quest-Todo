@@ -54,13 +54,13 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
         {groups.size === 0 ? <p>Nie masz nagród do wykorzystania.</p> : (
           <ul className="task-list">
             {[...groups.entries()].map(([key, { purchase, count }]) => (
-              <li className="task" key={key}>
-                <span className="task-title">{purchase.title}</span>
-                <div className="task-actions">
+              <li className="task purchased-reward-card" key={key}>
+                <span className="task-title purchased-reward-title">{purchase.title}</span>
+                <div className="purchased-reward-actions">
                   <span className="task-points" aria-label={`Dostępne sztuki: ${count}`}>×{count}</span>
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="secondary-button purchased-reward-use-button"
                     aria-label={`Wykorzystaj: ${purchase.title}`}
                     disabled={usingId !== null}
                     onClick={() => void redeem(purchase)}
