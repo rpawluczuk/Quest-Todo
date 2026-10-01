@@ -42,6 +42,8 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
     }
   }
 
+  const sortedRewards = [...rewards].sort((a, b) => a.cost - b.cost)
+
   return (
     <div className="rewards-sections">
       <section className="tasks-section" aria-labelledby="rewards-heading">
@@ -57,7 +59,7 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
       )}
       <ul className="task-list">
         {rewards.length === 0 && <li className="empty-state">Brak dostępnych nagród.</li>}
-        {rewards.map((reward) => (
+        {sortedRewards.map((reward) => (
           <li className={`task reward-card${editingRewardId === reward.id ? ' reward-card-editing' : ''}`} key={reward.id}>
             {editingRewardId === reward.id ? (
               <EditRewardForm
