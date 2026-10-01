@@ -78,7 +78,9 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
                   onClick={() => onBuyReward(reward.id)}
                   aria-label={`Kup nagrodę: ${reward.title}, ${reward.cost} punktów`}
                 >
-                  Kup nagrodę
+                  {points !== null && points < reward.cost
+                    ? `Brakuje ${reward.cost - points} pkt`
+                    : 'Kup nagrodę'}
                 </button>
                 <TaskActionsMenu
                   itemTitle={reward.title}
@@ -89,9 +91,6 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
                     { label: 'Usuń', destructive: true, onSelect: () => void remove(reward) },
                   ]}
                 />
-                {points !== null && points < reward.cost && (
-                  <span className="reward-card-shortfall">Brakuje {reward.cost - points} pkt</span>
-                )}
               </>
             )}
           </li>
