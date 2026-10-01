@@ -77,22 +77,24 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
       </section>
       <details className="tasks-section reward-purchases">
           <summary>Historia zakupów ({purchases.length})</summary>
-          {purchases.length > 0 && <ul>
+          {purchases.length > 0 && <div className="purchase-history-list" role="list">
             {[...purchases].sort((a, b) => b.id - a.id).map((purchase) => (
-              <li key={purchase.id}>
-                <span>{purchase.title} — {purchase.cost} pkt</span>
-                <div className="purchase-details">
-                  Zakup: {purchase.purchasedAt
-                    ? <time dateTime={purchase.purchasedAt}>{dateFormat.format(new Date(purchase.purchasedAt))}</time>
-                    : 'data nieznana'}
-                  {' · '}
-                  {purchase.usedAt
-                    ? <>Wykorzystano: <time dateTime={purchase.usedAt}>{dateFormat.format(new Date(purchase.usedAt))}</time></>
-                    : 'Do wykorzystania'}
+              <div className="purchase-history-entry" role="listitem" key={purchase.id}>
+                <div className="purchase-history-main">
+                  <span className="purchase-history-title">{purchase.title}</span>
+                  <span className="purchase-history-cost">{purchase.cost} pkt</span>
                 </div>
-              </li>
+                <div className="purchase-details">
+                  <span>Kupiono: {purchase.purchasedAt
+                    ? <time dateTime={purchase.purchasedAt}>{dateFormat.format(new Date(purchase.purchasedAt))}</time>
+                    : 'data nieznana'}</span>
+                  {purchase.usedAt ? (
+                    <span>Wykorzystano: <time dateTime={purchase.usedAt}>{dateFormat.format(new Date(purchase.usedAt))}</time></span>
+                  ) : <span className="purchase-available-status">Do wykorzystania</span>}
+                </div>
+              </div>
             ))}
-          </ul>}
+          </div>}
         </details>
     </>
   )
