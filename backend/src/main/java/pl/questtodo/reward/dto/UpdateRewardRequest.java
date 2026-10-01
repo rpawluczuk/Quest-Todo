@@ -1,4 +1,4 @@
-package pl.questtodo.reward;
+package pl.questtodo.reward.dto;
 
 import java.math.BigDecimal;
 import jakarta.validation.constraints.Digits;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record RewardDetailsRequest(
+public record UpdateRewardRequest(
         @NotBlank(message = "Podaj nazwę nagrody.")
         String title,
         @NotNull(message = "Koszt nagrody jest wymagany.")

@@ -1,4 +1,4 @@
-package pl.questtodo.task;
+package pl.questtodo.task.dto;
 
 import java.math.BigDecimal;
 
@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record CreateTaskRequest(
+public record UpdateTaskRequest(
     @NotBlank (message = "Podaj nazwę zadania.")
     String title, 
     @NotNull  (message = "Punkty są wymagane.")

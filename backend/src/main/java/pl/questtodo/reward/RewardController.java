@@ -2,12 +2,15 @@ package pl.questtodo.reward;
 
 import java.util.List;
 import jakarta.validation.Valid;
+import pl.questtodo.reward.dto.UpdateRewardRequest;
+import pl.questtodo.reward.dto.CreateRewardRequest;
+
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -29,12 +32,12 @@ public class RewardController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Reward createReward(@Valid @RequestBody RewardDetailsRequest request) {
+    public Reward createReward(@Valid @RequestBody CreateRewardRequest request) {
         return rewardService.createReward(request.title().strip(), request.cost().intValueExact());
     }
 
-    @PatchMapping("/{id}")
-    public Reward updateReward(@PathVariable long id, @Valid @RequestBody RewardDetailsRequest request) {
+    @PutMapping("/{id}")
+    public Reward updateReward(@PathVariable long id, @Valid @RequestBody UpdateRewardRequest request) {
         return rewardService.updateReward(id, request.title().strip(), request.cost().intValueExact());
     }
 

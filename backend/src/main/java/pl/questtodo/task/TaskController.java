@@ -2,7 +2,6 @@ package pl.questtodo.task;
 
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import java.math.BigDecimal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.HttpStatus;
@@ -12,6 +11,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
+import pl.questtodo.task.dto.CreateTaskRequest;
+import pl.questtodo.task.dto.UpdateCompletionRequest;
+import pl.questtodo.task.dto.UpdateFocusRequest;
+import pl.questtodo.task.dto.UpdateTaskRequest;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
