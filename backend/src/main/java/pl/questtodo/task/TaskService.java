@@ -1,6 +1,7 @@
 package pl.questtodo.task;
 
 import java.util.List;
+import pl.questtodo.user.CurrentUserProvider;
 import pl.questtodo.user.UserService;
 
 import org.springframework.http.HttpStatus;
@@ -13,15 +14,17 @@ import org.springframework.web.server.ResponseStatusException;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final UserService userService;
+    private final CurrentUserProvider currentUser;
 
-    public TaskService(TaskRepository taskRepository, UserService userService) {
+    public TaskService(TaskRepository taskRepository, UserService userService, CurrentUserProvider currentUser) {
         this.taskRepository = taskRepository;
         this.userService = userService;
+        this.currentUser = currentUser;
     }
 
     @Transactional(readOnly = true)
     public List<Task> getTasks() {
-        return taskRepository.findByUserIdOrderByIdAsc(UserService.CURRENT_USER_ID).stream()
+        return taskRepository.findByUserIdOrderByIdAsc(currentUser.getUserId()).stream()
                 .map(TaskEntity::toTask)
                 .toList();
     }
@@ -59,7 +62,7 @@ public class TaskService {
     }
 
     private TaskEntity findForUpdate(long id) {
-        return taskRepository.findForUpdate(id, UserService.CURRENT_USER_ID)
+        return taskRepository.findForUpdate(id, currentUser.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje."));
     }
 }

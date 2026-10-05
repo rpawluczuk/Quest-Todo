@@ -6,22 +6,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class UserService {
-    // Single local profile until authentication is introduced.
-    public static final long CURRENT_USER_ID = 1L;
     private final UserRepository users;
+    private final CurrentUserProvider currentUser;
 
-    public UserService(UserRepository users) { 
-        this.users = users; 
+    public UserService(UserRepository users, CurrentUserProvider currentUser) {
+        this.users = users;
+        this.currentUser = currentUser;
     }
 
     @Transactional(readOnly = true)
     public UserEntity.User getCurrentUser() {
-        return users.findById(CURRENT_USER_ID).orElseThrow().toUser();
+        return users.findById(currentUser.getUserId()).orElseThrow().toUser();
     }
 
     public UserEntity lockCurrentUser() {
-        return users.findForUpdate(CURRENT_USER_ID).orElseThrow();
+        return users.findForUpdate(currentUser.getUserId()).orElseThrow();
     }
 
-    public UserEntity currentReference() { return users.getReferenceById(CURRENT_USER_ID); }
+    public UserEntity currentReference() { return users.getReferenceById(currentUser.getUserId()); }
 }

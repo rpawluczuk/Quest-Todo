@@ -23,7 +23,7 @@ public class WebConfiguration implements WebMvcConfigurer {
 
         registry.addMapping("/api/**")
                 .allowedOrigins(allowedOrigins)
-                .allowedMethods("GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("Content-Type")
                 .maxAge(3600);
     }

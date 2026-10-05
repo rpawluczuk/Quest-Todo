@@ -61,6 +61,11 @@ zadania i ustawia saldo na sumę punktów ukończonych zadań. Saldo i nowe zaku
 są przechowywane w bazie. Dawnych zakupów z pamięci React nie można odtworzyć.
 Na tym etapie aplikacja korzysta z jednego użytkownika, bez logowania.
 
+`CurrentUserProvider` jest jedynym miejscem wybierającym bieżącego użytkownika.
+Obecnie zwraca ID `1`, zachowując istniejące konto i jego dane. Serwisy użytkownika,
+zadań i zakupów korzystają z tego samego komponentu. To przygotowanie do logowania;
+nie dodaje rejestracji ani prywatnych katalogów nagród i nie wymaga migracji bazy.
+
 Ukończenie zadania dodaje punkty tylko przy zmianie statusu. Cofnięcie ukończenia
 odejmuje je (saldo może stać się ujemne po wcześniejszych zakupach). Usunięcie
 zadania zachowuje zdobyte punkty. Zakup zapisuje nazwę i koszt nagrody z chwili zakupu;
@@ -69,7 +74,7 @@ Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
 
 ## API
 
-- `PATCH /api/rewards/{id}` — edytuje nazwę i koszt nagrody, np.
+- `PUT /api/rewards/{id}` — edytuje nazwę i koszt nagrody, np.
   `{"title":"Wyjście do kina","cost":100}`. Oba pola są wymagane, odpowiedź 200
   zawiera aktualną nagrodę. Walidacja jak przy tworzeniu; brak nagrody daje 404.
   Edycja nie zmienia salda ani wcześniejszych zakupów. Kolejny zakup używa nowej ceny.

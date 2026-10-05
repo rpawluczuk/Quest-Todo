@@ -28,7 +28,7 @@ class CorsTests {
     }
 
     @ParameterizedTest
-    @CsvSource({"POST,/api/rewards", "PATCH,/api/rewards/1", "DELETE,/api/tasks/1"})
+    @CsvSource({"POST,/api/rewards", "PUT,/api/rewards/1", "PATCH,/api/tasks/1", "DELETE,/api/tasks/1"})
     void permitsBrowserPreflightForMutations(String method, String path) throws Exception {
         mvc.perform(options(path)
                         .header("Origin", "https://quest-frontend.example")
@@ -44,14 +44,14 @@ class CorsTests {
     void rejectsUnconfiguredOrigins(String origin) throws Exception {
         mvc.perform(options("/api/rewards/1")
                         .header("Origin", origin)
-                        .header("Access-Control-Request-Method", "PATCH"))
+                        .header("Access-Control-Request-Method", "PUT"))
                 .andExpect(status().isForbidden())
                 .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
 
     @Test
     void validationErrorsRemainReadableByFrontend() throws Exception {
-        mvc.perform(patch("/api/rewards/1")
+        mvc.perform(put("/api/rewards/1")
                         .header("Origin", "https://quest-frontend.example")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\" \",\"cost\":0}"))
