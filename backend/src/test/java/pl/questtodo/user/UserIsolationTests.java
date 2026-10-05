@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:user_isolation;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(pl.questtodo.AuthenticatedApiTestConfiguration.class)
 @Transactional
 class UserIsolationTests {
     @Autowired private MockMvc mvc;

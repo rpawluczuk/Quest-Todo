@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(pl.questtodo.AuthenticatedApiTestConfiguration.class)
 @Transactional
 class RewardControllerTests {
     @Autowired

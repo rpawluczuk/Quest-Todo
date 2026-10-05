@@ -4,6 +4,9 @@ Java 21, Spring Boot, PostgreSQL, Spring Data JPA i Flyway.
 
 Wdrożenie backendu na Render Free z bazą Neon: [instrukcja krok po kroku](RENDER.md).
 
+Logowanie i aktualny wariant wdrożenia strony wraz z API:
+[pierwszy login, hasło i konfiguracja Render](LOGIN.md).
+
 ## Uruchomienie lokalne
 
 1. Uruchom Docker Desktop.
@@ -59,19 +62,20 @@ Zadania zapisane wcześniej w pamięci starego backendu nie są automatycznie pr
 Migracja V3 tworzy domyślnego użytkownika `Gracz` (ID 1), przypisuje mu istniejące
 zadania i ustawia saldo na sumę punktów ukończonych zadań. Saldo i nowe zakupy
 są przechowywane w bazie. Dawnych zakupów z pamięci React nie można odtworzyć.
-Na tym etapie aplikacja korzysta z jednego użytkownika, bez logowania.
+Konto ID 1 pozostaje dotychczasowym kontem; migracja V8 dodaje możliwość logowania.
 
 `CurrentUserProvider` jest jedynym miejscem wybierającym bieżącego użytkownika.
-Obecnie zwraca ID `1`, zachowując istniejące konto i jego dane. Serwisy użytkownika,
-zadań i zakupów korzystają z tego samego komponentu. Logowanie i rejestracja są
-planowane w kolejnych etapach; obecnie każde żądanie nadal działa jako użytkownik `1`.
+Odczytuje ID z uwierzytelnionej sesji Spring Security; bez sesji nie wybiera żadnego
+konta. Serwisy użytkownika, zadań i zakupów korzystają z tego samego komponentu.
+Rejestracja jest planowana w kolejnym etapie. Dane logowania istniejącego konta
+ustawia się jednorazowo przez `INITIAL_USER_LOGIN` i `INITIAL_USER_PASSWORD`.
 
 Migracja V7 przypisuje wszystkie istniejące nagrody (także usunięte) użytkownikowi `1`.
 Zachowuje ich ID, historię zakupów, zadania i saldo. Nowe nagrody i zadania wymagają
 podania właściciela przez backend; baza nie przypisuje już zadań domyślnie do konta `1`.
 Listy i operacje na zadaniach, nagrodach oraz zakupach są ograniczone do bieżącego
 użytkownika. Próba zmiany, usunięcia lub zakupu cudzego rekordu zwraca `404`.
-To przygotowanie izolacji danych — publiczny dostęp wymaga jeszcze logowania.
+API wymaga zalogowania oraz tokenu CSRF przy operacjach zmieniających dane.
 
 Przed wdrożeniem V7 wykonaj świeżą kopię bazy. Migrację wdrażaj wraz z nowym backendem,
 po zatrzymaniu starej instancji: starszy kod tworzy nagrody bez wymaganego właściciela.
@@ -97,7 +101,7 @@ Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
   Tworzenie nagrody nie zmienia salda; punkty odejmowane są dopiero przy zakupie.
   Formularz dodawania jest dostępny w widoku „Nagrody”.
 
-- `GET /api/users/me` — domyślny użytkownik: `id`, `name`, `points`.
+- `GET /api/users/me` — zalogowany użytkownik: `id`, `name`, `points`; bez sesji `401`.
 - `GET /api/rewards/purchases` — historia zakupów: `id`, `rewardId`, `title`, `cost`.
 - `POST /api/rewards/{id}/purchases` — zakup, odpowiedź 201; brak punktów daje 409,
   brak nagrody 404. Każde żądanie oznacza osobny zakup.

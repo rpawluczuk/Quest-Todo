@@ -1,5 +1,9 @@
 # Backend na Render Free + Neon
 
+Po dodaniu logowania stosuj [aktualną instrukcję wdrożenia z sesją](LOGIN.md).
+Opis poniżej dotyczy wariantu z osobnym API. Główny Dockerfile pozwala wdrożyć
+stronę i API pod jednym adresem; wymaga innego Root Directory niż poniżej.
+
 Backend działa na Render, PostgreSQL w Neon, a frontend na razie lokalnie przez Vite.
 Repozytorium zawiera Dockerfile budujący aplikację i uruchamiający testy na H2.
 Hasła bazy ustawiasz wyłącznie w panelu Render.
@@ -29,9 +33,8 @@ Nie kopiuje danych z lokalnego Dockera. Flyway przy starcie zastosuje brakujące
 nie zmieniaj już wykonanych migracji i nie uruchamiaj ponownie importu bazy tylko po to,
 żeby wdrożyć backend.
 
-Obecne API nie ma logowania i korzysta ze wspólnego użytkownika. Publiczny adres pozwala
-odczytywać i zmieniać dane. Do publicznego demo użyj osobnej bazy z danymi przykładowymi;
-prywatne dane wymagają dodania uwierzytelniania.
+API wymaga sesji logowania. Ustaw dane pierwszego konta zgodnie z LOGIN.md.
+Do publicznego demo użyj osobnej bazy z danymi przykładowymi.
 
 ## 3. Utwórz usługę Render
 

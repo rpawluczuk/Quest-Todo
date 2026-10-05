@@ -13,9 +13,25 @@ public class UserEntity {
     @Column(nullable = false)
     private long points;
 
+    @Column(unique = true, length = 64)
+    private String login;
+    @Column(name = "password_hash", length = 100)
+    private String passwordHash;
+
     protected UserEntity() {}
 
     public long getPoints() { return points; }
+
+    public String getLogin() { return login; }
+    public String getPasswordHash() { return passwordHash; }
+
+    public void initializeCredentials(String login, String passwordHash) {
+        if (this.login != null || this.passwordHash != null) {
+            throw new IllegalStateException("Account credentials are already initialized.");
+        }
+        this.login = login;
+        this.passwordHash = passwordHash;
+    }
 
     public void addPoints(long amount) { points = Math.addExact(points, amount); }
 

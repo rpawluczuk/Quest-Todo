@@ -1,5 +1,9 @@
 # Frontend na Render Static Site
 
+Po dodaniu logowania zalecany jest [wspólny adres strony i API](../backend/LOGIN.md).
+Ta instrukcja opisuje wariant z osobnym Static Site. Dwa osobne adresy `onrender.com`
+mogą powodować blokowanie ciasteczek sesji przez przeglądarkę; samo CORS nie wystarczy.
+
 Frontend w przeglądarce wysyła żądania bezpośrednio do API na Render przez HTTPS.
 Backend korzysta z PostgreSQL w Neon.
 

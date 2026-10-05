@@ -4,6 +4,41 @@
   padding: 64px 24px;
 }
 
+.login-page {
+  max-width: 420px;
+  margin: 8vh auto;
+  padding: 24px;
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.login-form input {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #c6bfd5;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.account-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+}
+
+.account-bar + .quest-app {
+  padding-top: 24px;
+}
+
 .app-header {
   display: flex;
   flex-wrap: wrap;
@@ -206,6 +241,7 @@
   font-weight: 400;
 }
 
+.login-form button,
 .task-form button,
 .secondary-button {
   padding: 10px 16px;
@@ -219,10 +255,13 @@
   cursor: pointer;
 }
 
+.login-form button:hover,
 .task-form button:hover {
   background: #493486;
 }
 
+.login-form input:focus-visible,
+.login-form button:focus-visible,
 .task-form input:focus-visible,
 .task-form button:focus-visible,
 .secondary-button:focus-visible {
@@ -259,6 +298,7 @@
   background: #f1ecfa;
 }
 
+.login-form button:disabled,
 .secondary-button:disabled,
 .task-form button:disabled {
   opacity: 0.5;

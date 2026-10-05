@@ -27,7 +27,7 @@ class RewardOwnershipMigrationTests {
             String oldRewardColumns = "SELECT id, title, cost, deleted FROM rewards ORDER BY id";
             var rewardsBefore = rows(connection, oldRewardColumns);
 
-            Flyway.configure().dataSource(url, "sa", "").load().migrate();
+            Flyway.configure().dataSource(url, "sa", "").target("7").load().migrate();
 
             assertEquals(usersBefore, rows(connection, "SELECT * FROM users ORDER BY id"));
             assertEquals(tasksBefore, rows(connection, "SELECT * FROM tasks ORDER BY id"));

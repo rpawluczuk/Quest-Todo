@@ -1,0 +1,9 @@
+.git
+.local-backups
+.idea
+.vscode
+**/node_modules
+**/target
+**/dist
+**/.env*
+**/*.log

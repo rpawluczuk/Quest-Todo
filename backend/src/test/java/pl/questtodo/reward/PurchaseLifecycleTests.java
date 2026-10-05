@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(pl.questtodo.AuthenticatedApiTestConfiguration.class)
 @Sql(scripts = "/reset-tasks.sql", statements = "UPDATE users SET points = 100 WHERE id = 1")
 @Sql(scripts = "/reset-tasks.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class PurchaseLifecycleTests {

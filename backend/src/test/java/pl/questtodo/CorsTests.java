@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = "app.cors.allowed-origins=https://quest-frontend.example, https://second-frontend.example ")
 @AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(pl.questtodo.AuthenticatedApiTestConfiguration.class)
 class CorsTests {
     @Autowired MockMvc mvc;
 
@@ -24,7 +25,7 @@ class CorsTests {
         mvc.perform(get("/api/health").header("Origin", origin))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", origin))
-                .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
     }
 
     @ParameterizedTest
