@@ -1,7 +1,7 @@
 .quest-app {
   max-width: 860px;
   margin: 0 auto;
-  padding: 64px 24px;
+  padding: 32px 24px;
 }
 
 .login-page {
@@ -24,19 +24,96 @@
   font: inherit;
 }
 
-.account-bar {
+.header-account {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 24px 24px 0;
+  gap: 10px;
+  min-width: 0;
+  margin-left: auto;
 }
 
-.account-bar + .quest-app {
-  padding-top: 24px;
+.header-account .points-balance {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.user-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #ded5f5;
+  border-radius: 50%;
+  background: #f1ecfa;
+  color: #5b42a6;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.user-avatar:hover,
+.user-avatar[aria-expanded='true'] {
+  background: #5b42a6;
+  color: #fff;
+}
+
+.user-avatar:focus-visible,
+.user-menu-logout:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
+}
+
+.user-avatar:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.user-menu-panel {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(220px, calc(100vw - 32px));
+  padding: 6px;
+  border: 1px solid #e5e1eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 20px #30204a26;
+}
+
+.user-menu-name {
+  padding: 10px;
+  border-bottom: 1px solid #e9e5ef;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.user-menu-logout {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5b42a6;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-menu-logout:hover {
+  background: #f1ecfa;
 }
 
 .app-header {
@@ -681,7 +758,17 @@
   }
 
   .app-header {
+    gap: 8px;
     margin-bottom: 20px;
+  }
+
+  .app-header h1 {
+    font-size: clamp(1.3rem, 5vw, 2rem);
+  }
+
+  .header-account {
+    gap: 6px;
+    max-width: 100%;
   }
 
   .tasks-section {

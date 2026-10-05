@@ -62,16 +62,6 @@ export default function SessionApp() {
     channel.current?.postMessage('login')
   }} />
   return (
-    <>
-      <div className="account-bar">
-        <span>Zalogowano jako <strong>{user.name}</strong></span>
-        <button className="secondary-button" onClick={signOut} disabled={loggingOut}>
-          {loggingOut ? 'Wylogowywanie…' : 'Wyloguj się'}
-        </button>
-        {error && <p className="form-error" role="alert">{error}</p>}
-      </div>
-      {/* Unmounting App removes all data when the session ends or changes user. */}
-      <App key={user.id} />
-    </>
+    <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error} />
   )
 }

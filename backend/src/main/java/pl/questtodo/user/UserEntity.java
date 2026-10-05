@@ -42,7 +42,7 @@ public class UserEntity {
 
     public void addPoints(long amount) { points = Math.addExact(points, amount); }
 
-    public User toUser() { return new User(id, name, points); }
+    public User toUser() { return new User(id, name, points, login); }
 
-    public record User(long id, String name, long points) {}
+    public record User(long id, String name, long points, String login) {}
 }

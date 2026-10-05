@@ -66,6 +66,7 @@ class AuthenticationTests {
         assertNotEquals(oldSessionId, session.getId());
         mvc.perform(get("/api/users/me").session(session))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.login").value("owner"))
                 .andExpect(jsonPath("$.points").value(100))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
         mvc.perform(get("/api/tasks").session(session)).andExpect(jsonPath("$.length()").value(3));

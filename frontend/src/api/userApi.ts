@@ -1,6 +1,6 @@
 import { apiFetch } from './apiFetch'
 
-export type User = { id: number; name: string; points: number }
+export type User = { id: number; points: number; login: string }
 export type Purchase = {
   id: number
   rewardId: number

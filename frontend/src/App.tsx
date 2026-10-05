@@ -1,4 +1,4 @@
-import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase } from './api/userApi'
+import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase, type User } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
 import { createReward, deleteReward, getRewards, updateReward } from './api/rewardApi'
 import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
@@ -12,7 +12,14 @@ import CreateTaskForm from './components/CreateTaskForm'
 import CompletionNotice from './components/CompletionNotice'
 import './App.css'
 
-function App() {
+type AppProps = {
+  user: User
+  onLogout: () => Promise<void>
+  loggingOut: boolean
+  logoutError: string
+}
+
+function App({ user, onLogout, loggingOut, logoutError }: AppProps) {
   const [activePage, setActivePage] = useState<'tasks' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
@@ -229,7 +236,8 @@ function App() {
   }
   return (
     <main className="quest-app">
-      <Header points={points} />
+      <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} />
+      {logoutError && <p className="form-error" role="alert">{logoutError}</p>}
       {accountError && <p className="form-error" role="alert">{accountError}</p>}
       <nav className="page-navigation" aria-label="Widoki aplikacji">
         <button
