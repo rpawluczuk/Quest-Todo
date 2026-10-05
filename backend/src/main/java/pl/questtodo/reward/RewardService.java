@@ -2,7 +2,6 @@ package pl.questtodo.reward;
 
 import java.util.List;
 import java.time.Instant;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
@@ -34,9 +33,7 @@ public class RewardService {
     @Transactional
     public PurchaseEntity.Purchase buyReward(long id) {
         var user = users.lockCurrentUser();
-        var reward = rewardRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."))
-                .toReward();
+        var reward = findCurrentUsersReward(id).toReward();
         if (user.getPoints() < reward.cost()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Za mało punktów.");
         }
@@ -45,7 +42,7 @@ public class RewardService {
     }
 
     public List<Reward> getRewards() {
-        return rewardRepository.findByDeletedFalse(Sort.by("id")).stream()
+        return rewardRepository.findByUserIdAndDeletedFalseOrderByIdAsc(currentUser.getUserId()).stream()
                 .map(RewardEntity::toReward)
                 .toList();
     }
@@ -64,14 +61,13 @@ public class RewardService {
 
     @Transactional
     public Reward createReward(String title, int cost) {
-        return rewardRepository.save(new RewardEntity(title, cost)).toReward();
+        return rewardRepository.save(new RewardEntity(title, cost, users.currentReference())).toReward();
     }
 
     @Transactional
     public Reward updateReward(long id, String title, int cost) {
         users.lockCurrentUser();
-        var reward = rewardRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
+        var reward = findCurrentUsersReward(id);
         reward.updateDetails(title, cost);
         return reward.toReward();
     }
@@ -80,8 +76,12 @@ public class RewardService {
     public void deleteReward(long id) {
         // Serialize with purchases so an offer cannot be bought after its deletion commits.
         users.lockCurrentUser();
-        var reward = rewardRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
+        var reward = findCurrentUsersReward(id);
         reward.delete();
+    }
+
+    private RewardEntity findCurrentUsersReward(long id) {
+        return rewardRepository.findByIdAndUserIdAndDeletedFalse(id, currentUser.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nagroda nie istnieje."));
     }
 }

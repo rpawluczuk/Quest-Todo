@@ -63,8 +63,19 @@ Na tym etapie aplikacja korzysta z jednego użytkownika, bez logowania.
 
 `CurrentUserProvider` jest jedynym miejscem wybierającym bieżącego użytkownika.
 Obecnie zwraca ID `1`, zachowując istniejące konto i jego dane. Serwisy użytkownika,
-zadań i zakupów korzystają z tego samego komponentu. To przygotowanie do logowania;
-nie dodaje rejestracji ani prywatnych katalogów nagród i nie wymaga migracji bazy.
+zadań i zakupów korzystają z tego samego komponentu. Logowanie i rejestracja są
+planowane w kolejnych etapach; obecnie każde żądanie nadal działa jako użytkownik `1`.
+
+Migracja V7 przypisuje wszystkie istniejące nagrody (także usunięte) użytkownikowi `1`.
+Zachowuje ich ID, historię zakupów, zadania i saldo. Nowe nagrody i zadania wymagają
+podania właściciela przez backend; baza nie przypisuje już zadań domyślnie do konta `1`.
+Listy i operacje na zadaniach, nagrodach oraz zakupach są ograniczone do bieżącego
+użytkownika. Próba zmiany, usunięcia lub zakupu cudzego rekordu zwraca `404`.
+To przygotowanie izolacji danych — publiczny dostęp wymaga jeszcze logowania.
+
+Przed wdrożeniem V7 wykonaj świeżą kopię bazy. Migrację wdrażaj wraz z nowym backendem,
+po zatrzymaniu starej instancji: starszy kod tworzy nagrody bez wymaganego właściciela.
+Samo przywrócenie starego kodu po migracji nie zapewnia zgodności zapisu nagród.
 
 Ukończenie zadania dodaje punkty tylko przy zmianie statusu. Cofnięcie ukończenia
 odejmuje je (saldo może stać się ujemne po wcześniejszych zakupach). Usunięcie
