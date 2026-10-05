@@ -1,6 +1,18 @@
 import { apiFetch } from './apiFetch'
 import type { User } from './userApi'
 
+export async function register(login: string, password: string): Promise<void> {
+  const response = await apiFetch('/api/auth/register', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login: login.trim(), password }),
+  })
+  if (response.status === 400 || response.status === 409) {
+    const error: { message?: string } = await response.json()
+    throw new Error(error.message ?? 'Sprawdź login i hasło.')
+  }
+  if (!response.ok) throw new Error('Nie udało się utworzyć konta. Spróbuj ponownie.')
+}
+
 export async function readSession(signal?: AbortSignal): Promise<User | null> {
   const response = await apiFetch('/api/users/me', { signal })
   if (response.status === 401) return null

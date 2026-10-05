@@ -20,6 +20,13 @@ public class UserEntity {
 
     protected UserEntity() {}
 
+    public static UserEntity registered(String login, String passwordHash) {
+        var user = new UserEntity();
+        user.name = login;
+        user.initializeCredentials(login, passwordHash);
+        return user;
+    }
+
     public long getPoints() { return points; }
 
     public String getLogin() { return login; }

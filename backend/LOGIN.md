@@ -3,7 +3,22 @@
 Logowanie wykorzystuje login, hasło i sesję Spring Security. Migracja V8 dodaje
 pola loginu oraz skrótu hasła do istniejących użytkowników. Nie tworzy nowego konta,
 nie przelicza salda i nie przenosi danych. Pierwsze dane logowania przypisuje się
-wyłącznie istniejącemu użytkownikowi ID 1. Rejestracja będzie osobnym etapem.
+wyłącznie istniejącemu użytkownikowi ID 1. Pozostali użytkownicy tworzą konta przez
+przycisk „Nie masz konta? Zarejestruj się” na ekranie logowania.
+
+## Samodzielna rejestracja
+
+Formularz wymaga loginu, hasła i powtórzenia hasła. Obowiązują te same wymagania
+loginu i hasła co poniżej. Loginy są zapisywane małymi literami i muszą być unikalne.
+Login jest też początkową nazwą wyświetlaną. Po rejestracji użytkownik loguje się
+zwykłym formularzem. Nowe konto ma 0 punktów i puste zadania, nagrody oraz zakupy.
+Rejestracja nie zmienia danych istniejących kont i nie wymaga nowej migracji bazy.
+
+`POST /api/auth/register` przyjmuje JSON z polami `login` i `password` oraz wymaga
+tokena CSRF. Zwraca 201 po utworzeniu konta, 400 dla nieprawidłowych danych lub 409
+dla zajętego loginu. Nie loguje automatycznie. Rejestracja jest publiczna: każda osoba
+znająca adres aplikacji może utworzyć konto. Ten etap nie dodaje odzyskiwania hasła,
+weryfikacji e-mail ani ograniczania liczby prób.
 
 ## Pierwszy login i hasło
 
