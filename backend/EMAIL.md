@@ -25,23 +25,24 @@ Pliki skrzynki zawierają działające lokalne linki, są ignorowane przez Git.
 Tryb `file` wymaga profilu `local`; nie jest dopuszczony w zwykłym profilu produkcji.
 Jeśli frontend ma inny adres/port, ustaw `APP_PUBLIC_URL` na jego dokładny adres.
 
-## Produkcja: Resend przez HTTPS
+## Produkcja: Brevo przez HTTPS
 
-Kod nie tworzy konta u dostawcy ani nie konfiguruje DNS. Do wysyłki do dowolnych
-odbiorców potrzebujesz własnej domeny, konta Resend, zweryfikowanej domeny nadawcy
-oraz klucza API z uprawnieniem wysyłania. Domena nadawcy może różnić się od adresu
-aplikacji na Render. Nie można zweryfikować należącej do Render domeny `onrender.com`
-jako swojej domeny nadawcy.
+Kod nie tworzy konta u dostawcy. Na początek możesz użyć własnego adresu Gmail
+bez kupowania domeny. W Brevo dodaj nadawcę w `Settings → Senders, Domains &
+Dedicated IPs → Senders`, podaj nazwę `Quest Todo` i swój adres e-mail, a następnie
+potwierdź go sześciocyfrowym kodem otrzymanym na tę skrzynkę. Brevo zaleca własną
+domenę ze względu na dostarczalność, ale nie jest ona wymagana do tego wariantu.
 
-1. Dodaj domenę/subdomenę do Resend i ustaw wskazane rekordy DNS u jej operatora.
-2. Poczekaj na potwierdzenie domeny i utwórz klucz API do wysyłania.
-3. W Environment usługi `quest-todo-api` ustaw:
+1. Załóż konto Brevo i dodaj oraz potwierdź adres nadawcy.
+2. W `Settings → SMTP & API → API Keys` utwórz klucz API i zapisz go od razu.
+3. W Environment usługi `quest-todo-api` na Render ustaw:
 
 | Zmienna | Wartość |
 | --- | --- |
-| `MAIL_MODE` | `resend` |
-| `MAIL_API_KEY` | klucz API Resend; tylko w środowisku backendu |
-| `MAIL_FROM` | np. `Quest Todo <konto@twoja-domena.pl>` — z potwierdzonej domeny |
+| `MAIL_MODE` | `brevo` |
+| `MAIL_API_KEY` | klucz API Brevo; tylko w środowisku backendu |
+| `MAIL_FROM` | sam potwierdzony adres nadawcy, np. `twoj-adres@gmail.com` |
+| `MAIL_FROM_NAME` | `Quest Todo` (opcjonalne, taka jest wartość domyślna) |
 | `APP_PUBLIC_URL` | `https://quest-todo-api.onrender.com` — adres strony aplikacji |
 
 4. Wykonaj świeżą kopię bazy, następnie wdróż commit. Migracja V9 dodaje osobne
@@ -54,10 +55,15 @@ i rejestrować konta bez e-maila. Próba wysyłki zwraca komunikat o niedostępn
 Jeżeli wysyłka przy rejestracji zawiedzie, konto zostaje utworzone, a odpowiedź 201
 wyjaśnia, że adres należy dodać po zalogowaniu. Nie należy ponawiać rejestracji.
 
-Render Free blokuje standardowe porty SMTP — integracja używa API HTTPS Resend.
+Przy adresie z bezpłatnej skrzynki Brevo może technicznie zastąpić adres `From`,
+aby spełnić wymagania dostawców poczty. Nazwa `Quest Todo` pozostanie widoczna,
+ale dostarczalność będzie słabsza niż po podłączeniu własnej domeny.
+
+Render Free blokuje standardowe porty SMTP — integracja używa API HTTPS Brevo.
 Źródła: [Render SMTP](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports),
-[Resend: domeny](https://resend.com/docs/dashboard/domains/introduction),
-[Resend: wysyłka](https://resend.com/docs/api-reference/emails/send-email).
+[Brevo: tworzenie nadawcy](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email),
+[Brevo: wysyłka przez API](https://developers.brevo.com/reference/send-transac-email),
+[Brevo: wymagania dla nadawców](https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders).
 
 ## Zasady i API
 
@@ -85,7 +91,7 @@ Render Free blokuje standardowe porty SMTP — integracja używa API HTTPS Resen
   Użytkownik może wtedy poprosić o nowy link.
 - Powiadomienie na stary adres trafia do trwałej kolejki w tej samej transakcji,
   która potwierdza nowy. Wysyłka co minutę, po błędzie ponowienie po 10 minutach.
-  Resend dostaje stały klucz idempotencji wiadomości; dostawca zachowuje go 24 godziny.
+  Brevo dostaje stały klucz idempotencji wiadomości; dostawca zachowuje go 30 minut.
   Awaria dłuższa niż ten czas może skutkować powtórzonym powiadomieniem.
 
 Przy skalowaniu ruchu należy dostosować globalne limity do dostawcy i liczby kont.
