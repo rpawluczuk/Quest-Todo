@@ -4,9 +4,10 @@ type UserMenuProps = {
   username: string
   onLogout: () => Promise<void>
   loggingOut: boolean
+  onChangePassword: () => void
 }
 
-export default function UserMenu({ username, onLogout, loggingOut }: UserMenuProps) {
+export default function UserMenu({ username, onLogout, loggingOut, onChangePassword }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -43,6 +44,11 @@ export default function UserMenu({ username, onLogout, loggingOut }: UserMenuPro
       </button>
       {open && <div id={panelId} className="user-menu-panel">
         <p className="user-menu-name">{username || 'Login niedostępny — odśwież stronę po aktualizacji backendu.'}</p>
+        <button type="button" className="user-menu-logout" onClick={() => {
+          setOpen(false)
+          trigger.current?.focus()
+          onChangePassword()
+        }}>Zmień hasło</button>
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
           trigger.current?.focus()

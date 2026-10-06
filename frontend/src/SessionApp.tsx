@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import App from './App'
 import LoginPage from './components/LoginPage'
+import ChangePasswordDialog from './components/ChangePasswordDialog'
 import { logout, readSession } from './api/authApi'
 import type { User } from './api/userApi'
 import './App.css'
@@ -10,6 +11,8 @@ export default function SessionApp() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [notice, setNotice] = useState('')
   const channel = useRef<BroadcastChannel | null>(null)
 
   useEffect(() => {
@@ -21,7 +24,7 @@ export default function SessionApp() {
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false)
     })
-    const expire = () => setUser(null)
+    const expire = () => { setUser(null); setChangingPassword(false); setError('') }
     window.addEventListener('quest-session-expired', expire)
     if ('BroadcastChannel' in window) {
       channel.current = new BroadcastChannel('quest-todo-session')
@@ -56,12 +59,23 @@ export default function SessionApp() {
       <button onClick={() => window.location.reload()}>Spróbuj ponownie</button>
     </main>
   )
-  if (!user) return <LoginPage onLogin={(account) => {
+  if (!user) return <LoginPage initialNotice={notice} onLogin={(account) => {
+    setNotice('')
     setError('')
     setUser(account)
     channel.current?.postMessage('login')
   }} />
   return (
-    <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error} />
+    <>
+      <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error}
+        onChangePassword={() => setChangingPassword(true)} />
+      {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} onSuccess={() => {
+        setChangingPassword(false)
+        setError('')
+        setNotice('Hasło zostało zmienione. Zaloguj się nowym hasłem.')
+        setUser(null)
+        channel.current?.postMessage('logout')
+      }} />}
+    </>
   )
 }

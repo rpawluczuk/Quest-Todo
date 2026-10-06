@@ -20,6 +20,22 @@ dla zajętego loginu. Nie loguje automatycznie. Rejestracja jest publiczna: każ
 znająca adres aplikacji może utworzyć konto. Ten etap nie dodaje odzyskiwania hasła,
 weryfikacji e-mail ani ograniczania liczby prób.
 
+## Zmiana hasła po zalogowaniu
+
+W menu avatara wybierz „Zmień hasło”. Podaj obecne hasło, nowe hasło oraz jego
+powtórzenie. Nowe hasło musi różnić się od obecnego i mieć minimum 8 znaków,
+maksimum 72 bajty UTF-8. Hasła nie są przycinane ani normalizowane.
+
+`POST /api/auth/password` wymaga zalogowania i CSRF; przyjmuje JSON z polami
+`currentPassword`, `newPassword`, `confirmation`. Sukces zwraca 204, błędne dane
+400 z komunikatem, brak sesji 401, brak CSRF 403. Zmieniane jest wyłącznie hasło
+zalogowanego użytkownika. Nie ma migracji ani zmian zadań, salda i nagród.
+
+Po zatwierdzeniu transakcji bieżąca sesja jest niszczona, a pozostałe sesje konta
+w rejestrze Spring Security tracą ważność i otrzymują 401 przy kolejnym żądaniu.
+Sesje innych użytkowników pozostają aktywne. Rejestr jest w pamięci jednej instancji,
+tak jak dotychczasowe sesje aplikacji. Ta funkcja nie odzyskuje zapomnianego hasła.
+
 ## Pierwszy login i hasło
 
 Przed pierwszym uruchomieniem ustaw w środowisku backendu:

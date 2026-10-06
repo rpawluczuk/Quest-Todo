@@ -32,6 +32,8 @@ public class UserEntity {
     public String getLogin() { return login; }
     public String getPasswordHash() { return passwordHash; }
 
+    public void changePassword(String passwordHash) { this.passwordHash = passwordHash; }
+
     public void initializeCredentials(String login, String passwordHash) {
         if (this.login != null || this.passwordHash != null) {
             throw new IllegalStateException("Account credentials are already initialized.");

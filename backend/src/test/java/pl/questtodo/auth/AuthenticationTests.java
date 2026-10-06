@@ -139,6 +139,55 @@ class AuthenticationTests {
                 .andExpect(jsonPath("$.id").value(1)).andExpect(jsonPath("$.points").value(100));
     }
 
+    @Test
+    void passwordChangeRevokesAllOwnerSessionsButKeepsOtherUsersAndData() throws Exception {
+        jdbc.update("INSERT INTO users (id, name, points, login, password_hash) VALUES (2, 'Second', 50, 'second', ?)", HASH);
+        var ownerBefore = jdbc.queryForMap("SELECT id, name, points, login FROM users WHERE id = 1");
+        var tasksBefore = jdbc.queryForList("SELECT * FROM tasks ORDER BY id");
+        var owner = login("owner");
+        var otherDevice = login("owner");
+        var second = login("second");
+        mvc.perform(post("/api/auth/password").session(owner).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"new-pass-123\",\"confirmation\":\"new-pass-123\"}"))
+                .andExpect(status().isNoContent());
+        assertTrue(owner.isInvalid());
+        mvc.perform(get("/api/users/me").session(otherDevice)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/users/me").session(second)).andExpect(status().isOk());
+        mvc.perform(post("/api/auth/login").with(csrf()).param("username", "owner").param("password", PASSWORD))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/login").with(csrf()).param("username", "owner").param("password", "new-pass-123"))
+                .andExpect(status().isNoContent());
+        assertEquals(ownerBefore, jdbc.queryForMap("SELECT id, name, points, login FROM users WHERE id = 1"));
+        assertEquals(tasksBefore, jdbc.queryForList("SELECT * FROM tasks ORDER BY id"));
+    }
+
+    @Test
+    void rejectedPasswordChangesKeepPasswordAndSessions() throws Exception {
+        var owner = login("owner");
+        for (String body : new String[]{
+                "{}",
+                "{\"currentPassword\":\"wrong\",\"newPassword\":\"new-pass-123\",\"confirmation\":\"new-pass-123\"}",
+                "{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"1234567\",\"confirmation\":\"1234567\"}",
+                "{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"new-pass-123\",\"confirmation\":\"different\"}",
+                "{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"" + PASSWORD + "\",\"confirmation\":\"" + PASSWORD + "\"}",
+                "{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"" + "ą".repeat(37) + "\",\"confirmation\":\"" + "ą".repeat(37) + "\"}"
+        }) {
+            mvc.perform(post("/api/auth/password").session(owner).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        }
+        assertEquals(HASH, jdbc.queryForObject("SELECT password_hash FROM users WHERE id = 1", String.class));
+        mvc.perform(get("/api/users/me").session(owner)).andExpect(status().isOk());
+    }
+
+    @Test
+    void passwordChangeRequiresAuthenticationAndCsrf() throws Exception {
+        mvc.perform(post("/api/auth/password").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/password").session(login("owner"))
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
     private MockHttpSession login(String username) throws Exception {
         var csrf = token(null);
         var result = mvc.perform(post("/api/auth/login").session(csrf.session())

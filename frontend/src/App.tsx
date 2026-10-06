@@ -17,9 +17,10 @@ type AppProps = {
   onLogout: () => Promise<void>
   loggingOut: boolean
   logoutError: string
+  onChangePassword: () => void
 }
 
-function App({ user, onLogout, loggingOut, logoutError }: AppProps) {
+function App({ user, onLogout, loggingOut, logoutError, onChangePassword }: AppProps) {
   const [activePage, setActivePage] = useState<'tasks' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
@@ -236,7 +237,7 @@ function App({ user, onLogout, loggingOut, logoutError }: AppProps) {
   }
   return (
     <main className="quest-app">
-      <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} />
+      <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} />
       {logoutError && <p className="form-error" role="alert">{logoutError}</p>}
       {accountError && <p className="form-error" role="alert">{accountError}</p>}
       <nav className="page-navigation" aria-label="Widoki aplikacji">

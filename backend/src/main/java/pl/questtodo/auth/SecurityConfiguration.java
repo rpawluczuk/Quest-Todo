@@ -18,6 +18,16 @@ import pl.questtodo.user.UserRepository;
 @Configuration
 public class SecurityConfiguration {
     @Bean
+    org.springframework.security.core.session.SessionRegistry sessionRegistry() {
+        return new org.springframework.security.core.session.SessionRegistryImpl();
+    }
+
+    @Bean
+    org.springframework.security.web.session.HttpSessionEventPublisher sessionEvents() {
+        return new org.springframework.security.web.session.HttpSessionEventPublisher();
+    }
+
+    @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
@@ -33,11 +43,14 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+            org.springframework.security.core.session.SessionRegistry sessions) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(Customizer.withDefaults())
                 .requestCache(cache -> cache.disable())
+                .sessionManagement(session -> session.maximumSessions(-1).sessionRegistry(sessions)
+                        .expiredSessionStrategy(event -> event.getResponse().setStatus(401)))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf").permitAll()

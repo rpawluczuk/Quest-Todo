@@ -1,6 +1,22 @@
 import { apiFetch } from './apiFetch'
 import type { User } from './userApi'
 
+export async function changePassword(currentPassword: string, newPassword: string, confirmation: string): Promise<void> {
+  const response = await apiFetch('/api/auth/password', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword, confirmation }),
+  })
+  if (response.status === 401) {
+    window.dispatchEvent(new Event('quest-session-expired'))
+    throw new Error('Sesja wygasła. Zaloguj się ponownie.')
+  }
+  if (response.status === 400) {
+    const error: { message?: string } = await response.json()
+    throw new Error(error.message ?? 'Sprawdź wpisane hasła.')
+  }
+  if (!response.ok) throw new Error('Nie udało się zmienić hasła. Spróbuj ponownie.')
+}
+
 export async function register(login: string, password: string): Promise<void> {
   const response = await apiFetch('/api/auth/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

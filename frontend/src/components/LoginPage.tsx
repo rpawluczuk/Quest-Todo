@@ -2,14 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { login, register } from '../api/authApi'
 import type { User } from '../api/userApi'
 
-export default function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
+export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (user: User) => void; initialNotice?: string }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [registering, setRegistering] = useState(false)
   const [confirmation, setConfirmation] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState(initialNotice)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
