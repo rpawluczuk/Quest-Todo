@@ -15,10 +15,12 @@ import pl.questtodo.user.UserRepository;
 public class RegistrationController {
     private final UserRepository users;
     private final PasswordEncoder passwords;
+    private final pl.questtodo.email.EmailService emails;
 
-    public RegistrationController(UserRepository users, PasswordEncoder passwords) {
+    public RegistrationController(UserRepository users, PasswordEncoder passwords, pl.questtodo.email.EmailService emails) {
         this.users = users;
         this.passwords = passwords;
+        this.emails = emails;
     }
 
     @PostMapping("/api/auth/register")
@@ -32,12 +34,25 @@ public class RegistrationController {
             return ResponseEntity.badRequest().body(new Message("Hasło musi mieć minimum 8 znaków i maksimum 72 bajty UTF-8."));
         }
         if (users.findByLogin(login).isPresent()) return duplicate();
+        String email;
+        try { email = pl.questtodo.email.EmailService.normalize(request.email()); }
+        catch (org.springframework.web.server.ResponseStatusException exception) {
+            return ResponseEntity.badRequest().body(new Message(exception.getReason()));
+        }
+        UserEntity account;
         try {
-            users.saveAndFlush(UserEntity.registered(login, passwords.encode(password)));
+            account = users.saveAndFlush(UserEntity.registered(login, passwords.encode(password)));
         } catch (DataIntegrityViolationException exception) {
             // The database unique constraint also handles simultaneous registrations.
             if (users.findByLogin(login).isPresent()) return duplicate();
             throw exception;
+        }
+        if (email != null) {
+            try { emails.forRegistration(account.toUser().id(), email); }
+            catch (org.springframework.web.server.ResponseStatusException exception) {
+                return ResponseEntity.status(201).body(new Message("Konto utworzone, ale nie wysłano potwierdzenia e-maila. Zaloguj się i dodaj adres w menu konta."));
+            }
+            return ResponseEntity.status(201).body(new Message("Konto utworzone. Sprawdź skrzynkę i potwierdź e-mail. Możesz już się zalogować."));
         }
         return ResponseEntity.status(201).body(new Message("Konto utworzone. Możesz się zalogować."));
     }
@@ -46,6 +61,6 @@ public class RegistrationController {
         return ResponseEntity.status(409).body(new Message("Ten login jest już zajęty. Wybierz inny."));
     }
 
-    public record Registration(String login, String password) {}
+    public record Registration(String login, String password, String email) {}
     public record Message(String message) {}
 }

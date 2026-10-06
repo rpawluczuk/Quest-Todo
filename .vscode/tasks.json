@@ -83,7 +83,10 @@
           }
         }
       },
-      "args": ["spring-boot:run"],
+      "args": [
+        "spring-boot:run",
+        { "value": "-Dspring-boot.run.profiles=local", "quoting": "strong" }
+      ],
       "options": { "cwd": "${workspaceFolder}/backend" },
       "dependsOn": ["Quest Todo: baza — start"],
       "problemMatcher": [],

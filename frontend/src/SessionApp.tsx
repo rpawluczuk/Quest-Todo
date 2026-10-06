@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import App from './App'
 import LoginPage from './components/LoginPage'
 import ChangePasswordDialog from './components/ChangePasswordDialog'
+import EmailDialog from './components/EmailDialog'
+import EmailConfirmationPage from './components/EmailConfirmationPage'
 import { logout, readSession } from './api/authApi'
 import type { User } from './api/userApi'
 import './App.css'
@@ -12,6 +14,8 @@ export default function SessionApp() {
   const [error, setError] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
+  const [editingEmail, setEditingEmail] = useState(false)
+  const [emailToken, setEmailToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('verify-email'))
   const [notice, setNotice] = useState('')
   const channel = useRef<BroadcastChannel | null>(null)
 
@@ -24,8 +28,13 @@ export default function SessionApp() {
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false)
     })
-    const expire = () => { setUser(null); setChangingPassword(false); setError('') }
+    const expire = () => { setUser(null); setChangingPassword(false); setEditingEmail(false); setError('') }
+    const openEmailLink = () => {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get('verify-email')
+      if (token !== null) setEmailToken(token)
+    }
     window.addEventListener('quest-session-expired', expire)
+    window.addEventListener('hashchange', openEmailLink)
     if ('BroadcastChannel' in window) {
       channel.current = new BroadcastChannel('quest-todo-session')
       channel.current.onmessage = () => window.location.reload()
@@ -33,6 +42,7 @@ export default function SessionApp() {
     return () => {
       controller.abort()
       window.removeEventListener('quest-session-expired', expire)
+      window.removeEventListener('hashchange', openEmailLink)
       channel.current?.close()
       channel.current = null
     }
@@ -52,6 +62,11 @@ export default function SessionApp() {
     }
   }
 
+  if (emailToken !== null) return <EmailConfirmationPage key={emailToken} token={emailToken} onDone={() => {
+    setEmailToken(null)
+    setEditingEmail(false)
+    setChangingPassword(false)
+  }} />
   if (loading) return <main className="login-page"><p role="status">Sprawdzanie sesji…</p></main>
   if (!user && error) return (
     <main className="login-page">
@@ -68,7 +83,8 @@ export default function SessionApp() {
   return (
     <>
       <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error}
-        onChangePassword={() => setChangingPassword(true)} />
+        onChangePassword={() => setChangingPassword(true)} onEmail={() => setEditingEmail(true)} />
+      {editingEmail && <EmailDialog onClose={() => setEditingEmail(false)} />}
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} onSuccess={() => {
         setChangingPassword(false)
         setError('')

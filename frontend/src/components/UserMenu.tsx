@@ -5,9 +5,10 @@ type UserMenuProps = {
   onLogout: () => Promise<void>
   loggingOut: boolean
   onChangePassword: () => void
+  onEmail: () => void
 }
 
-export default function UserMenu({ username, onLogout, loggingOut, onChangePassword }: UserMenuProps) {
+export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -49,6 +50,11 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
           trigger.current?.focus()
           onChangePassword()
         }}>Zmień hasło</button>
+        <button type="button" className="user-menu-logout" onClick={() => {
+          setOpen(false)
+          trigger.current?.focus()
+          onEmail()
+        }}>Adres e-mail</button>
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
           trigger.current?.focus()

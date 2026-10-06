@@ -23,6 +23,10 @@
 
 .password-dialog h2 { margin-top: 0; }
 .password-dialog::backdrop { background: #26213366; }
+.email-dialog { overflow-wrap: anywhere; }
+.email-dialog p + p { margin-top: 12px; }
+.email-dialog button { overflow-wrap: anywhere; }
+.email-close { margin-top: 16px; margin-right: 8px; }
 
 .login-form {
   display: grid;

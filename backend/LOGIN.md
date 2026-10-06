@@ -17,8 +17,10 @@ Rejestracja nie zmienia danych istniejących kont i nie wymaga nowej migracji ba
 `POST /api/auth/register` przyjmuje JSON z polami `login` i `password` oraz wymaga
 tokena CSRF. Zwraca 201 po utworzeniu konta, 400 dla nieprawidłowych danych lub 409
 dla zajętego loginu. Nie loguje automatycznie. Rejestracja jest publiczna: każda osoba
-znająca adres aplikacji może utworzyć konto. Ten etap nie dodaje odzyskiwania hasła,
-weryfikacji e-mail ani ograniczania liczby prób.
+znająca adres aplikacji może utworzyć konto. Opcjonalne pole `email` uruchamia wysyłkę
+linku potwierdzającego; odpowiedź rejestracji opisuje także ewentualną awarię wysyłki.
+Obsługa adresu i konfiguracja poczty: [EMAIL.md](EMAIL.md). Odzyskiwanie zapomnianego
+hasła nie jest jeszcze dostępne.
 
 ## Zmiana hasła po zalogowaniu
 

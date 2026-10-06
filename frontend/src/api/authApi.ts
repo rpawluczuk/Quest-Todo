@@ -17,16 +17,18 @@ export async function changePassword(currentPassword: string, newPassword: strin
   if (!response.ok) throw new Error('Nie udało się zmienić hasła. Spróbuj ponownie.')
 }
 
-export async function register(login: string, password: string): Promise<void> {
+export async function register(login: string, password: string, email: string): Promise<string> {
   const response = await apiFetch('/api/auth/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login: login.trim(), password }),
+    body: JSON.stringify({ login: login.trim(), password, email: email.trim() }),
   })
   if (response.status === 400 || response.status === 409) {
     const error: { message?: string } = await response.json()
     throw new Error(error.message ?? 'Sprawdź login i hasło.')
   }
   if (!response.ok) throw new Error('Nie udało się utworzyć konta. Spróbuj ponownie.')
+  const result: { message: string } = await response.json()
+  return result.message
 }
 
 export async function readSession(signal?: AbortSignal): Promise<User | null> {

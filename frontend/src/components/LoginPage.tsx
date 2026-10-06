@@ -4,6 +4,7 @@ import type { User } from '../api/userApi'
 
 export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (user: User) => void; initialNotice?: string }) {
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -20,10 +21,10 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
     try {
       if (registering) {
         if (password !== confirmation) throw new Error('Hasła muszą być takie same.')
-        await register(username, password)
+        const message = await register(username, password, email)
         setRegistering(false)
         setConfirmation('')
-        setNotice('Konto utworzone. Zaloguj się wybranym loginem i hasłem.')
+        setNotice(message)
       } else {
         onLogin(await login(username, password))
       }
@@ -46,6 +47,12 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
           spellCheck={false} required maxLength={64} value={username}
           onChange={(event) => setUsername(event.target.value)} disabled={busy} />
         {registering && <small>Login: 3–64 znaki, litery a–z, cyfry, kropka, podkreślenie lub myślnik. Zacznij literą lub cyfrą.</small>}
+        {registering && <>
+          <label htmlFor="registration-email">E-mail (opcjonalny)</label>
+          <input id="registration-email" type="email" autoComplete="email" maxLength={254}
+            value={email} onChange={event => setEmail(event.target.value)} disabled={busy} />
+          <small>Możesz dodać i potwierdzić adres teraz lub później w menu konta.</small>
+        </>}
         <label htmlFor="password">Hasło</label>
         <input id="password" name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'}
           required minLength={registering ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
