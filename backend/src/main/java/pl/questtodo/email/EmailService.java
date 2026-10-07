@@ -120,6 +120,7 @@ public class EmailService {
         if (jdbc.queryForObject("SELECT count(*) FROM account_email WHERE verified_email = ?", Integer.class, pending.email()) > 0) {
             throw error(409, "Adres został już przypisany do innego konta. Dodaj inny adres po zalogowaniu.");
         }
+        jdbc.update("DELETE FROM password_reset WHERE user_id = ?", pending.id());
         jdbc.update("UPDATE account_email SET verified_email = pending_email, pending_email = NULL, token_hash = NULL, expires_at = NULL WHERE user_id = ?", pending.id());
         if (pending.previous() != null) {
             var now = Timestamp.from(Instant.now());

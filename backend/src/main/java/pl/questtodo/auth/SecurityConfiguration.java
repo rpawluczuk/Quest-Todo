@@ -54,7 +54,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/email/confirm").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/email/confirm",
+                                "/api/auth/password/forgot", "/api/auth/password/reset").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/favicon.svg", "/icons.svg").permitAll()
                         .anyRequest().denyAll())

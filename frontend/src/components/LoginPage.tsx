@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { login, register } from '../api/authApi'
 import type { User } from '../api/userApi'
+import PasswordRecoveryPage from './PasswordRecoveryPage'
 
 export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (user: User) => void; initialNotice?: string }) {
   const [username, setUsername] = useState('')
@@ -11,6 +12,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
   const [registering, setRegistering] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [notice, setNotice] = useState(initialNotice)
+  const [recovering, setRecovering] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -36,6 +38,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
     }
   }
 
+  if (recovering) return <PasswordRecoveryPage onBack={() => setRecovering(false)} />
   return (
     <main className="login-page">
       <h1>Quest Todo</h1>
@@ -72,6 +75,8 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
           setNotice('')
         }}>{registering ? 'Mam już konto — zaloguj się' : 'Nie masz konta? Zarejestruj się'}</button>
       </form>
+      {!registering && <button className="secondary-button email-close" disabled={busy}
+        onClick={() => { setPassword(''); setRecovering(true) }}>Nie pamiętasz hasła?</button>}
     </main>
   )
 }

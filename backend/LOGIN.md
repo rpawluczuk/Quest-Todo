@@ -19,8 +19,8 @@ tokena CSRF. Zwraca 201 po utworzeniu konta, 400 dla nieprawidłowych danych lub
 dla zajętego loginu. Nie loguje automatycznie. Rejestracja jest publiczna: każda osoba
 znająca adres aplikacji może utworzyć konto. Opcjonalne pole `email` uruchamia wysyłkę
 linku potwierdzającego; odpowiedź rejestracji opisuje także ewentualną awarię wysyłki.
-Obsługa adresu i konfiguracja poczty: [EMAIL.md](EMAIL.md). Odzyskiwanie zapomnianego
-hasła nie jest jeszcze dostępne.
+Obsługa adresu, konfiguracja poczty i odzyskiwanie zapomnianego hasła:
+[EMAIL.md](EMAIL.md). Reset hasła wymaga wcześniej potwierdzonego adresu e-mail.
 
 ## Zmiana hasła po zalogowaniu
 

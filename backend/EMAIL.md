@@ -4,7 +4,34 @@ Adres jest opcjonalny przy rejestracji oraz dla istniejących kont. W menu avata
 „Adres e-mail” można dodać lub zmienić adres i ponownie wysłać wiadomość. Każda
 z tych operacji po zalogowaniu wymaga obecnego hasła. Stary potwierdzony adres
 pozostaje aktywny do potwierdzenia nowego. Login nadal służy do logowania.
-Odzyskiwanie zapomnianego hasła jest osobnym, jeszcze niezaimplementowanym etapem.
+Odzyskiwanie zapomnianego hasła korzysta wyłącznie z potwierdzonego adresu.
+
+## Odzyskiwanie hasła
+
+Na stronie logowania wybierz „Nie pamiętasz hasła?”, podaj potwierdzony adres
+i otwórz otrzymany link. Ustaw nowe hasło i zaloguj się ponownie.
+Lokalnie wiadomość znajdziesz w `backend/.local-mail/`; na produkcji używany jest Brevo
+z obecną konfiguracją. Nie są potrzebne nowe zmienne środowiskowe.
+
+- Migracja V10 dodaje tabelę tokenów bez zmiany istniejących kont.
+- Link `#reset-password=...` jest ważny 30 minut, jednorazowy; nowa wysyłka
+  unieważnia poprzedni. W bazie przechowywany jest tylko skrót SHA-256 tokenu.
+- Samo otwarcie linku nie zmienia hasła. Token jest usuwany z adresu przeglądarki;
+  po odświeżeniu formularza należy ponownie otworzyć link z wiadomości.
+- Obowiązują wspólne limity wysyłki z potwierdzaniem adresu: minuta przerwy,
+  5 wiadomości na godzinę na konto/odbiorcę i 30 na godzinę dla aplikacji.
+- Formularz prośby zwraca ten sam komunikat także dla nieznanego adresu,
+  przekroczenia limitu i niedostępności poczty.
+- Zmiana hasła lub potwierdzonego adresu sprawia, że wcześniej wydany link
+  nie przechodzi walidacji. Udany reset usuwa oczekującą zmianę adresu
+  i unieważnia sesje konta w bieżącej instancji backendu.
+- Konto bez potwierdzonego adresu nie może odzyskać hasła tą drogą.
+- Publiczne endpointy POST `/api/auth/password/forgot` (pole `email`)
+  i `/api/auth/password/reset` (`token`, `password`, `confirmation`) wymagają CSRF.
+
+Test ręczny: potwierdź adres, wyloguj się, zamów link, ustaw nowe hasło.
+Sprawdź logowanie nowym hasłem, odrzucenie starego i ponownego użycia linku.
+Sprawdź również wylogowanie sesji otwartej w drugiej przeglądarce.
 
 ## Lokalny test bez dostawcy poczty
 

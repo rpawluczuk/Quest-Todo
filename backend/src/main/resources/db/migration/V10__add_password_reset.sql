@@ -1,0 +1,7 @@
+CREATE TABLE password_reset (
+    user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    email VARCHAR(254) NOT NULL,
+    password_hash VARCHAR(100) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
