@@ -111,6 +111,26 @@
   display: inline;
 }
 
+.registration-form {
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.registration-form small {
+  margin-top: -5px;
+  color: #625b70;
+}
+
+.field-error {
+  margin-top: -5px;
+  color: #a12626;
+  font-size: 0.85rem;
+}
+
+.login-form input[aria-invalid='true'] {
+  border-color: #a12626;
+}
+
 .header-account {
   display: flex;
   align-items: center;
