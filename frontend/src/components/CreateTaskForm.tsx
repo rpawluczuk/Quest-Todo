@@ -3,9 +3,10 @@ import type { SubmitEvent } from 'react'
 
 type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number) => Promise<void>
+  readonly isFirstTask?: boolean
 }
 
-function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
+function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
@@ -96,7 +97,11 @@ function CreateTaskForm({ onAddTask }: CreateTaskFormProps) {
         <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
-    </form> : <button ref={addButton} type="button" className="secondary-button add-task-toggle" onClick={() => setIsExpanded(true)}>+ Dodaj zadanie</button>
+    </form> : <button ref={addButton} type="button"
+      className={`${isFirstTask ? 'first-task-button' : 'secondary-button'} add-task-toggle`}
+      onClick={() => setIsExpanded(true)}>
+      {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}
+    </button>
   )
 }
 

@@ -935,6 +935,62 @@
   color: #666173;
 }
 
+.task-empty-state {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.task-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: 20px;
+  color: #8a79b8;
+}
+
+.task-empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.task-empty-icon + .empty-state {
+  margin-top: 8px;
+}
+
+.task-empty-state-centered {
+  text-align: center;
+}
+
+.task-empty-state-centered .task-empty-icon {
+  margin: 12px auto 0;
+}
+
+.task-empty-state-centered .empty-state {
+  margin-bottom: 0;
+}
+
+.task-empty-state-prominent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  text-align: center;
+}
+
+.task-empty-state-prominent .task-empty-icon {
+  margin-top: 16px;
+}
+
+.task-empty-state-prominent .add-task-toggle {
+  margin-top: 16px;
+}
+
+.task-empty-state-prominent .task-form {
+  align-self: stretch;
+  text-align: left;
+}
+
 .tasks-section {
   padding: 28px;
   border: 1px solid #e5e1eb;
@@ -1011,6 +1067,27 @@
 .add-reward-toggle {
   margin-top: 24px;
   padding: 8px 12px;
+}
+
+.first-task-button {
+  padding: 10px 16px;
+  border: 1px solid #5b42a6;
+  border-radius: 8px;
+  background: #5b42a6;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.first-task-button:hover {
+  background: #493486;
+}
+
+.first-task-button:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
 }
 
 .task-actions {

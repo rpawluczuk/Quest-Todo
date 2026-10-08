@@ -10,6 +10,7 @@ import TaskSection from './components/TaskSection'
 import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import CompletionNotice from './components/CompletionNotice'
+import { getTaskEmptyStates } from './taskEmptyState'
 import './App.css'
 
 type AppProps = {
@@ -114,26 +115,27 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     || b.id - a.id,
   )
   const lastCompletedTask = tasks.find((task) => task.id === lastCompletedId && task.completed)
+  const taskEmptyStates = getTaskEmptyStates(focusTasks.length, backlogTasks.length, tasks.length)
   const sections: TaskSectionData[] = [
     {
       id: 'focus',
       title: 'Focus',
       description: 'Zadania, które wybierasz do realizacji.',
-      emptyMessage: 'Focus jest pusty. Wybierz zadanie w Backlogu i kliknij „Do Focusu”.',
+      emptyState: taskEmptyStates.focus,
       tasks: focusTasks,
     },
     {
       id: 'backlog',
       title: 'Backlog',
       description: 'Zadania czekające na realizację.',
-      emptyMessage: 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focus.',
+      emptyState: taskEmptyStates.backlog,
       tasks: backlogTasks,
     },
     {
       id: 'completed',
       title: 'Ukończone',
       description: 'Najnowsze ukończenia są na górze. Cofnij ukończenie, aby przywrócić zadanie do poprzedniej listy.',
-      emptyMessage: 'Nie masz jeszcze ukończonych zadań.',
+      emptyState: { message: 'Nie masz jeszcze ukończonych zadań.' },
       tasks: completedTasks,
     },
   ]
@@ -279,7 +281,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
             onCancel={cancelEditing}
           >
             {section.id === 'backlog' && (
-              <CreateTaskForm onAddTask={addTask} />
+              <CreateTaskForm onAddTask={addTask} isFirstTask={Boolean(section.emptyState.prominent)} />
             )}
           </TaskSection>
         ))}
