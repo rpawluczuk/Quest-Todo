@@ -10,6 +10,98 @@
   padding: 24px;
 }
 
+.email-confirmation-description,
+.email-confirmation-success p {
+  color: #625b70;
+  line-height: 1.5;
+}
+
+.email-confirmation-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-confirmation-heading h2 {
+  margin: 0;
+}
+
+.email-confirmation-success-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  color: #5b42a6;
+}
+
+.email-confirmation-success-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.email-confirmation-primary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 1px solid #5b42a6;
+  border-radius: 8px;
+  background: #5b42a6;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.email-confirmation-primary:hover:not(:disabled) {
+  background: #493486;
+}
+
+.email-confirmation-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  margin: 10px auto 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5b42a6;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.email-confirmation-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+.email-confirmation-back:hover:not(:disabled) {
+  color: #493486;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.email-confirmation-primary:focus-visible,
+.email-confirmation-back:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
+}
+
+.email-confirmation-primary:disabled,
+.email-confirmation-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.email-confirmation-error {
+  margin-top: 16px;
+}
+
 .password-dialog {
   width: min(440px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
