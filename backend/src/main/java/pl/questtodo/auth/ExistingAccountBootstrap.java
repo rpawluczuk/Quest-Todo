@@ -30,7 +30,9 @@ public class ExistingAccountBootstrap implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments arguments) {
         if (login.isEmpty() && password.isEmpty()) return;
-        var owner = users.findForUpdate(1L).orElseThrow();
+        var owner = users.findForUpdate(1L).orElse(null);
+        // Deleting the original account must not prevent subsequent application starts.
+        if (owner == null) return;
         // Restarting or leaving these variables configured must never reset credentials.
         if (owner.getLogin() != null) return;
         if (!login.matches("[a-z0-9][a-z0-9._-]{2,63}")

@@ -124,8 +124,8 @@ public class EmailService {
         jdbc.update("UPDATE account_email SET verified_email = pending_email, pending_email = NULL, token_hash = NULL, expires_at = NULL WHERE user_id = ?", pending.id());
         if (pending.previous() != null) {
             var now = Timestamp.from(Instant.now());
-            jdbc.update("INSERT INTO email_notification(id, recipient, created_at, next_attempt_at) VALUES (?, ?, ?, ?)",
-                    UUID.randomUUID().toString(), pending.previous(), now, now);
+            jdbc.update("INSERT INTO email_notification(id, recipient, created_at, next_attempt_at, user_id) VALUES (?, ?, ?, ?, ?)",
+                    UUID.randomUUID().toString(), pending.previous(), now, now, pending.id());
         }
     }
 

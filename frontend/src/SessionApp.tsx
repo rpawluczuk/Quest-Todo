@@ -5,6 +5,7 @@ import ChangePasswordDialog from './components/ChangePasswordDialog'
 import EmailDialog from './components/EmailDialog'
 import EmailConfirmationPage from './components/EmailConfirmationPage'
 import PasswordRecoveryPage from './components/PasswordRecoveryPage'
+import DeleteAccountDialog from './components/DeleteAccountDialog'
 import { logout, readSession } from './api/authApi'
 import type { User } from './api/userApi'
 import './App.css'
@@ -16,6 +17,7 @@ export default function SessionApp() {
   const [loggingOut, setLoggingOut] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [editingEmail, setEditingEmail] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const [emailToken, setEmailToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('verify-email'))
   const [notice, setNotice] = useState('')
   const [resetToken, setResetToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('reset-password'))
@@ -30,7 +32,7 @@ export default function SessionApp() {
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false)
     })
-    const expire = () => { setUser(null); setChangingPassword(false); setEditingEmail(false); setError('') }
+    const expire = () => { setUser(null); setChangingPassword(false); setEditingEmail(false); setDeletingAccount(false); setError('') }
     const openEmailLink = () => {
       const reset = new URLSearchParams(window.location.hash.slice(1)).get('reset-password')
       if (reset !== null) { setResetToken(reset); setEmailToken(null) }
@@ -89,7 +91,18 @@ export default function SessionApp() {
   return (
     <>
       <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error}
-        onChangePassword={() => setChangingPassword(true)} onEmail={() => setEditingEmail(true)} />
+        onChangePassword={() => setChangingPassword(true)} onEmail={() => setEditingEmail(true)}
+        onDeleteAccount={() => setDeletingAccount(true)} />
+      {deletingAccount && <DeleteAccountDialog login={user.login ?? ''} onClose={() => setDeletingAccount(false)}
+        onSuccess={() => {
+          setDeletingAccount(false)
+          setChangingPassword(false)
+          setEditingEmail(false)
+          setError('')
+          setNotice('Konto i jego dane zostały usunięte.')
+          setUser(null)
+          channel.current?.postMessage('logout')
+        }} />}
       {editingEmail && <EmailDialog onClose={() => setEditingEmail(false)} />}
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} onSuccess={() => {
         setChangingPassword(false)

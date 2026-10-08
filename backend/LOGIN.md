@@ -38,6 +38,38 @@ w rejestrze Spring Security tracą ważność i otrzymują 401 przy kolejnym ż�
 Sesje innych użytkowników pozostają aktywne. Rejestr jest w pamięci jednej instancji,
 tak jak dotychczasowe sesje aplikacji. Ta funkcja nie odzyskuje zapomnianego hasła.
 
+## Usunięcie konta
+
+Menu avatara → „Usuń konto” otwiera formularz wymagający aktualnego hasła,
+dokładnego przepisania loginu i zaznaczenia potwierdzenia utraty danych.
+Usunięcie następuje natychmiast. Nie ma okresu ochronnego ani anulowania.
+E-mail nie jest wymagany, więc można usuwać również konta testowe bez adresu.
+
+`DELETE /api/users/me` wymaga sesji i CSRF. Przyjmuje `password`,
+`loginConfirmation` i `irreversibleConfirmation: true`. Identyfikator konta
+pochodzi wyłącznie z sesji; klient nie wybiera użytkownika do usunięcia.
+Walidacja potwierdzeń i hasła odbywa się również na backendzie.
+
+W jednej transakcji usuwane są zakupy, zadania, nagrody (także ukryte),
+konto, dane e-mailowe, tokeny resetowania hasła, liczniki wysyłki i powiązane
+oczekujące powiadomienia. Błąd wycofuje wszystkie zmiany.
+Po zatwierdzeniu bieżąca sesja jest niszczona, pozostałe sesje konta wygasają
+w rejestrze jednej instancji backendu. Inne konta pozostają bez zmian.
+Ponowna rejestracja tym samym loginem tworzy nowe, puste konto.
+Usunięcie pierwotnego konta ID 1 nie blokuje uruchamiania aplikacji.
+
+Migracja V11 dodaje właściciela do kolejki powiadomień. Historyczne wpisy
+sprzed V11 nie mają informacji o właścicielu (adres odbiorcy jest starym adresem),
+więc pozostają do wysłania przez istniejący mechanizm kolejki.
+Usunięcie konta nie usuwa wcześniej wysłanych wiadomości, lokalnych plików
+`.local-mail`, logów dostawcy ani danych w istniejących kopiach zapasowych.
+Przy przywracaniu backupu należy uwzględnić konta usunięte po jego wykonaniu.
+
+Test ręczny wykonuj na nowym koncie testowym: dodaj zadanie i nagrodę, kup ją,
+otwórz drugą sesję. Sprawdź odrzucenie błędnego hasła, następnie usuń konto
+i sprawdź wylogowanie obu sesji, brak możliwości ponownego logowania oraz
+niezmienione dane drugiego użytkownika.
+
 ## Pierwszy login i hasło
 
 Przed pierwszym uruchomieniem ustaw w środowisku backendu:

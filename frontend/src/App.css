@@ -798,3 +798,27 @@
     padding: 14px 12px;
   }
 }
+.login-form .delete-account-button {
+  background: #b42318;
+  border-color: #b42318;
+  color: white;
+}
+.login-form .delete-account-button:hover:not(:disabled) {
+  background: #912018;
+}
+.user-menu-logout.delete-account-menu {
+  color: #b42318;
+}
+.delete-account-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.password-dialog:has(.delete-account-confirmation) {
+  overflow-wrap: anywhere;
+}
+.login-form .delete-account-confirmation input {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+}

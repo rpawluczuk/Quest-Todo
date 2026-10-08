@@ -6,9 +6,10 @@ type UserMenuProps = {
   loggingOut: boolean
   onChangePassword: () => void
   onEmail: () => void
+  onDeleteAccount: () => void
 }
 
-export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail }: UserMenuProps) {
+export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -60,6 +61,11 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
           trigger.current?.focus()
           void onLogout()
         }}>Wyloguj się</button>
+        <button type="button" className="user-menu-logout delete-account-menu" onClick={() => {
+          setOpen(false)
+          trigger.current?.focus()
+          onDeleteAccount()
+        }}>Usuń konto</button>
       </div>}
     </div>
   )

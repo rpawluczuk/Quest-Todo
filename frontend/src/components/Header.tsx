@@ -7,9 +7,10 @@ type HeaderProps = {
   loggingOut: boolean
   onChangePassword: () => void
   onEmail: () => void
+  onDeleteAccount: () => void
 }
 
-function Header({ points, username, onLogout, loggingOut, onChangePassword, onEmail }: HeaderProps) {
+function Header({ points, username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount }: HeaderProps) {
   return (
     <header className="app-header">
       <h1>Quest Todo</h1>
@@ -17,7 +18,7 @@ function Header({ points, username, onLogout, loggingOut, onChangePassword, onEm
         <span className="points-balance" aria-live="polite">
         {points === null ? 'Saldo niedostępne' : <>Saldo <span className="points-balance-value">{points} pkt</span></>}
         </span>
-        <UserMenu username={username} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} />
+        <UserMenu username={username} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} onDeleteAccount={onDeleteAccount} />
       </div>
     </header>
   )
