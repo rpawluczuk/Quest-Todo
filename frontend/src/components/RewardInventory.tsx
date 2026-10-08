@@ -51,7 +51,7 @@ export default function RewardInventory({ purchases, onUsePurchase }: RewardInve
         <div className="section-header">
           <h2 id="inventory-heading" ref={heading} tabIndex={-1}>Do wykorzystania ({availableCount})</h2>
         </div>
-        {groups.size === 0 ? <p>Nie masz nagród do wykorzystania.</p> : (
+        {groups.size === 0 ? <p>Kupione nagrody pojawią się tutaj.</p> : (
           <ul className="task-list">
             {[...groups.entries()].map(([key, { purchase, count }]) => (
               <li className="task purchased-reward-card" key={key}>

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 
 type CreateRewardFormProps = {
   readonly onAddReward: (title: string, cost: number) => Promise<void>
+  readonly emptyStateButtonLabel?: string
 }
 
-export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps) {
+export default function CreateRewardForm({ onAddReward, emptyStateButtonLabel }: CreateRewardFormProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [cost, setCost] = useState('20')
@@ -62,7 +63,7 @@ export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps)
   }
 
   return (
-    <div>
+    <div className="create-reward-form">
       {isExpanded ? <form className="task-form" aria-label="Dodaj nagrodę" onSubmit={handleSubmit}>
         <label className="form-field">
           <span>Nazwa nagrody</span>
@@ -94,7 +95,11 @@ export default function CreateRewardForm({ onAddReward }: CreateRewardFormProps)
           <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
-      </form> : <button ref={addButton} type="button" className="secondary-button add-reward-toggle" onClick={() => { setSuccess(''); setIsExpanded(true) }}>+ Dodaj nagrodę</button>}
+      </form> : <button ref={addButton} type="button"
+        className={`${emptyStateButtonLabel ? 'empty-state-primary-button' : 'secondary-button'} add-reward-toggle`}
+        onClick={() => { setSuccess(''); setIsExpanded(true) }}>
+        {emptyStateButtonLabel ?? '+ Dodaj nagrodę'}
+      </button>}
       {success && <p className="reward-status" role="status">{success}</p>}
     </div>
   )

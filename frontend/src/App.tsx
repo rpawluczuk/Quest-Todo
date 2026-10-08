@@ -28,6 +28,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const [tasks, setTasks] = useState<Task[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
+  const [accountLoading, setAccountLoading] = useState(true)
   const [rewardsError, setRewardsError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -62,7 +63,9 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     const controller = new AbortController()
     // State updates in refreshAccount run only after the API requests settle.
     // oxlint-disable-next-line react/set-state-in-effect
-    void refreshAccount(controller.signal)
+    void refreshAccount(controller.signal).finally(() => {
+      if (!controller.signal.aborted) setAccountLoading(false)
+    })
     return () => controller.abort()
   }, [])
 
@@ -295,9 +298,9 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
-        {rewardsLoading && <p role="status">Ładowanie nagród…</p>}
+        {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}
         {rewardsError && <p className="form-error" role="alert">{rewardsError}</p>}
-        {!rewardsLoading && !rewardsError && (
+        {!rewardsLoading && !accountLoading && !rewardsError && (
         <RewardsPage
           rewards={rewards}
           purchases={purchases}

@@ -982,7 +982,8 @@
   margin-top: 16px;
 }
 
-.task-empty-state-prominent .add-task-toggle {
+.task-empty-state-prominent .add-task-toggle,
+.task-empty-state-prominent .add-reward-toggle {
   margin-top: 16px;
 }
 
@@ -1069,7 +1070,7 @@
   padding: 8px 12px;
 }
 
-.first-task-button {
+.empty-state-primary-button {
   padding: 10px 16px;
   border: 1px solid #5b42a6;
   border-radius: 8px;
@@ -1081,13 +1082,23 @@
   cursor: pointer;
 }
 
-.first-task-button:hover {
+.empty-state-primary-button:hover {
   background: #493486;
 }
 
-.first-task-button:focus-visible {
+.empty-state-primary-button:focus-visible {
   outline: 2px solid #5b42a6;
   outline-offset: 3px;
+}
+
+.reward-empty-state .create-reward-form {
+  align-self: stretch;
+  min-width: 0;
+  text-align: center;
+}
+
+.reward-empty-state .task-form {
+  text-align: left;
 }
 
 .task-actions {

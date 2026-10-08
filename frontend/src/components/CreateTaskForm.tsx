@@ -98,7 +98,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </form> : <button ref={addButton} type="button"
-      className={`${isFirstTask ? 'first-task-button' : 'secondary-button'} add-task-toggle`}
+      className={`${isFirstTask ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
       onClick={() => setIsExpanded(true)}>
       {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}
     </button>

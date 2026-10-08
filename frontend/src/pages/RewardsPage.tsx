@@ -5,6 +5,7 @@ import CreateRewardForm from '../components/CreateRewardForm'
 import EditRewardForm from '../components/EditRewardForm'
 import RewardInventory from '../components/RewardInventory'
 import TaskActionsMenu from '../components/TaskActionsMenu'
+import { getRewardEmptyState } from '../rewardEmptyState'
 
 type RewardsPageProps = {
   readonly rewards: readonly Reward[]
@@ -16,6 +17,14 @@ type RewardsPageProps = {
   readonly onSaveReward: (id: number, title: string, cost: number) => Promise<void>
   readonly onUsePurchase: (id: number) => Promise<void>
   readonly onDeleteReward: (id: number) => Promise<void>
+}
+
+function GiftIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+    stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13" />
+    <path d="M12 7H8.5a2.5 2.5 0 1 1 2.2-3.7L12 7Zm0 0h3.5a2.5 2.5 0 1 0-2.2-3.7L12 7Z" />
+  </svg>
 }
 
 function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddReward, onSaveReward, onUsePurchase, onDeleteReward }: RewardsPageProps) {
@@ -43,6 +52,7 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
   }
 
   const sortedRewards = [...rewards].sort((a, b) => a.cost - b.cost)
+  const emptyState = getRewardEmptyState(rewards.length, purchases.length)
 
   return (
     <div className="rewards-sections">
@@ -51,14 +61,17 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
         <h2 id="rewards-heading">Dostępne nagrody</h2>
         <p>Wymień zdobyte punkty na coś dla siebie.</p>
       </div>
-      <CreateRewardForm onAddReward={onAddReward} />
+      {emptyState ? <div className="task-empty-state task-empty-state-prominent reward-empty-state">
+        <span className="task-empty-icon"><GiftIcon /></span>
+        <p className="empty-state">{emptyState.message}</p>
+        <CreateRewardForm onAddReward={onAddReward} emptyStateButtonLabel={emptyState.buttonLabel} />
+      </div> : <CreateRewardForm onAddReward={onAddReward} />}
       {points !== null && points < 0 && (
         <p className="empty-state">
           Masz ujemne saldo po cofnięciu wykonania zadań. Zdobądź punkty, aby ponownie kupować nagrody.
         </p>
       )}
       <ul className="task-list">
-        {rewards.length === 0 && <li className="empty-state">Brak dostępnych nagród.</li>}
         {sortedRewards.map((reward) => (
           <li className={`task reward-card${editingRewardId === reward.id ? ' reward-card-editing' : ''}`} key={reward.id}>
             {editingRewardId === reward.id ? (
