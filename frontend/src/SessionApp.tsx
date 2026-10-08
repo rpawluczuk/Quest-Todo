@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import App from './App'
-import LoginPage from './components/LoginPage'
+import LoginPage, { type LoginSuccessNotice } from './components/LoginPage'
 import ChangePasswordDialog from './components/ChangePasswordDialog'
 import EmailDialog from './components/EmailDialog'
 import EmailConfirmationPage from './components/EmailConfirmationPage'
@@ -20,6 +20,7 @@ export default function SessionApp() {
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [emailToken, setEmailToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('verify-email'))
   const [notice, setNotice] = useState('')
+  const [loginSuccess, setLoginSuccess] = useState<LoginSuccessNotice | null>(null)
   const [resetToken, setResetToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('reset-password'))
   const channel = useRef<BroadcastChannel | null>(null)
 
@@ -69,7 +70,18 @@ export default function SessionApp() {
   }
 
   if (resetToken !== null) return <PasswordRecoveryPage key={resetToken} token={resetToken}
-    onBack={() => window.location.replace(window.location.pathname)} />
+    onBack={() => window.location.replace(window.location.pathname)}
+    onResetSuccess={() => {
+      setResetToken(null)
+      setUser(null)
+      setError('')
+      setNotice('')
+      setLoginSuccess({
+        title: 'Hasło zostało zresetowane!',
+        description: 'Możesz teraz zalogować się nowym hasłem.',
+      })
+      channel.current?.postMessage('logout')
+    }} />
   if (emailToken !== null) return <EmailConfirmationPage key={emailToken} token={emailToken} onDone={() => {
     setEmailToken(null)
     setEditingEmail(false)
@@ -82,8 +94,9 @@ export default function SessionApp() {
       <button onClick={() => window.location.reload()}>Spróbuj ponownie</button>
     </main>
   )
-  if (!user) return <LoginPage initialNotice={notice} onLogin={(account) => {
+  if (!user) return <LoginPage initialNotice={notice} initialSuccess={loginSuccess} onLogin={(account) => {
     setNotice('')
+    setLoginSuccess(null)
     setError('')
     setUser(account)
     channel.current?.postMessage('login')

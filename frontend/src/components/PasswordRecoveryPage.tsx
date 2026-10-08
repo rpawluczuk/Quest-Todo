@@ -24,7 +24,20 @@ function RetryIcon() {
   </svg>
 }
 
-export default function PasswordRecoveryPage({ token, onBack }: { token?: string; onBack: () => void }) {
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+    stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+    <circle cx="12" cy="12" r="2.5" />
+    {!visible && <path d="m4 4 16 16" />}
+  </svg>
+}
+
+export default function PasswordRecoveryPage({ token, onBack, onResetSuccess }: {
+  token?: string
+  onBack: () => void
+  onResetSuccess?: () => void
+}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -33,6 +46,8 @@ export default function PasswordRecoveryPage({ token, onBack }: { token?: string
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
   const emailInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (token !== undefined) window.history.replaceState(null, '', window.location.pathname + window.location.search)
@@ -66,7 +81,10 @@ export default function PasswordRecoveryPage({ token, onBack }: { token?: string
         await response.json()
         setMessage('Jeśli podany adres jest przypisany do konta i został potwierdzony, otrzymasz wiadomość z linkiem do zresetowania hasła.')
       } else {
-        setMessage('Hasło zostało zmienione. Zaloguj się nowym hasłem.')
+        setPassword('')
+        setConfirmation('')
+        onResetSuccess?.()
+        return
       }
       setPassword('')
       setConfirmation('')
@@ -106,13 +124,30 @@ export default function PasswordRecoveryPage({ token, onBack }: { token?: string
           disabled={busy} />
         {emailError && <p id="recovery-email-error" className="field-error" role="alert">{emailError}</p>}
       </> : <>
+        <p className="recovery-description">Wprowadź nowe hasło do swojego konta.</p>
         <label htmlFor="recovery-password">Nowe hasło</label>
-        <input id="recovery-password" type="password" autoComplete="new-password" required minLength={8}
-          value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
-        <small>Minimum 8 znaków, maksimum 72 bajty UTF-8.</small>
+        <div className="login-password-field">
+          <input id="recovery-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8}
+            value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
+          <button type="button" className="password-visibility-button" aria-pressed={showPassword}
+            aria-label={showPassword ? 'Ukryj nowe hasło' : 'Pokaż nowe hasło'}
+            title={showPassword ? 'Ukryj nowe hasło' : 'Pokaż nowe hasło'} disabled={busy}
+            onClick={() => setShowPassword(value => !value)}>
+            <PasswordVisibilityIcon visible={showPassword} />
+          </button>
+        </div>
+        <small>Minimum 8 znaków.</small>
         <label htmlFor="recovery-confirmation">Powtórz nowe hasło</label>
-        <input id="recovery-confirmation" type="password" autoComplete="new-password" required
-          value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={busy} />
+        <div className="login-password-field">
+          <input id="recovery-confirmation" type={showConfirmation ? 'text' : 'password'} autoComplete="new-password" required
+            value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={busy} />
+          <button type="button" className="password-visibility-button" aria-pressed={showConfirmation}
+            aria-label={showConfirmation ? 'Ukryj powtórzone hasło' : 'Pokaż powtórzone hasło'}
+            title={showConfirmation ? 'Ukryj powtórzone hasło' : 'Pokaż powtórzone hasło'} disabled={busy}
+            onClick={() => setShowConfirmation(value => !value)}>
+            <PasswordVisibilityIcon visible={showConfirmation} />
+          </button>
+        </div>
       </>}
       {error && <p className="form-error" role="alert">{error}</p>}
       <button type="submit" disabled={busy}>{busy

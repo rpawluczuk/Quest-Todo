@@ -23,6 +23,21 @@ function SuccessIcon() {
 type RegistrationField = 'username' | 'email' | 'password' | 'confirmation'
 type RegistrationErrors = Partial<Record<RegistrationField, string>>
 
+export type LoginSuccessNotice = {
+  title: string
+  description: string
+}
+
+function SuccessNotice({ notice }: { notice: LoginSuccessNotice }) {
+  return <div className="registration-success" role="status">
+    <span className="registration-success-icon"><SuccessIcon /></span>
+    <div>
+      <p className="registration-success-title">{notice.title}</p>
+      <p>{notice.description}</p>
+    </div>
+  </div>
+}
+
 function loginError(value: string): string | undefined {
   const login = value.trim().toLowerCase()
   if (login.length < 3 || login.length > 64) return 'Login musi mieć od 3 do 64 znaków.'
@@ -41,7 +56,11 @@ function confirmationError(password: string, confirmation: string, requireValue:
   if (password !== confirmation) return 'Hasła muszą być takie same.'
 }
 
-export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (user: User) => void; initialNotice?: string }) {
+export default function LoginPage({ onLogin, initialNotice = '', initialSuccess = null }: {
+  onLogin: (user: User) => void
+  initialNotice?: string
+  initialSuccess?: LoginSuccessNotice | null
+}) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -50,6 +69,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
   const [registering, setRegistering] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [notice, setNotice] = useState(initialNotice)
+  const [successNotice, setSuccessNotice] = useState(initialSuccess)
   const [registrationSuccess, setRegistrationSuccess] = useState<{ emailProvided: boolean } | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -77,6 +97,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
     setBusy(true)
     setError('')
     setNotice('')
+    setSuccessNotice(null)
     setRegistrationSuccess(null)
     try {
       if (registering) {
@@ -114,15 +135,13 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
       <h1>Quest Todo</h1>
       <p>{registering ? 'Utwórz konto z własnymi zadaniami i nagrodami.' : 'Zaloguj się, aby wrócić do swoich zadań i nagród.'}</p>
       {notice && <p role="status">{notice}</p>}
-      {registrationSuccess && <div className="registration-success" role="status">
-        <span className="registration-success-icon"><SuccessIcon /></span>
-        <div>
-          <p className="registration-success-title">Konto zostało utworzone!</p>
-          <p>{registrationSuccess.emailProvided
-            ? 'Sprawdź pocztę i potwierdź adres e-mail. Możesz już się zalogować.'
-            : 'Możesz już się zalogować.'}</p>
-        </div>
-      </div>}
+      {successNotice && <SuccessNotice notice={successNotice} />}
+      {registrationSuccess && <SuccessNotice notice={{
+        title: 'Konto zostało utworzone!',
+        description: registrationSuccess.emailProvided
+          ? 'Sprawdź pocztę i potwierdź adres e-mail. Możesz już się zalogować.'
+          : 'Możesz już się zalogować.',
+      }} />}
       <form className={`login-form${registering ? ' registration-form' : ''}`} onSubmit={submit}
         aria-busy={busy} noValidate={registering}>
         <label htmlFor="login">Login</label>
@@ -194,6 +213,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
           onClick={() => {
             setPassword('')
             setShowPassword(false)
+            setSuccessNotice(null)
             setRegistrationSuccess(null)
             setRecovering(true)
           }}>Nie pamiętasz hasła?</button>}
@@ -240,6 +260,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
             setFieldErrors({})
             setError('')
             setNotice('')
+            setSuccessNotice(null)
             setRegistrationSuccess(null)
           }}>{registering ? 'Zaloguj się' : 'Zarejestruj się'}</button>
         </p>
