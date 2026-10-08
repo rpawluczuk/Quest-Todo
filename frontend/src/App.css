@@ -23,10 +23,226 @@
 
 .password-dialog h2 { margin-top: 0; }
 .password-dialog::backdrop { background: #26213366; }
-.email-dialog { overflow-wrap: anywhere; }
+.email-dialog {
+  position: relative;
+  overflow-wrap: anywhere;
+}
 .email-dialog p + p { margin-top: 12px; }
 .email-dialog button { overflow-wrap: anywhere; }
 .email-close { margin-top: 16px; margin-right: 8px; }
+
+.email-dialog h2 {
+  padding-right: 40px;
+}
+
+.email-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #625b70;
+  cursor: pointer;
+}
+
+.email-dialog-close svg {
+  width: 21px;
+  height: 21px;
+}
+
+.email-dialog-close:hover:not(:disabled) {
+  background: #f1ecfa;
+  color: #5b42a6;
+}
+
+.email-dialog-close:focus-visible,
+.email-cancel-link:focus-visible,
+.email-use-another-link:focus-visible,
+.email-resend-back-link:focus-visible,
+.email-pending-primary:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
+}
+
+.email-dialog-description {
+  color: #625b70;
+  line-height: 1.5;
+}
+
+.email-address-status {
+  display: grid;
+  gap: 3px;
+  margin: 14px 0;
+  padding: 10px 12px;
+  border: 1px solid #d8cfed;
+  border-radius: 10px;
+  background: #faf8fd;
+}
+
+.email-address-status span,
+.email-address-status small {
+  color: #625b70;
+  font-size: 0.82rem;
+}
+
+.email-address-status strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.email-address-pending {
+  border-style: dashed;
+  background: #fffdf8;
+}
+
+.email-pending-summary {
+  margin-top: 4px;
+  padding: 14px;
+}
+
+.email-pending-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #5b42a6;
+}
+
+.email-pending-label svg {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.email-pending-label span {
+  color: inherit;
+  font-weight: 600;
+}
+
+.email-dialog-form {
+  margin-top: 20px;
+}
+
+.email-use-another-link,
+.email-resend-back-link,
+.email-cancel-link {
+  border: 0;
+  background: transparent;
+  color: #5b42a6;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.email-pending-primary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: 1px solid #5b42a6;
+  border-radius: 8px;
+  background: #5b42a6;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.email-pending-primary:hover:not(:disabled) {
+  background: #493486;
+}
+
+.email-use-another-link,
+.email-resend-back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 8px auto 0;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.email-use-another-link svg,
+.email-resend-back-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.email-cancel-link {
+  display: block;
+  min-height: 44px;
+  margin: 10px auto 0;
+  padding: 8px;
+  border-radius: 4px;
+  color: #625b70;
+}
+
+.email-use-another-link:hover:not(:disabled),
+.email-resend-back-link:hover:not(:disabled),
+.email-cancel-link:hover:not(:disabled) {
+  background: transparent;
+  color: #493486;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.email-cancel-link:hover:not(:disabled) {
+  color: #443f4c;
+}
+
+.email-dialog-close:disabled,
+.email-cancel-link:disabled,
+.email-use-another-link:disabled,
+.email-resend-back-link:disabled,
+.email-pending-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.email-resend-form {
+  margin-top: 16px;
+}
+
+.email-sent {
+  padding-top: 4px;
+}
+
+.email-sent-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-sent-heading h2 {
+  margin: 0;
+}
+
+.email-sent-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  color: #5b42a6;
+}
+
+.email-sent-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.email-sent p {
+  margin: 16px 0 0;
+  color: #625b70;
+  line-height: 1.5;
+}
 
 .login-form {
   display: grid;
