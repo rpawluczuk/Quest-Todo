@@ -99,7 +99,9 @@
   z-index: 5;
   top: calc(100% + 8px);
   right: 0;
-  width: min(220px, calc(100vw - 32px));
+  width: min(280px, calc(100vw - 32px));
+  max-width: calc(100vw - 24px);
+  overflow-x: hidden;
   padding: 6px;
   border: 1px solid #e5e1eb;
   border-radius: 12px;
@@ -107,18 +109,66 @@
   box-shadow: 0 6px 20px #30204a26;
 }
 
-.user-menu-name {
+.user-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
   padding: 10px;
   border-bottom: 1px solid #e9e5ef;
+}
+
+.user-menu-profile-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1ecfa;
+  color: #5b42a6;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.user-menu-profile-details {
+  min-width: 0;
+}
+
+.user-menu-name,
+.user-menu-email {
+  margin: 0;
   overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.user-menu-name {
   font-weight: 600;
   font-size: 0.9rem;
 }
 
+.user-menu-email {
+  margin-top: 2px;
+  color: #625b70;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.user-menu-email-muted {
+  color: #81798c;
+}
+
+.user-menu-actions {
+  padding-top: 2px;
+}
+
 .user-menu-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   min-height: 44px;
-  margin-top: 4px;
+  margin-top: 0;
   padding: 10px;
   border: 0;
   border-radius: 8px;
@@ -128,6 +178,13 @@
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
+}
+
+.user-menu-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  opacity: 0.72;
 }
 
 .user-menu-logout:hover {
@@ -808,6 +865,11 @@
 }
 .user-menu-logout.delete-account-menu {
   color: #b42318;
+}
+.user-menu-danger {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid #e9e5ef;
 }
 .delete-account-confirmation {
   display: flex;
