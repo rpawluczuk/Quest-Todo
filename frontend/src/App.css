@@ -42,6 +42,75 @@
   font: inherit;
 }
 
+.login-password-field {
+  position: relative;
+  min-width: 0;
+}
+
+.login-password-field input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.login-form .password-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #625b70;
+}
+
+.password-visibility-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.login-form .password-visibility-button:hover:not(:disabled) {
+  background: transparent;
+  color: #5b42a6;
+}
+
+.login-form .login-inline-link {
+  width: auto;
+  min-height: 32px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5b42a6;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-form .login-inline-link:hover:not(:disabled) {
+  background: transparent;
+  color: #493486;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.login-forgot-link {
+  justify-self: end;
+  margin-top: -8px;
+}
+
+.login-mode-prompt {
+  margin: 2px 0 0;
+  text-align: center;
+}
+
+.login-mode-prompt .login-inline-link {
+  display: inline;
+}
+
 .header-account {
   display: flex;
   align-items: center;

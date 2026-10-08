@@ -3,6 +3,15 @@ import { login, register } from '../api/authApi'
 import type { User } from '../api/userApi'
 import PasswordRecoveryPage from './PasswordRecoveryPage'
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+    stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+    <circle cx="12" cy="12" r="2.5" />
+    {!visible && <path d="m4 4 16 16" />}
+  </svg>
+}
+
 export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (user: User) => void; initialNotice?: string }) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -13,6 +22,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
   const [confirmation, setConfirmation] = useState('')
   const [notice, setNotice] = useState(initialNotice)
   const [recovering, setRecovering] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -31,6 +41,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
         onLogin(await login(username, password))
       }
       setPassword('')
+      setShowPassword(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zalogować.')
     } finally {
@@ -57,8 +68,19 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
           <small>Możesz dodać i potwierdzić adres teraz lub później w menu konta.</small>
         </>}
         <label htmlFor="password">Hasło</label>
-        <input id="password" name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'}
-          required minLength={registering ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+        <div className="login-password-field">
+          <input id="password" name="password" type={showPassword ? 'text' : 'password'}
+            autoComplete={registering ? 'new-password' : 'current-password'} required
+            minLength={registering ? 8 : undefined} value={password}
+            onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+          <button type="button" className="password-visibility-button" aria-pressed={showPassword}
+            aria-label={showPassword ? 'Ukryj hasło' : 'Pokaż hasło'} title={showPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+            disabled={busy} onClick={() => setShowPassword(value => !value)}>
+            <PasswordVisibilityIcon visible={showPassword} />
+          </button>
+        </div>
+        {!registering && <button type="button" className="login-inline-link login-forgot-link" disabled={busy}
+          onClick={() => { setPassword(''); setShowPassword(false); setRecovering(true) }}>Nie pamiętasz hasła?</button>}
         {registering && <>
           <small>Hasło: minimum 8 znaków, maksimum 72 bajty UTF-8 (polskie litery zajmują więcej niż jeden bajt).</small>
           <label htmlFor="confirmation">Powtórz hasło</label>
@@ -67,16 +89,18 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
         </>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <button type="submit" disabled={busy}>{busy ? 'Proszę czekać…' : registering ? 'Utwórz konto' : 'Zaloguj się'}</button>
-        <button type="button" className="secondary-button" disabled={busy} onClick={() => {
-          setRegistering(!registering)
-          setPassword('')
-          setConfirmation('')
-          setError('')
-          setNotice('')
-        }}>{registering ? 'Mam już konto — zaloguj się' : 'Nie masz konta? Zarejestruj się'}</button>
+        <p className="login-mode-prompt">
+          {registering ? 'Masz już konto? ' : 'Nie masz konta? '}
+          <button type="button" className="login-inline-link" disabled={busy} onClick={() => {
+            setRegistering(!registering)
+            setPassword('')
+            setShowPassword(false)
+            setConfirmation('')
+            setError('')
+            setNotice('')
+          }}>{registering ? 'Zaloguj się' : 'Zarejestruj się'}</button>
+        </p>
       </form>
-      {!registering && <button className="secondary-button email-close" disabled={busy}
-        onClick={() => { setPassword(''); setRecovering(true) }}>Nie pamiętasz hasła?</button>}
     </main>
   )
 }
