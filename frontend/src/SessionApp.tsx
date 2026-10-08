@@ -112,7 +112,11 @@ export default function SessionApp() {
           setChangingPassword(false)
           setEditingEmail(false)
           setError('')
-          setNotice('Konto i jego dane zostały usunięte.')
+          setNotice('')
+          setLoginSuccess({
+            title: 'Konto zostało usunięte',
+            description: 'Twoje konto i powiązane z nim dane zostały usunięte.',
+          })
           setUser(null)
           channel.current?.postMessage('logout')
         }} />}
