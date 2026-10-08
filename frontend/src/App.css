@@ -111,6 +111,84 @@
   display: inline;
 }
 
+.recovery-form {
+  margin-top: 24px;
+}
+
+.recovery-description {
+  margin: 0 0 4px;
+  color: #625b70;
+  line-height: 1.5;
+}
+
+.recovery-success-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0.83em;
+}
+
+.recovery-success-heading h2 {
+  margin: 0;
+}
+
+.recovery-success-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  color: #5b42a6;
+}
+
+.recovery-success-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.recovery-status {
+  color: #625b70;
+  line-height: 1.5;
+}
+
+.recovery-back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  margin: 12px auto 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5b42a6;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recovery-back-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.recovery-back-link:hover:not(:disabled) {
+  color: #493486;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recovery-back-link:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
+}
+
+.recovery-back-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .registration-form {
   gap: 10px;
   margin-top: 24px;
