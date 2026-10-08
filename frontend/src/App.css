@@ -111,6 +111,48 @@
   display: inline;
 }
 
+.registration-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  border: 1px solid #d8cfed;
+  border-radius: 10px;
+  background: #faf8fd;
+  color: #3f3553;
+}
+
+.registration-success-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  color: #5b42a6;
+}
+
+.registration-success-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.registration-success p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.registration-success .registration-success-title {
+  margin-bottom: 3px;
+  color: #30234d;
+  font-weight: 700;
+}
+
+.registration-success + .login-form {
+  margin-top: 20px;
+}
+
 .recovery-form {
   margin-top: 24px;
 }

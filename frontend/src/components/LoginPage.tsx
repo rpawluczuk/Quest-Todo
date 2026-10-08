@@ -12,6 +12,14 @@ function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
   </svg>
 }
 
+function SuccessIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8 12 2.7 2.7L16.5 9" />
+  </svg>
+}
+
 type RegistrationField = 'username' | 'email' | 'password' | 'confirmation'
 type RegistrationErrors = Partial<Record<RegistrationField, string>>
 
@@ -42,6 +50,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
   const [registering, setRegistering] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [notice, setNotice] = useState(initialNotice)
+  const [registrationSuccess, setRegistrationSuccess] = useState<{ emailProvided: boolean } | null>(null)
   const [recovering, setRecovering] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -68,14 +77,16 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
     setBusy(true)
     setError('')
     setNotice('')
+    setRegistrationSuccess(null)
     try {
       if (registering) {
-        const message = await register(username, password, email)
+        const emailProvided = Boolean(email.trim())
+        await register(username, password, email)
         setRegistering(false)
         setConfirmation('')
         setShowConfirmation(false)
         setFieldErrors({})
-        setNotice(message)
+        setRegistrationSuccess({ emailProvided })
       } else {
         onLogin(await login(username, password))
       }
@@ -103,6 +114,15 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
       <h1>Quest Todo</h1>
       <p>{registering ? 'Utwórz konto z własnymi zadaniami i nagrodami.' : 'Zaloguj się, aby wrócić do swoich zadań i nagród.'}</p>
       {notice && <p role="status">{notice}</p>}
+      {registrationSuccess && <div className="registration-success" role="status">
+        <span className="registration-success-icon"><SuccessIcon /></span>
+        <div>
+          <p className="registration-success-title">Konto zostało utworzone!</p>
+          <p>{registrationSuccess.emailProvided
+            ? 'Sprawdź pocztę i potwierdź adres e-mail. Możesz już się zalogować.'
+            : 'Możesz już się zalogować.'}</p>
+        </div>
+      </div>}
       <form className={`login-form${registering ? ' registration-form' : ''}`} onSubmit={submit}
         aria-busy={busy} noValidate={registering}>
         <label htmlFor="login">Login</label>
@@ -171,7 +191,12 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
           </button>
         </div>
         {!registering && <button type="button" className="login-inline-link login-forgot-link" disabled={busy}
-          onClick={() => { setPassword(''); setShowPassword(false); setRecovering(true) }}>Nie pamiętasz hasła?</button>}
+          onClick={() => {
+            setPassword('')
+            setShowPassword(false)
+            setRegistrationSuccess(null)
+            setRecovering(true)
+          }}>Nie pamiętasz hasła?</button>}
         {registering && <>
           {fieldErrors.password
             ? <p id="registration-password-error" className="field-error" role="alert">{fieldErrors.password}</p>
@@ -215,6 +240,7 @@ export default function LoginPage({ onLogin, initialNotice = '' }: { onLogin: (u
             setFieldErrors({})
             setError('')
             setNotice('')
+            setRegistrationSuccess(null)
           }}>{registering ? 'Zaloguj się' : 'Zarejestruj się'}</button>
         </p>
       </form>
