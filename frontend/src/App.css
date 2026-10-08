@@ -115,6 +115,70 @@
 
 .password-dialog h2 { margin-top: 0; }
 .password-dialog::backdrop { background: #26213366; }
+
+.change-password-dialog {
+  position: relative;
+}
+
+.change-password-dialog h2 {
+  padding-right: 40px;
+}
+
+.password-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #625b70;
+  cursor: pointer;
+}
+
+.password-dialog-close svg {
+  width: 21px;
+  height: 21px;
+}
+
+.password-dialog-close:hover:not(:disabled) {
+  background: #f1ecfa;
+  color: #5b42a6;
+}
+
+.password-dialog-close:focus-visible,
+.login-form .password-dialog-cancel:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 3px;
+}
+
+.password-dialog-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-form .password-dialog-cancel {
+  justify-self: center;
+  width: auto;
+  min-height: 44px;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #625b70;
+}
+
+.login-form .password-dialog-cancel:hover:not(:disabled) {
+  background: transparent;
+  color: #443f4c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .email-dialog {
   position: relative;
   overflow-wrap: anywhere;
