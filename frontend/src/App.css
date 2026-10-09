@@ -895,6 +895,48 @@
   flex-shrink: 0;
 }
 
+.habit-award-status {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6b4caf;
+  cursor: help;
+}
+
+.habit-award-status::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  width: max-content;
+  max-width: min(240px, calc(100vw - 40px));
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #2f2938;
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.habit-award-status:hover::after,
+.habit-award-status:focus-visible::after,
+.habit-award-status:focus::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .habit-toast-region {
   display: grid;
   gap: 8px;

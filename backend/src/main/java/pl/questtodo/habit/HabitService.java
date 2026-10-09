@@ -42,15 +42,17 @@ public class HabitService {
         long userId = currentUser.getUserId();
         var completedIds = completions.findCompletedIds(userId, date);
         LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        var awardedIds = awards.findAwardedHabitIds(userId, monday);
         var weeklyCounts = completions.countWeek(userId, monday, monday.plusDays(6)).stream()
                 .collect(Collectors.toMap(HabitCompletionRepository.WeeklyCount::getHabitId,
                         HabitCompletionRepository.WeeklyCount::getCompletedDays));
         var targetHistory = targets.findByHabitUserIdOrderByEffectiveFromAsc(userId).stream()
                 .collect(Collectors.groupingBy(HabitTargetEntity::getHabitId));
         return habits.findByUserIdOrderByIdAsc(userId).stream()
+                .filter(habit -> !habit.getCreatedOn().isAfter(date))
                 .map(habit -> toHabit(habit, date, completedIds.contains(habit.getId()),
                         targetHistory.getOrDefault(habit.getId(), List.of()),
-                        weeklyCounts.getOrDefault(habit.getId(), 0L)))
+                        weeklyCounts.getOrDefault(habit.getId(), 0L), awardedIds.contains(habit.getId())))
                 .toList();
     }
 
@@ -64,23 +66,38 @@ public class HabitService {
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
                 today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
-        return toHabit(habit, today, false, List.of(target), 0);
+        return toHabit(habit, today, false, List.of(target), 0, false);
     }
 
-    public Habit updateHabit(long id, String name, Integer targetDays) {
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays) {
         return updateHabit(id, name, targetDays, null);
     }
 
-    public Habit updateHabit(long id, String name, Integer targetDays, Integer rewardPoints) {
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints) {
         HabitEntity habit = findForUpdate(id);
         habit.rename(name);
         if (rewardPoints != null) habit.setRewardPoints(rewardPoints);
         LocalDate today = calendar.today();
+        Habit before = snapshot(habit, today);
+        boolean targetLowered = targetDays != null && before.target() != null
+                && targetDays < before.target().targetDays();
         if (targetDays != null) changeTarget(habit, targetDays, today);
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        return toHabit(habit, today, completions.existsByHabitIdAndDate(id, today),
-                targets.findByHabit_IdOrderByEffectiveFromAsc(id),
-                completions.countByHabitIdAndDateBetween(id, monday, monday.plusDays(6)));
+        HabitAwardEntity award = null;
+        Long balance = null;
+        Habit current = snapshot(habit, today);
+        if (targetLowered && current.target() != null
+                && current.weeklyCompletedDays() >= current.target().targetDays()
+                && !current.weeklyRewardGranted()) {
+            var latestCompletion = completions.findFirstByHabitIdAndDateBetweenOrderByDateDescIdDesc(
+                    id, monday, monday.plusDays(6));
+            if (latestCompletion.isPresent()) {
+                award = grantAward(habit, monday, latestCompletion.get(), latestCompletion.get().getDate());
+                balance = users.lockCurrentUser().getPoints();
+                current = snapshot(habit, today);
+            }
+        }
+        return new HabitCompletionResult(current, balance, award == null ? null : award.toAward());
     }
 
     private void changeTarget(HabitEntity habit, int days, LocalDate today) {
@@ -98,14 +115,14 @@ public class HabitService {
     }
 
     private Habit toHabit(HabitEntity habit, LocalDate date, boolean completed, List<HabitTargetEntity> history,
-                          long weeklyCompletedDays) {
+                          long weeklyCompletedDays, boolean weeklyRewardGranted) {
         HabitTarget active = null;
         HabitTarget latest = null;
         for (var target : history) {
             latest = target.toTarget();
             if (!target.getEffectiveFrom().isAfter(date)) active = latest;
         }
-        return habit.toHabit(completed, active, latest, weeklyCompletedDays);
+        return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted);
     }
 
     public void deleteHabit(long id) {
@@ -119,6 +136,8 @@ public class HabitService {
     public HabitCompletionResult setCompletion(long id, LocalDate date, boolean completed) {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
+        if (date.isBefore(habit.getCreatedOn()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nie można zapisać wykonania sprzed utworzenia nawyku.");
         HabitAwardEntity award = null;
         Long balance = null;
         // Locking the habit serializes repeated or simultaneous changes to its completions.
@@ -129,11 +148,8 @@ public class HabitService {
                 LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                 if (snapshot.target() != null && snapshot.weeklyCompletedDays() >= snapshot.target().targetDays()
                         && !awards.existsByHabit_IdAndWeekStart(id, monday)) {
-                    var user = users.lockCurrentUser();
-                    user.addPoints(habit.getRewardPoints());
-                    balance = user.getPoints();
-                    award = awards.save(new HabitAwardEntity(habit, monday, habit.getRewardPoints(),
-                            completion.getId(), date, calendar.now()));
+                    award = grantAward(habit, monday, completion, date);
+                    balance = users.lockCurrentUser().getPoints();
                 }
             }
         } else {
@@ -163,7 +179,16 @@ public class HabitService {
         LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         return toHabit(habit, date, completions.existsByHabitIdAndDate(habit.getId(), date),
                 targets.findByHabit_IdOrderByEffectiveFromAsc(habit.getId()),
-                completions.countByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)));
+                completions.countByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)),
+                awards.existsByHabit_IdAndWeekStart(habit.getId(), monday));
+    }
+
+    private HabitAwardEntity grantAward(HabitEntity habit, LocalDate monday,
+                                         HabitCompletionEntity completion, LocalDate completionDate) {
+        var user = users.lockCurrentUser();
+        user.addPoints(habit.getRewardPoints());
+        return awards.save(new HabitAwardEntity(habit, monday, habit.getRewardPoints(),
+                completion.getId(), completionDate, calendar.now()));
     }
 
     private void validateDate(LocalDate date) {

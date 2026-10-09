@@ -36,8 +36,8 @@ export async function createHabit(name: string, targetDays: number, rewardPoints
   return response.json()
 }
 
-export async function updateHabit(id: number, name: string, targetDays: number, rewardPoints: number): Promise<Habit> {
-  const response = await apiFetch(`/api/habits/${id}`, {
+export async function updateHabit(id: number, name: string, targetDays: number, rewardPoints: number): Promise<HabitCompletionResult> {
+  const response = await apiFetch(`/api/habits/${id}/configuration`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, targetDays, rewardPoints }),

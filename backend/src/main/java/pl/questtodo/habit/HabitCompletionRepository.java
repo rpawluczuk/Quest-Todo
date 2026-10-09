@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 public interface HabitCompletionRepository extends JpaRepository<HabitCompletionEntity, Long> {
     boolean existsByHabitIdAndDate(long habitId, LocalDate date);
     java.util.Optional<HabitCompletionEntity> findByHabitIdAndDate(long habitId, LocalDate date);
+    java.util.Optional<HabitCompletionEntity> findFirstByHabitIdAndDateBetweenOrderByDateDescIdDesc(
+            long habitId, LocalDate monday, LocalDate sunday);
     void deleteByHabitIdAndDate(long habitId, LocalDate date);
     void deleteByHabitId(long habitId);
 

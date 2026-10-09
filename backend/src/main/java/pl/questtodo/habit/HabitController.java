@@ -39,6 +39,12 @@ public class HabitController {
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints()).habit();
+    }
+
+    @PutMapping("/{id}/configuration")
+    public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
+                                                           @Valid @RequestBody HabitRequest request) {
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints());
     }
 

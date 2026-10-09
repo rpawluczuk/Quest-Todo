@@ -10,6 +10,7 @@ export type Habit = {
   readonly completed: boolean
   readonly weeklyCompletedDays: number
   readonly rewardPoints: number
+  readonly weeklyRewardGranted: boolean
   readonly target: HabitTarget | null
   readonly latestTarget: HabitTarget | null
 }

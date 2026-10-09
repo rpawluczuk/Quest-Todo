@@ -123,7 +123,8 @@ class HabitAwardTests {
         assertNotNull(previous.award());
         assertEquals(210, balance());
         assertEquals(2, awards());
-        assertNull(service.setCompletion(1001, LocalDate.of(2026, 9, 20), true).award());
+        assertThrows(ResponseStatusException.class,
+                () -> service.setCompletion(1001, LocalDate.of(2026, 9, 20), true));
     }
 
     @Test void zeroPointRewardIsStillRecordedOnce() {
@@ -133,6 +134,57 @@ class HabitAwardTests {
         service.setCompletion(1001, TODAY, false);
         assertNull(service.setCompletion(1001, TODAY, true).award());
         assertEquals(10, balance());
+    }
+
+    @Test void loweringCurrentGoalAwardsImmediatelyAndUndoRemovesLatestCompletion() {
+        jdbc.update("UPDATE habit_targets SET target_days = 3 WHERE habit_id = 1001");
+        service.setCompletion(1001, TODAY.minusDays(2), true);
+        service.setCompletion(1001, TODAY.minusDays(1), true);
+        var result = service.updateHabit(1001, "Training", 2, 100);
+        assertNotNull(result.award());
+        assertEquals(100, result.award().points());
+        assertEquals(110, result.balance());
+        assertTrue(result.habit().weeklyRewardGranted());
+        var undone = service.undoAward(1001, result.award().id());
+        assertEquals(1, undone.habit().weeklyCompletedDays());
+        assertFalse(undone.habit().weeklyRewardGranted());
+        assertFalse(service.getHabits(TODAY.minusDays(1)).getFirst().completed());
+    }
+
+    @Test void raisingGoalAfterAwardKeepsHistoricalPointsAndShowsAwardedStatus() {
+        var earned = earn();
+        assertTrue(earned.habit().weeklyRewardGranted());
+        var changed = service.updateHabit(1001, "Training", 5, 999);
+        assertNull(changed.award());
+        assertEquals(110, balance());
+        assertFalse(changed.habit().weeklyCompletedDays() >= changed.habit().target().targetDays());
+        assertTrue(changed.habit().weeklyRewardGranted());
+        assertEquals(100, jdbc.queryForObject("SELECT points FROM habit_weekly_awards WHERE habit_id = 1001", Integer.class));
+        for (int offset = 2; offset <= 4; offset++)
+            assertNull(service.setCompletion(1001, TODAY.minusDays(offset), true).award());
+        var reachedAgain = service.getHabits(TODAY).getFirst();
+        assertEquals(5, reachedAgain.weeklyCompletedDays());
+        assertTrue(reachedAgain.weeklyRewardGranted());
+        assertEquals(110, balance());
+        service.updateHabit(1001, "Training", 1, 500);
+        assertEquals(110, balance());
+        assertEquals(1, awards());
+    }
+
+    @Test void increasingOrKeepingGoalBeforeAwardDoesNotGrantPoints() {
+        jdbc.update("UPDATE habit_targets SET target_days = 3 WHERE habit_id = 1001");
+        service.setCompletion(1001, TODAY.minusDays(1), true);
+        service.setCompletion(1001, TODAY, true);
+        assertNull(service.updateHabit(1001, "Training", 5, 100).award());
+        assertNull(service.updateHabit(1001, "Renamed", 5, 200).award());
+        assertEquals(10, balance());
+        assertEquals(0, awards());
+    }
+
+    @Test void awardedStatusIsScopedToTheViewedWeek() {
+        earn();
+        assertTrue(service.getHabits(TODAY).getFirst().weeklyRewardGranted());
+        assertFalse(service.getHabits(TODAY.minusWeeks(1)).getFirst().weeklyRewardGranted());
     }
 
     @Test

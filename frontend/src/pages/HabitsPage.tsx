@@ -115,15 +115,10 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const updated = await updateHabit(id, name, targetDays, rewardPoints)
-      const before = habits.find(habit => habit.id === id)
-      if (before) {
-        const viewed = {
-          ...updated, completed: before.completed, weeklyCompletedDays: before.weeklyCompletedDays,
-          target: updated.target && updated.target.effectiveFrom <= date ? updated.target : before.target,
-        }
-        setHabits(current => current.map(habit => habit.id === id ? viewed : habit))
-      }
+      const result = await updateHabit(id, name, targetDays, rewardPoints)
+      const loaded = await getHabits(date)
+      setHabits(loaded)
+      onCompletionSaved(result)
       setEditingId(null)
     } finally {
       onBusy(false)
@@ -193,6 +188,7 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
                   : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`}>
                 {habit.weeklyCompletedDays}/{habit.target?.targetDays ?? '—'}
                 {hasReachedWeeklyTarget(habit) && <HabitSuccessIcon />}
+                {!hasReachedWeeklyTarget(habit) && habit.weeklyRewardGranted && <HabitAwardStatus />}
               </span>
               <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                 disabled={busy || editingId !== null}
@@ -216,6 +212,16 @@ function HabitSuccessIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
     <circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" />
   </svg>
+}
+
+function HabitAwardStatus() {
+  const message = 'Nagroda za ten tydzień została już przyznana'
+  return <button type="button" className="habit-award-status" aria-label={message}
+    data-tooltip={message} onClick={event => event.currentTarget.focus()}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" /><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v4M8 20h8M9 16h6v4H9z" />
+    </svg>
+  </button>
 }
 
 function HabitAwardToast({ notice, disabled, onUndo, onDismiss }: {
