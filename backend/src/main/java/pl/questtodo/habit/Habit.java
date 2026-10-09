@@ -1,3 +1,5 @@
 package pl.questtodo.habit;
 
-public record Habit(long id, String name) {}
+import java.time.LocalDate;
+
+public record Habit(long id, String name, LocalDate createdOn, boolean completed) {}

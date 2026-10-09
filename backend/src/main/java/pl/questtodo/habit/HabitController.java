@@ -1,6 +1,9 @@
 package pl.questtodo.habit;
 
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,8 +27,8 @@ public class HabitController {
     }
 
     @GetMapping
-    public List<Habit> getHabits() {
-        return habits.getHabits();
+    public List<Habit> getHabits(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return habits.getHabits(date);
     }
 
     @PostMapping
@@ -43,5 +46,17 @@ public class HabitController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteHabit(@PathVariable long id) {
         habits.deleteHabit(id);
+    }
+
+    @PutMapping("/{id}/completions/{date}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void complete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        habits.setCompletion(id, date, true);
+    }
+
+    @DeleteMapping("/{id}/completions/{date}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void uncomplete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        habits.setCompletion(id, date, false);
     }
 }

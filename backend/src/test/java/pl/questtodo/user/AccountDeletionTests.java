@@ -39,6 +39,7 @@ class AccountDeletionTests {
             jdbc.update("INSERT INTO tasks(id, title, points, user_id) VALUES (?, 'Task', 10, ?)", id, id);
             jdbc.update("INSERT INTO rewards(id, title, cost, user_id, deleted) VALUES (?, 'Reward', 20, ?, TRUE)", id, id);
             jdbc.update("INSERT INTO habits(id, name, user_id) VALUES (?, 'Habit', ?)", id, id);
+            jdbc.update("INSERT INTO habit_completions(habit_id, completion_date) SELECT id, created_on FROM habits WHERE id = ?", id);
             jdbc.update("INSERT INTO purchases(id, title, cost, reward_id, user_id) VALUES (?, 'Reward', 20, ?, ?)", id, id, id);
             jdbc.update("INSERT INTO account_email(user_id, verified_email, pending_email, token_hash) VALUES (?, ?, ?, ?)",
                     id, "user" + id + "@example.com", "pending" + id + "@example.com", "verify" + id);
@@ -86,6 +87,8 @@ class AccountDeletionTests {
             assertEquals(snapshots.get(i), jdbc.queryForList("SELECT * FROM " + table + " WHERE user_id = 2"), table);
         }
         assertEquals(otherBefore, jdbc.queryForMap("SELECT * FROM users WHERE id = 2"));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_completions WHERE habit_id = 1", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM habit_completions WHERE habit_id = 2", Integer.class));
         mvc.perform(post("/api/auth/login").with(csrf()).param("username", "owner").param("password", "password123"))
                 .andExpect(status().isUnauthorized());
         assertDoesNotThrow(() -> new org.springframework.transaction.support.TransactionTemplate(transactions)

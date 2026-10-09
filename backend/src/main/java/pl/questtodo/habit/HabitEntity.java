@@ -1,5 +1,7 @@
 package pl.questtodo.habit;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -25,11 +27,15 @@ public class HabitEntity {
     @Column(nullable = false, length = 120)
     private String name;
 
+    @Column(name = "created_on", nullable = false, updatable = false)
+    private LocalDate createdOn;
+
     protected HabitEntity() {}
 
-    public HabitEntity(String name, UserEntity user) {
+    public HabitEntity(String name, UserEntity user, LocalDate createdOn) {
         this.name = name;
         this.user = user;
+        this.createdOn = createdOn;
     }
 
     public void rename(String name) {
@@ -37,6 +43,16 @@ public class HabitEntity {
     }
 
     public Habit toHabit() {
-        return new Habit(id, name);
+        return toHabit(false);
+    }
+
+    public Habit toHabit(boolean completed) {
+        return new Habit(id, name, createdOn, completed);
+    }
+
+    public long getId() { return id; }
+
+    public LocalDate getCreatedOn() {
+        return createdOn;
     }
 }

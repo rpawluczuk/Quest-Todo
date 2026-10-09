@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { moveWeek, startOfWeek, weekDays } from '../src/weekDates.ts'
+import { dateFromKey, dateKey, habitToday, moveWeek, startOfWeek, weekDays } from '../src/weekDates.ts'
+
+test('habit dates follow Warsaw midnight in winter and summer', () => {
+  assert.equal(habitToday(new Date('2026-01-09T22:59:59Z')), '2026-01-09')
+  assert.equal(habitToday(new Date('2026-01-09T23:00:00Z')), '2026-01-10')
+  assert.equal(habitToday(new Date('2026-07-09T21:59:59Z')), '2026-07-09')
+  assert.equal(habitToday(new Date('2026-07-09T22:00:00Z')), '2026-07-10')
+})
+
+test('selected date sent to the API survives calendar conversion without UTC shifts', () => {
+  for (const date of ['2026-03-29', '2026-10-25', '2027-01-01']) {
+    assert.equal(dateKey(dateFromKey(date)), date)
+  }
+})
 
 test('weeks start on Monday, including when today is Sunday', () => {
   for (let date = 5; date <= 11; date++) {

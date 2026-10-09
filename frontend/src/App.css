@@ -829,8 +829,8 @@
 
 .habit-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
-  grid-template-areas: 'name menu';
+  grid-template-columns: 32px minmax(0, 1fr) 40px;
+  grid-template-areas: 'check name menu';
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -844,6 +844,11 @@
 
 .habit-name {
   grid-area: name;
+}
+
+.habit-name-completed {
+  color: #625b70;
+  text-decoration: line-through;
 }
 
 .reward-status {

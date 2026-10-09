@@ -6,10 +6,17 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
   return problem?.detail ?? `${fallback} (HTTP ${response.status}).`
 }
 
-export async function getHabits(signal?: AbortSignal): Promise<Habit[]> {
-  const response = await apiFetch('/api/habits', { signal })
+export async function getHabits(date: string, signal?: AbortSignal): Promise<Habit[]> {
+  const response = await apiFetch(`/api/habits?date=${encodeURIComponent(date)}`, { signal })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać nawyków'))
   return response.json()
+}
+
+export async function setHabitCompletion(id: number, date: string, completed: boolean): Promise<void> {
+  const response = await apiFetch(`/api/habits/${id}/completions/${encodeURIComponent(date)}`, {
+    method: completed ? 'PUT' : 'DELETE',
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać wykonania nawyku'))
 }
 
 export async function createHabit(name: string): Promise<Habit> {
