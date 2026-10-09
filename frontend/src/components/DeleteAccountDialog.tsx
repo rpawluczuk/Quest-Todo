@@ -91,7 +91,7 @@ export default function DeleteAccountDialog({ login, onClose, onSuccess }: {
     <h2 id="delete-account-title">Usuń konto</h2>
     <div id="delete-account-warning" className="delete-account-warning" role="note">
       <p><strong>Usunięcie konta jest nieodwracalne.</strong></p>
-      <p>Utracisz wszystkie swoje zadania, nagrody, punkty, historię zakupów, dane logowania oraz adres e-mail.</p>
+      <p>Utracisz wszystkie swoje zadania, nawyki, nagrody, punkty, historię zakupów, dane logowania oraz adres e-mail.</p>
       <p>Po usunięciu konta nastąpi wylogowanie ze wszystkich urządzeń.</p>
     </div>
     <form className="login-form" onSubmit={submit} aria-busy={busy}>

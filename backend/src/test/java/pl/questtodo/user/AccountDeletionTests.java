@@ -27,7 +27,7 @@ class AccountDeletionTests {
     @Autowired AccountDeletionService deletion;
     @Autowired UserRepository users;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
-    static final List<String> OWNED = List.of("purchases", "tasks", "rewards", "account_email", "password_reset", "email_send_event", "email_notification");
+    static final List<String> OWNED = List.of("purchases", "tasks", "rewards", "habits", "account_email", "password_reset", "email_send_event", "email_notification");
     static final String BODY = "{\"password\":\"password123\",\"loginConfirmation\":\"owner\",\"irreversibleConfirmation\":true}";
 
     @BeforeEach void setup() {
@@ -38,6 +38,7 @@ class AccountDeletionTests {
                     id, "Name", id == 1 ? "owner" : "second", passwords.encode("password123"));
             jdbc.update("INSERT INTO tasks(id, title, points, user_id) VALUES (?, 'Task', 10, ?)", id, id);
             jdbc.update("INSERT INTO rewards(id, title, cost, user_id, deleted) VALUES (?, 'Reward', 20, ?, TRUE)", id, id);
+            jdbc.update("INSERT INTO habits(id, name, user_id) VALUES (?, 'Habit', ?)", id, id);
             jdbc.update("INSERT INTO purchases(id, title, cost, reward_id, user_id) VALUES (?, 'Reward', 20, ?, ?)", id, id, id);
             jdbc.update("INSERT INTO account_email(user_id, verified_email, pending_email, token_hash) VALUES (?, ?, ?, ?)",
                     id, "user" + id + "@example.com", "pending" + id + "@example.com", "verify" + id);

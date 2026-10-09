@@ -823,17 +823,27 @@
   color: #fff;
 }
 
-.habits-placeholder {
-  text-align: center;
+.task-form.habit-form {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.habits-placeholder h2 {
-  margin: 0;
+.habit-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-areas: 'name menu';
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
 }
 
-.habits-placeholder p {
-  margin: 12px 0 0;
-  color: #666173;
+.habit-card-editing {
+  display: block;
+  padding: 12px;
+}
+
+.habit-name {
+  grid-area: name;
 }
 
 .reward-status {
@@ -1507,6 +1517,10 @@
   }
 
   .task-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .task-form.habit-form {
     grid-template-columns: minmax(0, 1fr);
   }
 
