@@ -823,6 +823,19 @@
   color: #fff;
 }
 
+.habits-placeholder {
+  text-align: center;
+}
+
+.habits-placeholder h2 {
+  margin: 0;
+}
+
+.habits-placeholder p {
+  margin: 12px 0 0;
+  color: #666173;
+}
+
 .reward-status {
   margin-top: 20px;
   color: #51378e;
