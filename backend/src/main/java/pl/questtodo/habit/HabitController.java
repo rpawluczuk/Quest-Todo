@@ -34,12 +34,12 @@ public class HabitController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
-        return habits.createHabit(request.name().strip(), request.targetDays());
+        return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
-        return habits.updateHabit(id, request.name().strip(), request.targetDays());
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints());
     }
 
     @DeleteMapping("/{id}")
@@ -49,14 +49,17 @@ public class HabitController {
     }
 
     @PutMapping("/{id}/completions/{date}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void complete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        habits.setCompletion(id, date, true);
+    public HabitCompletionResult complete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return habits.setCompletion(id, date, true);
     }
 
     @DeleteMapping("/{id}/completions/{date}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void uncomplete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        habits.setCompletion(id, date, false);
+    public HabitCompletionResult uncomplete(@PathVariable long id, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return habits.setCompletion(id, date, false);
+    }
+
+    @PostMapping("/{id}/awards/{awardId}/undo")
+    public HabitCompletionResult undo(@PathVariable long id, @PathVariable java.util.UUID awardId) {
+        return habits.undoAward(id, awardId);
     }
 }

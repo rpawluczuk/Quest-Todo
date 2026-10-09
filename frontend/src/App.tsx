@@ -308,7 +308,10 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage />
+        <HabitsPage onPointsChanged={balance => {
+          accountRequest.current++
+          setPoints(balance)
+        }} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}

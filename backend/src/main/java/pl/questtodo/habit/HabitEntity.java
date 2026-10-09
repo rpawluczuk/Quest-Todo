@@ -30,6 +30,12 @@ public class HabitEntity {
     @Column(name = "created_on", nullable = false, updatable = false)
     private LocalDate createdOn;
 
+    @Column(name = "reward_points", nullable = false)
+    private int rewardPoints;
+
+    public int getRewardPoints() { return rewardPoints; }
+    public void setRewardPoints(int points) { this.rewardPoints = points; }
+
     protected HabitEntity() {}
 
     public HabitEntity(String name, UserEntity user, LocalDate createdOn) {
@@ -43,7 +49,7 @@ public class HabitEntity {
     }
 
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays) {
-        return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays);
+        return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints);
     }
 
     public long getId() { return id; }

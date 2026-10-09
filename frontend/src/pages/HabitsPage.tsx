@@ -1,36 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
-import { createHabit, deleteHabit, getHabits, setHabitCompletion, updateHabit } from '../api/habitApi'
+import { createHabit, deleteHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm from '../components/CreateHabitForm'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
-import { claimWeeklyAchievement, hasReachedWeeklyTarget } from '../habitProgress'
-import type { Habit } from '../types/Habit'
-import { dateFromKey, dateKey, habitToday, startOfWeek } from '../weekDates'
+import { hasReachedWeeklyTarget } from '../habitProgress'
+import type { Habit, HabitAward, HabitCompletionResult } from '../types/Habit'
+import { dateFromKey, habitToday } from '../weekDates'
 
 const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 
-export default function HabitsPage() {
+type AwardNotice = HabitAward & { habitId: number; name: string }
+
+export default function HabitsPage({ onPointsChanged }: { onPointsChanged: (balance: number) => void }) {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
   const [busy, setBusy] = useState(false)
-  const announced = useRef(new Set<string>())
-  const [toast, setToast] = useState<{ name: string } | null>(null)
+  const [notices, setNotices] = useState<AwardNotice[]>([])
+  const [refresh, setRefresh] = useState(0)
+  const undoing = useRef(false)
 
-  useEffect(() => {
-    if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), 3500)
-    return () => window.clearTimeout(timer)
-  }, [toast])
-
-  function progressChanged(before: Habit, after: Habit, week: string) {
-    if (claimWeeklyAchievement(before, after, week, announced.current)) setToast({ name: after.name })
+  function completionSaved(result: HabitCompletionResult) {
+    if (result.balance !== null) onPointsChanged(result.balance)
+    if (result.award) {
+      const notice = { ...result.award, habitId: result.habit.id, name: result.habit.name }
+      setNotices(current => [...current.filter(item => item.id !== notice.id), notice])
+    }
   }
 
-  function progressLoaded(habits: Habit[], week: string) {
-    for (const habit of habits) {
-      if (hasReachedWeeklyTarget(habit)) announced.current.add(`${habit.id}:${week}`)
+  async function undo(notice: AwardNotice) {
+    if (busy || undoing.current) throw new Error('Poczekaj na zakończenie zapisu.')
+    undoing.current = true
+    setBusy(true)
+    try {
+      const result = await undoHabitAward(notice.habitId, notice.id)
+      if (result.balance !== null) onPointsChanged(result.balance)
+      setRefresh(current => current + 1)
+      setNotices(current => current.filter(item => item.id !== notice.id))
+    } finally {
+      undoing.current = false
+      setBusy(false)
     }
   }
 
@@ -51,22 +61,20 @@ export default function HabitsPage() {
       <p>Regularne czynności, które chcesz rozwijać.</p>
       <p>Dzień: <time dateTime={selectedDay}>{displayDate.format(dateFromKey(selectedDay))}</time></p>
     </div>
-    <HabitDayList key={selectedDay} date={selectedDay} busy={busy} onBusy={setBusy}
-      onProgressChanged={progressChanged} onProgressLoaded={progressLoaded} />
-    <div className="habit-toast-region" role="status" aria-live="polite" aria-atomic="true">
-      {toast && <div className="habit-toast"><HabitSuccessIcon /><span>{toast.name}: Cel tygodniowy osiągnięty!</span></div>}
+    <HabitDayList key={`${selectedDay}:${refresh}`} date={selectedDay} busy={busy} onBusy={setBusy}
+      onCompletionSaved={completionSaved} />
+    <div className="habit-toast-region">
+      {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
+        onUndo={() => undo(notice)} onDismiss={() => setNotices(current => current.filter(item => item.id !== notice.id))} />)}
     </div>
   </section>
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded }: {
+function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
   date: string; busy: boolean; onBusy: (busy: boolean) => void
-  onProgressChanged: (before: Habit, after: Habit, week: string) => void
-  onProgressLoaded: (habits: Habit[], week: string) => void
+  onCompletionSaved: (result: HabitCompletionResult) => void
 }) {
-  const week = dateKey(startOfWeek(dateFromKey(date)))
-  const progressLoaded = useRef(onProgressLoaded)
   const savingCompletion = useRef(false)
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,7 +90,6 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
     getHabits(date, controller.signal).then(loaded => {
       if (!controller.signal.aborted) {
         setHabits(loaded)
-        progressLoaded.current(loaded, week)
       }
     }).catch(() => {
       if (!controller.signal.aborted) setLoadError('Nie udało się pobrać nawyków. Odśwież stronę i spróbuj ponownie.')
@@ -90,13 +97,13 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
       if (!controller.signal.aborted) setLoading(false)
     })
     return () => controller.abort()
-  }, [date, week])
+  }, [date])
 
-  async function add(name: string, targetDays: number) {
+  async function add(name: string, targetDays: number, rewardPoints: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name, targetDays)
+      const habit = await createHabit(name, targetDays, rewardPoints)
       setHabits(current => [...current, { ...habit,
         target: habit.target && habit.target.effectiveFrom <= date ? habit.target : null }])
     } finally {
@@ -104,11 +111,11 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
     }
   }
 
-  async function save(id: number, name: string, targetDays: number) {
+  async function save(id: number, name: string, targetDays: number, rewardPoints: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const updated = await updateHabit(id, name, targetDays)
+      const updated = await updateHabit(id, name, targetDays, rewardPoints)
       const before = habits.find(habit => habit.id === id)
       if (before) {
         const viewed = {
@@ -116,7 +123,6 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
           target: updated.target && updated.target.effectiveFrom <= date ? updated.target : before.target,
         }
         setHabits(current => current.map(habit => habit.id === id ? viewed : habit))
-        onProgressChanged(before, viewed, week)
       }
       setEditingId(null)
     } finally {
@@ -131,13 +137,9 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
     setSavingCompletionId(habit.id)
     setCompletionError('')
     try {
-      await setHabitCompletion(habit.id, date, !habit.completed)
-      const loaded = await getHabits(date).catch(() => {
-        throw new Error('Wykonanie zostało zapisane, ale nie udało się odświeżyć postępu. Wybierz dzień ponownie.')
-      })
-      setHabits(loaded)
-      const updated = loaded.find(item => item.id === habit.id)
-      if (updated) onProgressChanged(habit, updated, week)
+      const result = await setHabitCompletion(habit.id, date, !habit.completed)
+      setHabits(current => current.map(item => item.id === habit.id ? result.habit : item))
+      onCompletionSaved(result)
     } catch (failure) {
       setCompletionError(failure instanceof Error ? failure.message : 'Nie udało się zapisać wykonania nawyku.')
     } finally {
@@ -174,7 +176,7 @@ function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded 
         <ul className="task-list">
           {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}`} key={habit.id}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays) => save(habit.id, name, targetDays)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays, points) => save(habit.id, name, targetDays, points)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null}
@@ -214,4 +216,37 @@ function HabitSuccessIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
     <circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" />
   </svg>
+}
+
+function HabitAwardToast({ notice, disabled, onUndo, onDismiss }: {
+  notice: AwardNotice; disabled: boolean; onUndo: () => Promise<void>; onDismiss: () => void
+}) {
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const sending = useRef(false)
+  const dismiss = useRef(onDismiss)
+  useEffect(() => {
+    const timer = window.setTimeout(() => dismiss.current(), Math.max(0, Math.min(8000, Date.parse(notice.undoUntil) - Date.now())))
+    return () => window.clearTimeout(timer)
+  }, [notice.undoUntil])
+
+  async function undo() {
+    if (sending.current) return
+    sending.current = true
+    setSaving(true)
+    setError('')
+    try { await onUndo() }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Nie udało się cofnąć nagrody.') }
+    finally { sending.current = false; setSaving(false) }
+  }
+
+  return <div className="habit-toast">
+    <HabitSuccessIcon />
+    <div className="habit-toast-message">
+      <span role="status">Cel tygodniowy osiągnięty! {notice.name} · +{notice.points} pkt</span>
+      {error && <p className="form-error" role="alert">{error}</p>}
+    </div>
+    <button type="button" className="secondary-button" disabled={disabled || saving}
+      onClick={() => void undo()}>{saving ? 'Cofanie…' : 'Cofnij'}</button>
+  </div>
 }

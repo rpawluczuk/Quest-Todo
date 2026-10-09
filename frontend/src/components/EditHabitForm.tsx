@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import type { Habit } from '../types/Habit'
 import HabitTargetField from './HabitTargetField'
+import HabitPointsField from './HabitPointsField'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
-  onSave: (name: string, targetDays: number) => Promise<void>
+  onSave: (name: string, targetDays: number, rewardPoints: number) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState(habit.name)
   const [targetDays, setTargetDays] = useState(habit.latestTarget?.targetDays ?? 7)
+  const [rewardPoints, setRewardPoints] = useState(String(habit.rewardPoints))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -24,7 +26,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     setSaving(true)
     setError('')
     try {
-      await onSave(trimmedName, targetDays)
+      await onSave(trimmedName, targetDays, Number(rewardPoints))
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać nawyku.')
     } finally {
@@ -39,6 +41,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
         onChange={event => setName(event.target.value)} required />
     </label>
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>

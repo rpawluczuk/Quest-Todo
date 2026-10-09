@@ -19,6 +19,8 @@ public class HabitCompletionEntity {
 
     protected HabitCompletionEntity() {}
 
+    public long getId() { return id; }
+
     public HabitCompletionEntity(HabitEntity habit, LocalDate date) {
         this.habit = habit;
         this.date = date;

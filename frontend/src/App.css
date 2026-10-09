@@ -896,6 +896,8 @@
 }
 
 .habit-toast-region {
+  display: grid;
+  gap: 8px;
   position: fixed;
   bottom: max(20px, env(safe-area-inset-bottom));
   left: 50%;
@@ -907,6 +909,7 @@
 }
 
 .habit-toast {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -921,6 +924,16 @@
 
 .habit-toast span {
   min-width: 0;
+}
+
+.habit-toast-message {
+  min-width: 0;
+  flex: 1;
+}
+
+.habit-toast button {
+  flex-shrink: 0;
+  min-height: 44px;
 }
 
 .reward-status {

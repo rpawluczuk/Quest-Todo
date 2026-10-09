@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import HabitTargetField from './HabitTargetField'
+import HabitPointsField from './HabitPointsField'
 
-export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targetDays: number) => Promise<void> }) {
+export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targetDays: number, rewardPoints: number) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false)
   const [name, setName] = useState('')
   const [targetDays, setTargetDays] = useState(7)
+  const [rewardPoints, setRewardPoints] = useState('1')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -18,6 +20,7 @@ export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targe
   }, [expanded])
 
   function cancel() {
+    setRewardPoints('1')
     setTargetDays(7)
     setName('')
     setError('')
@@ -33,7 +36,8 @@ export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targe
     setSaving(true)
     setError('')
     try {
-      await onAdd(trimmedName, targetDays)
+      await onAdd(trimmedName, targetDays, Number(rewardPoints))
+      setRewardPoints('1')
       setTargetDays(7)
       setName('')
       setExpanded(false)
@@ -51,6 +55,7 @@ export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targe
         onChange={event => setName(event.target.value)} placeholder="Np. Przeczytać 10 stron" required />
     </label>
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
     <div className="task-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj nawyk'}</button>
       <button type="button" className="secondary-button" disabled={saving} onClick={cancel}>Anuluj</button>
