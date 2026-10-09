@@ -33,7 +33,7 @@ public class HabitService {
         validateDate(date);
         long userId = currentUser.getUserId();
         var completedIds = completions.findCompletedIds(userId, date);
-        return habits.findByUserIdAndCreatedOnLessThanEqualOrderByIdAsc(userId, date).stream()
+        return habits.findByUserIdOrderByIdAsc(userId).stream()
                 .map(habit -> habit.toHabit(completedIds.contains(habit.getId())))
                 .toList();
     }
@@ -57,9 +57,6 @@ public class HabitService {
     public void setCompletion(long id, LocalDate date, boolean completed) {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
-        if (date.isBefore(habit.getCreatedOn())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nawyk nie istniał w wybranym dniu.");
-        }
         // Locking the habit serializes repeated or simultaneous changes to its completions.
         if (completed) {
             if (!completions.existsByHabitIdAndDate(id, date)) {

@@ -94,11 +94,11 @@ class HabitControllerTests {
     }
 
     @Test
-    void filtersByCreationDateAndKeepsDailyCompletionsIndependent() throws Exception {
+    void showsAllOwnHabitsRegardlessOfCreationDateAndKeepsDailyCompletionsIndependent() throws Exception {
         seedDatedHabits();
-        mvc.perform(get("/api/habits?date=2026-10-07")).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/habits?date=2026-10-07")).andExpect(jsonPath("$.length()").value(2));
         mvc.perform(get("/api/habits?date=2026-10-08"))
-                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].completed").value(false));
         for (int attempt = 0; attempt < 2; attempt++) {
             mvc.perform(put("/api/habits/1001/completions/2026-10-08")).andExpect(status().isNoContent());
@@ -118,13 +118,35 @@ class HabitControllerTests {
     }
 
     @Test
-    void rejectsFutureInvalidAndPreCreationDates() throws Exception {
+    void rejectsFutureAndInvalidDates() throws Exception {
         seedDatedHabits();
-        for (String date : new String[]{"2026-10-07", "2026-10-10", "not-a-date", "2026-02-30"}) {
+        for (String date : new String[]{"2026-10-10", "not-a-date", "2026-02-30"}) {
             mvc.perform(put("/api/habits/1001/completions/" + date)).andExpect(status().isBadRequest());
             mvc.perform(delete("/api/habits/1001/completions/" + date)).andExpect(status().isBadRequest());
         }
         mvc.perform(get("/api/habits?date=2026-10-10")).andExpect(status().isBadRequest());
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_completions", Integer.class));
+    }
+
+    @Test
+    void newlyCreatedHabitCanBeCompletedAndUncompletedWeeksBeforeCreation() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Reading\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.createdOn").value("2026-10-09"));
+        long id = jdbc.queryForObject("SELECT id FROM habits WHERE user_id = 1", Long.class);
+        String pastDate = TODAY.minusWeeks(3).toString();
+        mvc.perform(get("/api/habits").param("date", pastDate))
+                .andExpect(jsonPath("$[0].id").value(id)).andExpect(jsonPath("$[0].completed").value(false));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put("/api/habits/{id}/completions/{date}", id, pastDate)).andExpect(status().isNoContent());
+        }
+        mvc.perform(get("/api/habits").param("date", pastDate)).andExpect(jsonPath("$[0].completed").value(true));
+        mvc.perform(get("/api/habits")).andExpect(jsonPath("$[0].completed").value(false));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(delete("/api/habits/{id}/completions/{date}", id, pastDate)).andExpect(status().isNoContent());
+        }
+        mvc.perform(get("/api/habits").param("date", pastDate)).andExpect(jsonPath("$[0].completed").value(false));
+        entityManager.flush();
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_completions", Integer.class));
     }
 

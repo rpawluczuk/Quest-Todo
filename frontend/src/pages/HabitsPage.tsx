@@ -45,7 +45,6 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
   const [deleteError, setDeleteError] = useState('')
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
-  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,8 +63,7 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
     onBusy(true)
     try {
       const habit = await createHabit(name)
-      if (habit.createdOn <= date) setHabits(current => [...current, habit])
-      else setNotice(`Nawyk został dodany. Będzie widoczny od ${displayDate.format(dateFromKey(habit.createdOn))}.`)
+      setHabits(current => [...current, habit])
     } finally {
       onBusy(false)
     }
@@ -122,7 +120,6 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
       {!loading && !loadError && <>
         <CreateHabitForm onAdd={add} />
-        {notice && <p role="status">{notice}</p>}
         {habits.length === 0 && <p className="empty-state">Brak nawyków na ten dzień.</p>}
         <ul className="task-list">
           {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}`} key={habit.id}>
