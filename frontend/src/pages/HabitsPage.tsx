@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createHabit, deleteHabit, getHabits, setHabitCompletion, updateHabit } from '../api/habitApi'
 import CreateHabitForm from '../components/CreateHabitForm'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
+import { claimWeeklyAchievement, hasReachedWeeklyTarget } from '../habitProgress'
 import type { Habit } from '../types/Habit'
-import { dateFromKey, habitToday } from '../weekDates'
+import { dateFromKey, dateKey, habitToday, startOfWeek } from '../weekDates'
 
 const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 
@@ -14,6 +15,24 @@ export default function HabitsPage() {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
   const [busy, setBusy] = useState(false)
+  const announced = useRef(new Set<string>())
+  const [toast, setToast] = useState<{ name: string } | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  function progressChanged(before: Habit, after: Habit, week: string) {
+    if (claimWeeklyAchievement(before, after, week, announced.current)) setToast({ name: after.name })
+  }
+
+  function progressLoaded(habits: Habit[], week: string) {
+    for (const habit of habits) {
+      if (hasReachedWeeklyTarget(habit)) announced.current.add(`${habit.id}:${week}`)
+    }
+  }
 
   useEffect(() => {
     const refreshToday = () => setToday(habitToday())
@@ -32,12 +51,23 @@ export default function HabitsPage() {
       <p>Regularne czynności, które chcesz rozwijać.</p>
       <p>Dzień: <time dateTime={selectedDay}>{displayDate.format(dateFromKey(selectedDay))}</time></p>
     </div>
-    <HabitDayList key={selectedDay} date={selectedDay} busy={busy} onBusy={setBusy} />
+    <HabitDayList key={selectedDay} date={selectedDay} busy={busy} onBusy={setBusy}
+      onProgressChanged={progressChanged} onProgressLoaded={progressLoaded} />
+    <div className="habit-toast-region" role="status" aria-live="polite" aria-atomic="true">
+      {toast && <div className="habit-toast"><HabitSuccessIcon /><span>{toast.name}: Cel tygodniowy osiągnięty!</span></div>}
+    </div>
   </section>
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onBusy: (busy: boolean) => void }) {
+function HabitDayList({ date, busy, onBusy, onProgressChanged, onProgressLoaded }: {
+  date: string; busy: boolean; onBusy: (busy: boolean) => void
+  onProgressChanged: (before: Habit, after: Habit, week: string) => void
+  onProgressLoaded: (habits: Habit[], week: string) => void
+}) {
+  const week = dateKey(startOfWeek(dateFromKey(date)))
+  const progressLoaded = useRef(onProgressLoaded)
+  const savingCompletion = useRef(false)
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -50,14 +80,17 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
   useEffect(() => {
     const controller = new AbortController()
     getHabits(date, controller.signal).then(loaded => {
-      if (!controller.signal.aborted) setHabits(loaded)
+      if (!controller.signal.aborted) {
+        setHabits(loaded)
+        progressLoaded.current(loaded, week)
+      }
     }).catch(() => {
       if (!controller.signal.aborted) setLoadError('Nie udało się pobrać nawyków. Odśwież stronę i spróbuj ponownie.')
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false)
     })
     return () => controller.abort()
-  }, [date])
+  }, [date, week])
 
   async function add(name: string, targetDays: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
@@ -76,10 +109,15 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
     onBusy(true)
     try {
       const updated = await updateHabit(id, name, targetDays)
-      setHabits(current => current.map(habit => habit.id === id ? {
-        ...updated, completed: habit.completed,
-        target: updated.target && updated.target.effectiveFrom <= date ? updated.target : habit.target,
-      } : habit))
+      const before = habits.find(habit => habit.id === id)
+      if (before) {
+        const viewed = {
+          ...updated, completed: before.completed, weeklyCompletedDays: before.weeklyCompletedDays,
+          target: updated.target && updated.target.effectiveFrom <= date ? updated.target : before.target,
+        }
+        setHabits(current => current.map(habit => habit.id === id ? viewed : habit))
+        onProgressChanged(before, viewed, week)
+      }
       setEditingId(null)
     } finally {
       onBusy(false)
@@ -87,16 +125,23 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
   }
 
   async function toggleCompletion(habit: Habit) {
-    if (busy) return
+    if (busy || savingCompletion.current) return
+    savingCompletion.current = true
     onBusy(true)
     setSavingCompletionId(habit.id)
     setCompletionError('')
     try {
       await setHabitCompletion(habit.id, date, !habit.completed)
-      setHabits(current => current.map(item => item.id === habit.id ? { ...item, completed: !habit.completed } : item))
+      const loaded = await getHabits(date).catch(() => {
+        throw new Error('Wykonanie zostało zapisane, ale nie udało się odświeżyć postępu. Wybierz dzień ponownie.')
+      })
+      setHabits(loaded)
+      const updated = loaded.find(item => item.id === habit.id)
+      if (updated) onProgressChanged(habit, updated, week)
     } catch (failure) {
       setCompletionError(failure instanceof Error ? failure.message : 'Nie udało się zapisać wykonania nawyku.')
     } finally {
+      savingCompletion.current = false
       setSavingCompletionId(null)
       onBusy(false)
     }
@@ -137,9 +182,16 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
                   onChange={() => void toggleCompletion(habit)} />
               </label>
               <div className="habit-name">
-                <span className={`task-title${habit.completed ? ' habit-name-completed' : ''}`}>{habit.name}</span>
+                <span className="task-title">{habit.name}</span>
                 <small className="habit-target-hint">{habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}</small>
               </div>
+              <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
+                aria-label={habit.target
+                  ? `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, cel: ${habit.target.targetDays}${hasReachedWeeklyTarget(habit) ? ', cel osiągnięty' : ''}`
+                  : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`}>
+                {habit.weeklyCompletedDays}/{habit.target?.targetDays ?? '—'}
+                {hasReachedWeeklyTarget(habit) && <HabitSuccessIcon />}
+              </span>
               <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                 disabled={busy || editingId !== null}
                 actions={[
@@ -156,4 +208,10 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
       </>}
     </>
   )
+}
+
+function HabitSuccessIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" />
+  </svg>
 }

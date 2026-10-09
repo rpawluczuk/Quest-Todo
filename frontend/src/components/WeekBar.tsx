@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { dateFromKey, dateKey, moveWeek, startOfWeek, weekDays } from '../weekDates'
+import { dateFromKey, dateKey, moveWeek, selectedDayInWeek, startOfWeek, weekDays } from '../weekDates'
 
 const labels = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']
 const fullDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'full' })
@@ -16,7 +16,9 @@ export default function WeekBar({ selectedDay, today: todayKey, onSelect, disabl
   const days = weekDays(monday)
 
   function navigate(direction: -1 | 1) {
-    setMonday(current => moveWeek(current, direction, today))
+    const next = moveWeek(monday, direction, today)
+    setMonday(next)
+    onSelect(selectedDayInWeek(selectedDay, next, todayKey))
   }
 
   return (

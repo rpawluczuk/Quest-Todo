@@ -35,3 +35,11 @@ export function moveWeek(monday: Date, direction: -1 | 1, today: Date): Date {
   const current = startOfWeek(today)
   return next > current ? current : next
 }
+
+export function selectedDayInWeek(selectedDay: string, monday: Date, today: string): string {
+  const selected = dateFromKey(selectedDay)
+  const day = new Date(monday)
+  day.setDate(day.getDate() + (selected.getDay() + 6) % 7)
+  const key = dateKey(day)
+  return key > today ? today : key
+}

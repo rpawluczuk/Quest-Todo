@@ -38,11 +38,16 @@ public class HabitService {
         validateDate(date);
         long userId = currentUser.getUserId();
         var completedIds = completions.findCompletedIds(userId, date);
+        LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        var weeklyCounts = completions.countWeek(userId, monday, monday.plusDays(6)).stream()
+                .collect(Collectors.toMap(HabitCompletionRepository.WeeklyCount::getHabitId,
+                        HabitCompletionRepository.WeeklyCount::getCompletedDays));
         var targetHistory = targets.findByHabitUserIdOrderByEffectiveFromAsc(userId).stream()
                 .collect(Collectors.groupingBy(HabitTargetEntity::getHabitId));
         return habits.findByUserIdOrderByIdAsc(userId).stream()
                 .map(habit -> toHabit(habit, date, completedIds.contains(habit.getId()),
-                        targetHistory.getOrDefault(habit.getId(), List.of())))
+                        targetHistory.getOrDefault(habit.getId(), List.of()),
+                        weeklyCounts.getOrDefault(habit.getId(), 0L)))
                 .toList();
     }
 
@@ -51,7 +56,7 @@ public class HabitService {
         HabitEntity habit = habits.save(new HabitEntity(name, users.currentReference(), today));
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
                 today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
-        return toHabit(habit, today, false, List.of(target));
+        return toHabit(habit, today, false, List.of(target), 0);
     }
 
     public Habit updateHabit(long id, String name, Integer targetDays) {
@@ -59,8 +64,10 @@ public class HabitService {
         habit.rename(name);
         LocalDate today = calendar.today();
         if (targetDays != null) changeTarget(habit, targetDays, today);
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         return toHabit(habit, today, completions.existsByHabitIdAndDate(id, today),
-                targets.findByHabit_IdOrderByEffectiveFromAsc(id));
+                targets.findByHabit_IdOrderByEffectiveFromAsc(id),
+                completions.countByHabitIdAndDateBetween(id, monday, monday.plusDays(6)));
     }
 
     private void changeTarget(HabitEntity habit, int days, LocalDate today) {
@@ -77,14 +84,15 @@ public class HabitService {
         }
     }
 
-    private Habit toHabit(HabitEntity habit, LocalDate date, boolean completed, List<HabitTargetEntity> history) {
+    private Habit toHabit(HabitEntity habit, LocalDate date, boolean completed, List<HabitTargetEntity> history,
+                          long weeklyCompletedDays) {
         HabitTarget active = null;
         HabitTarget latest = null;
         for (var target : history) {
             latest = target.toTarget();
             if (!target.getEffectiveFrom().isAfter(date)) active = latest;
         }
-        return habit.toHabit(completed, active, latest);
+        return habit.toHabit(completed, active, latest, weeklyCompletedDays);
     }
 
     public void deleteHabit(long id) {

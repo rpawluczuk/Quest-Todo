@@ -8,6 +8,7 @@ export type Habit = {
   readonly name: string
   readonly createdOn: string
   readonly completed: boolean
+  readonly weeklyCompletedDays: number
   readonly target: HabitTarget | null
   readonly latestTarget: HabitTarget | null
 }

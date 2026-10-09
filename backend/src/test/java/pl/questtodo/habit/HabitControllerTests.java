@@ -64,6 +64,51 @@ class HabitControllerTests {
     }
 
     @Test
+    void countsTheWholeDisplayedWeekSeparatelyFromSelectedDayAndOtherUsers() throws Exception {
+        seedDatedHabits();
+        jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 2, '2026-09-28'), (1001, 7, '2026-10-05')");
+        jdbc.update("INSERT INTO habit_completions(habit_id, completion_date) VALUES "
+                + "(1001, '2026-09-28'), (1001, '2026-10-04'), (1001, '2026-10-05'), (1001, '2026-10-09'), (2001, '2026-10-05')");
+        mvc.perform(get("/api/habits?date=2026-10-06"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].completed").value(false))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(2))
+                .andExpect(jsonPath("$[0].target.targetDays").value(7))
+                .andExpect(jsonPath("$[1].weeklyCompletedDays").value(0));
+        mvc.perform(get("/api/habits?date=2026-10-09"))
+                .andExpect(jsonPath("$[0].completed").value(true))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(2));
+        mvc.perform(get("/api/habits?date=2026-10-04"))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(2))
+                .andExpect(jsonPath("$[0].target.targetDays").value(2));
+        mvc.perform(get("/api/habits?date=2026-09-27"))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(0))
+                .andExpect(jsonPath("$[0].target").doesNotExist());
+    }
+
+    @Test
+    void weeklyProgressCanExceedTargetAndDecreaseWithoutChangingPoints() throws Exception {
+        seedDatedHabits();
+        jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 2, '2026-10-05')");
+        int points = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class);
+        for (int day = 5; day <= 8; day++) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                mvc.perform(put("/api/habits/1001/completions/2026-10-0" + day)).andExpect(status().isNoContent());
+            }
+        }
+        mvc.perform(get("/api/habits?date=2026-10-09"))
+                .andExpect(jsonPath("$[0].completed").value(false))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(4));
+        for (int day = 5; day <= 7; day++) {
+            mvc.perform(delete("/api/habits/1001/completions/2026-10-0" + day)).andExpect(status().isNoContent());
+        }
+        mvc.perform(get("/api/habits?date=2026-10-08"))
+                .andExpect(jsonPath("$[0].completed").value(true))
+                .andExpect(jsonPath("$[0].weeklyCompletedDays").value(1));
+        assertEquals(points, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class));
+    }
+
+    @Test
     void validatesNameWithoutSaving() throws Exception {
         when(currentUser.getUserId()).thenReturn(1L);
         for (String name : new String[]{"", "   ", "x".repeat(121)}) {

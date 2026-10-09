@@ -42,8 +42,8 @@ public class HabitEntity {
         this.name = name;
     }
 
-    public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget) {
-        return new Habit(id, name, createdOn, completed, target, latestTarget);
+    public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays) {
+        return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays);
     }
 
     public long getId() { return id; }
