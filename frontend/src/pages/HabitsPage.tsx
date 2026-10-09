@@ -3,6 +3,7 @@ import { createHabit, deleteHabit, getHabits, updateHabit } from '../api/habitAp
 import CreateHabitForm from '../components/CreateHabitForm'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
+import WeekBar from '../components/WeekBar'
 import type { Habit } from '../types/Habit'
 
 export default function HabitsPage() {
@@ -53,6 +54,7 @@ export default function HabitsPage() {
 
   return (
     <section className="tasks-section" aria-labelledby="habits-heading">
+      <WeekBar />
       <div className="section-header">
         <h2 id="habits-heading">Nawyki</h2>
         <p>Regularne czynności, które chcesz rozwijać.</p>

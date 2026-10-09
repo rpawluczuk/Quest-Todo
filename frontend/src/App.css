@@ -1625,3 +1625,99 @@
 body:has(dialog[open]) {
   overflow: hidden;
 }
+
+.week-bar {
+  margin-bottom: 24px;
+  min-width: 0;
+}
+
+.week-range {
+  margin: 0 0 10px;
+  text-align: center;
+  color: #625b70;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.week-navigation {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.week-day {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  border-radius: 10px;
+  color: #625b70;
+  font-size: 0.8rem;
+}
+
+.week-day time {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.week-day-today {
+  color: #5b42a6;
+  background: #f1ecfa;
+  box-shadow: inset 0 0 0 1px #ded5f5;
+}
+
+.week-day:hover:not(:disabled):not(.week-day-selected) {
+  background: #e6def4;
+}
+
+.week-day-selected,
+.week-day-selected:hover {
+  background: #5b42a6;
+  color: #fff;
+}
+
+.week-day:focus-visible {
+  outline: 2px solid #5b42a6;
+  outline-offset: 2px;
+}
+
+.week-day:disabled {
+  color: #aaa5b2;
+  background: #f5f4f7;
+  cursor: not-allowed;
+}
+
+.week-navigation .week-arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-height: 44px;
+  padding: 0;
+  border-color: transparent;
+}
+
+.week-arrow svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
