@@ -19,21 +19,21 @@ export async function setHabitCompletion(id: number, date: string, completed: bo
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać wykonania nawyku'))
 }
 
-export async function createHabit(name: string): Promise<Habit> {
+export async function createHabit(name: string, targetDays: number): Promise<Habit> {
   const response = await apiFetch('/api/habits', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, targetDays }),
   })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać nawyku'))
   return response.json()
 }
 
-export async function updateHabit(id: number, name: string): Promise<Habit> {
+export async function updateHabit(id: number, name: string, targetDays: number): Promise<Habit> {
   const response = await apiFetch(`/api/habits/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, targetDays }),
   })
   if (!response.ok) {
     if (response.status === 404) throw new Error('Nawyk nie istnieje. Odśwież stronę.')

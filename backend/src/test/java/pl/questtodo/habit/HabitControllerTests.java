@@ -94,6 +94,108 @@ class HabitControllerTests {
     }
 
     @Test
+    void createsDailyDefaultAndAllWeeklyTargets() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Daily\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.target.targetDays").value(7))
+                .andExpect(jsonPath("$.target.effectiveFrom").value("2026-10-05"));
+        for (int days = 1; days <= 7; days++) {
+            mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Target\",\"targetDays\":" + days + "}"))
+                    .andExpect(status().isCreated()).andExpect(jsonPath("$.target.targetDays").value(days));
+        }
+        mvc.perform(get("/api/habits").param("date", TODAY.minusWeeks(3).toString()))
+                .andExpect(jsonPath("$.length()").value(8))
+                .andExpect(jsonPath("$[0].target").isEmpty())
+                .andExpect(jsonPath("$[0].latestTarget.targetDays").value(7));
+    }
+
+    @Test
+    void rejectsInvalidTargetsAndRollsBackNameChanges() throws Exception {
+        seedDatedHabits();
+        for (int days : new int[]{-1, 0, 8, 100}) {
+            String body = "{\"name\":\"Changed\",\"targetDays\":" + days + "}";
+            mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        assertEquals("Older", jdbc.queryForObject("SELECT name FROM habits WHERE id = 1001", String.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_targets", Integer.class));
+    }
+
+    @Test
+    void changesTargetFromCurrentMondayAndPreservesEarlierWeeks() throws Exception {
+        seedDatedHabits();
+        jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 7, '2026-09-28')");
+        mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Older\",\"targetDays\":3}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.target.targetDays").value(3))
+                .andExpect(jsonPath("$.latestTarget.targetDays").value(3))
+                .andExpect(jsonPath("$.latestTarget.effectiveFrom").value("2026-10-05"));
+        // Repeated edits replace the current week target.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Renamed\",\"targetDays\":4}"))
+                    .andExpect(status().isOk());
+        }
+        entityManager.flush();
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM habit_targets WHERE habit_id = 1001", Integer.class));
+        // Older clients may rename without changing the configured target.
+        mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Renamed\"}"))
+                .andExpect(jsonPath("$.latestTarget.targetDays").value(4));
+        when(calendar.today()).thenReturn(LocalDate.of(2026, 10, 12));
+        mvc.perform(get("/api/habits")).andExpect(jsonPath("$[0].target.targetDays").value(4));
+        mvc.perform(get("/api/habits?date=2026-10-09")).andExpect(jsonPath("$[0].target.targetDays").value(4));
+        mvc.perform(get("/api/habits?date=2026-09-28")).andExpect(jsonPath("$[0].target.targetDays").value(7));
+        // Viewing a past date does not change the effective week of an edit.
+        mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Renamed\",\"targetDays\":2}"))
+                .andExpect(jsonPath("$.latestTarget.effectiveFrom").value("2026-10-12"));
+        mvc.perform(get("/api/habits?date=2026-10-09")).andExpect(jsonPath("$[0].target.targetDays").value(4));
+    }
+
+    @Test
+    void sundayEditStartsOnMondayAcrossYearBoundary() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        when(calendar.today()).thenReturn(LocalDate.of(2027, 1, 3));
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Boundary\",\"targetDays\":2}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.target.effectiveFrom").value("2026-12-28"));
+    }
+
+    @Test
+    void canCancelPendingTargetWithoutDeletingActiveHistory() throws Exception {
+        seedDatedHabits();
+        jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 7, '2026-10-05'), (1001, 3, '2026-10-12')");
+        mvc.perform(put("/api/habits/1001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Older\",\"targetDays\":7}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.latestTarget.effectiveFrom").value("2026-10-05"));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM habit_targets WHERE habit_id = 1001", Integer.class));
+    }
+
+    @Test
+    void targetsArePrivateAndDoNotLimitCompletionsOrAwardPoints() throws Exception {
+        seedDatedHabits();
+        jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 1, '2026-10-05'), (2001, 6, '2026-10-05')");
+        int pointsBefore = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class);
+        mvc.perform(put("/api/habits/2001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Other\",\"targetDays\":2}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/habits")).andExpect(jsonPath("$[0].target.targetDays").value(1));
+        mvc.perform(put("/api/habits/1001/completions/2026-10-08")).andExpect(status().isNoContent());
+        mvc.perform(put("/api/habits/1001/completions/2026-10-09")).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertEquals(pointsBefore, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class));
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM habit_completions WHERE habit_id = 1001", Integer.class));
+        mvc.perform(delete("/api/habits/1001")).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_targets WHERE habit_id = 1001", Integer.class));
+        assertEquals(6, jdbc.queryForObject("SELECT target_days FROM habit_targets WHERE habit_id = 2001", Integer.class));
+    }
+
+    @Test
     void showsAllOwnHabitsRegardlessOfCreationDateAndKeepsDailyCompletionsIndependent() throws Exception {
         seedDatedHabits();
         mvc.perform(get("/api/habits?date=2026-10-07")).andExpect(jsonPath("$.length()").value(2));

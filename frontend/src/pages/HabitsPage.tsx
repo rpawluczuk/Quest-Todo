@@ -4,6 +4,7 @@ import CreateHabitForm from '../components/CreateHabitForm'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
+import { targetLabel } from '../habitTarget'
 import type { Habit } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
 
@@ -58,23 +59,27 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
     return () => controller.abort()
   }, [date])
 
-  async function add(name: string) {
+  async function add(name: string, targetDays: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name)
-      setHabits(current => [...current, habit])
+      const habit = await createHabit(name, targetDays)
+      setHabits(current => [...current, { ...habit,
+        target: habit.target && habit.target.effectiveFrom <= date ? habit.target : null }])
     } finally {
       onBusy(false)
     }
   }
 
-  async function save(id: number, name: string) {
+  async function save(id: number, name: string, targetDays: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const updated = await updateHabit(id, name)
-      setHabits(current => current.map(habit => habit.id === id ? { ...updated, completed: habit.completed } : habit))
+      const updated = await updateHabit(id, name, targetDays)
+      setHabits(current => current.map(habit => habit.id === id ? {
+        ...updated, completed: habit.completed,
+        target: updated.target && updated.target.effectiveFrom <= date ? updated.target : habit.target,
+      } : habit))
       setEditingId(null)
     } finally {
       onBusy(false)
@@ -124,14 +129,17 @@ function HabitDayList({ date, busy, onBusy }: { date: string; busy: boolean; onB
         <ul className="task-list">
           {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}`} key={habit.id}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={name => save(habit.id, name)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays) => save(habit.id, name, targetDays)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null}
                   aria-label={`${habit.name} — ${displayDate.format(dateFromKey(date))}`}
                   onChange={() => void toggleCompletion(habit)} />
               </label>
-              <span className={`task-title habit-name${habit.completed ? ' habit-name-completed' : ''}`}>{habit.name}</span>
+              <div className="habit-name">
+                <span className={`task-title${habit.completed ? ' habit-name-completed' : ''}`}>{habit.name}</span>
+                <small className="habit-target-hint">{habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}</small>
+              </div>
               <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                 disabled={busy || editingId !== null}
                 actions={[
