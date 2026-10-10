@@ -85,6 +85,8 @@ class HabitControllerTests {
     @Test
     void countsTheWholeDisplayedWeekSeparatelyFromSelectedDayAndOtherUsers() throws Exception {
         seedDatedHabits();
+        // These habits must exist throughout the historical weeks being inspected.
+        jdbc.update("UPDATE habits SET created_on = '2026-09-21' WHERE id IN (1001, 1002, 2001)");
         jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 2, '2026-09-28'), (1001, 7, '2026-10-05')");
         jdbc.update("INSERT INTO habit_completions(habit_id, completion_date) VALUES "
                 + "(1001, '2026-09-28'), (1001, '2026-10-04'), (1001, '2026-10-05'), (1001, '2026-10-09'), (2001, '2026-10-05')");
@@ -108,6 +110,7 @@ class HabitControllerTests {
     @Test
     void weeklyProgressCanExceedTargetAndDecreaseWithoutChangingPoints() throws Exception {
         seedDatedHabits();
+        jdbc.update("UPDATE habits SET created_on = '2026-10-05' WHERE id = 1001");
         jdbc.update("INSERT INTO habit_targets(habit_id, target_days, effective_from) VALUES (1001, 2, '2026-10-05')");
         int points = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class);
         for (int day = 5; day <= 8; day++) {

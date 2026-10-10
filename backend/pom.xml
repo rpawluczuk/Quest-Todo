@@ -79,6 +79,15 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- H2 week truncation depends on locale and timezone, unlike PostgreSQL ISO weeks.
+					     Set test JVM defaults at startup so local and Docker builds agree. -->
+					<argLine>-Duser.language=pl -Duser.country=PL -Duser.timezone=Europe/Warsaw</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
