@@ -59,9 +59,8 @@ export default function HabitsPage({ onPointsChanged }: { onPointsChanged: (bala
     <div className="section-header">
       <h2 id="habits-heading">Nawyki</h2>
       <p>Regularne czynności, które chcesz rozwijać.</p>
-      <p>Dzień: <time dateTime={selectedDay}>{displayDate.format(dateFromKey(selectedDay))}</time></p>
     </div>
-    <HabitDayList key={`${selectedDay}:${refresh}`} date={selectedDay} busy={busy} onBusy={setBusy}
+    <HabitDayList key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       onCompletionSaved={completionSaved} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
@@ -71,12 +70,13 @@ export default function HabitsPage({ onPointsChanged }: { onPointsChanged: (bala
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
-  date: string; busy: boolean; onBusy: (busy: boolean) => void
+function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
+  date: string; today: string; busy: boolean; onBusy: (busy: boolean) => void
   onCompletionSaved: (result: HabitCompletionResult) => void
 }) {
   const savingCompletion = useRef(false)
   const [habits, setHabits] = useState<Habit[]>([])
+  const [allHabitIds, setAllHabitIds] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -87,9 +87,13 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
 
   useEffect(() => {
     const controller = new AbortController()
-    getHabits(date, controller.signal).then(loaded => {
+    const dayRequest = getHabits(date, controller.signal)
+    // All existing habits are available today, even when the selected day predates them.
+    const todayRequest = date === today ? dayRequest : getHabits(today, controller.signal)
+    Promise.all([dayRequest, todayRequest]).then(([loaded, current]) => {
       if (!controller.signal.aborted) {
         setHabits(loaded)
+        setAllHabitIds(current.map(habit => habit.id))
       }
     }).catch(() => {
       if (!controller.signal.aborted) setLoadError('Nie udało się pobrać nawyków. Odśwież stronę i spróbuj ponownie.')
@@ -97,15 +101,18 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
       if (!controller.signal.aborted) setLoading(false)
     })
     return () => controller.abort()
-  }, [date])
+  }, [date, today])
 
   async function add(name: string, targetDays: number, rewardPoints: number) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
       const habit = await createHabit(name, targetDays, rewardPoints)
-      setHabits(current => [...current, { ...habit,
-        target: habit.target && habit.target.effectiveFrom <= date ? habit.target : null }])
+      setAllHabitIds(current => [...current, habit.id])
+      if (habit.createdOn <= date) {
+        setHabits(current => [...current, { ...habit,
+          target: habit.target && habit.target.effectiveFrom <= date ? habit.target : null }])
+      }
     } finally {
       onBusy(false)
     }
@@ -151,6 +158,7 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
     setDeleteError('')
     try {
       await deleteHabit(id)
+      setAllHabitIds(current => current.filter(habitId => habitId !== id))
       setHabits(current => current.filter(habit => habit.id !== id))
       setEditingId(current => current === id ? null : current)
     } catch (failure) {
@@ -166,9 +174,19 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
       {loading && <p role="status">Ładowanie nawyków…</p>}
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
       {!loading && !loadError && <>
-        <CreateHabitForm onAdd={add} />
-        {habits.length === 0 && <p className="empty-state">Brak nawyków na ten dzień.</p>}
-        <ul className="task-list">
+        <div className={allHabitIds.length === 0 ? 'task-empty-state task-empty-state-prominent' : undefined}>
+          {allHabitIds.length === 0 && <>
+            <span className="task-empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3" />
+              </svg>
+            </span>
+            <p className="empty-state">Nie masz jeszcze nawyków. Dodaj pierwszy i zacznij budować regularność!</p>
+          </>}
+          <CreateHabitForm onAdd={add} isFirstHabit={allHabitIds.length === 0} />
+        </div>
+        {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
+        {habits.length > 0 && <ul className="task-list">
           {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}`} key={habit.id}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
               onSave={(name, targetDays, points) => save(habit.id, name, targetDays, points)} onCancel={() => setEditingId(null)} /> : <>
@@ -198,7 +216,7 @@ function HabitDayList({ date, busy, onBusy, onCompletionSaved }: {
                 ]} />
             </>}
           </li>)}
-        </ul>
+        </ul>}
         {deletingId !== null && <p className="reward-status" role="status">Usuwanie nawyku…</p>}
         {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
         {savingCompletionId !== null && <p role="status">Zapisywanie wykonania…</p>}

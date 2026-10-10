@@ -2,7 +2,10 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
 
-export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targetDays: number, rewardPoints: number) => Promise<void> }) {
+export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
+  onAdd: (name: string, targetDays: number, rewardPoints: number) => Promise<void>
+  isFirstHabit?: boolean
+}) {
   const [expanded, setExpanded] = useState(false)
   const [name, setName] = useState('')
   const [targetDays, setTargetDays] = useState(7)
@@ -61,6 +64,6 @@ export default function CreateHabitForm({ onAdd }: { onAdd: (name: string, targe
       <button type="button" className="secondary-button" disabled={saving} onClick={cancel}>Anuluj</button>
     </div>
     {error && <p className="form-error" role="alert">{error}</p>}
-  </form> : <button ref={trigger} type="button" className="secondary-button add-task-toggle"
-    onClick={() => setExpanded(true)}>+ Dodaj nawyk</button>
+  </form> : <button ref={trigger} type="button" className={`${isFirstHabit ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
+    onClick={() => setExpanded(true)}>{isFirstHabit ? '+ Dodaj pierwszy nawyk' : '+ Dodaj nawyk'}</button>
 }
