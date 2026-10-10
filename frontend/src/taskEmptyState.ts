@@ -15,7 +15,7 @@ export function getTaskEmptyStates(focusCount: number, backlogCount: number, tot
   return {
     focus: {
       message: backlogCount > 0
-        ? 'Wybierz zadanie z Backlogu i przenieś je do Focusu.'
+        ? 'Wybierz zadanie z sekcji „Pozostałe zadania” i przenieś je do priorytetów.'
         : 'Tutaj znajdą się zadania, na których chcesz się teraz skupić.',
       icon: hasNoTasks ? 'target' : undefined,
       centered: hasNoTasks || undefined,
@@ -27,7 +27,7 @@ export function getTaskEmptyStates(focusCount: number, backlogCount: number, tot
           prominent: true,
         }
       : {
-          message: 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focusu.',
+          message: 'Nie masz pozostałych zadań. Dodaj nowe zadanie lub przenieś tutaj zadanie z priorytetów.',
         },
   }
 }

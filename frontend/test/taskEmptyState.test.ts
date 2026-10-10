@@ -20,7 +20,7 @@ test('shows first-task guidance when there are no tasks', () => {
 test('guides from an empty Focus to tasks in Backlog', () => {
   const states = getTaskEmptyStates(0, 2, 2)
 
-  assert.equal(states.focus.message, 'Wybierz zadanie z Backlogu i przenieś je do Focusu.')
+  assert.equal(states.focus.message, 'Wybierz zadanie z sekcji „Pozostałe zadania” i przenieś je do priorytetów.')
   assert.equal(states.focus.icon, undefined)
   assert.equal(states.backlog.prominent, undefined)
 })
@@ -28,7 +28,7 @@ test('guides from an empty Focus to tasks in Backlog', () => {
 test('uses the standard Backlog message when only Focus has tasks', () => {
   const states = getTaskEmptyStates(2, 0, 2)
 
-  assert.equal(states.backlog.message, 'Backlog jest pusty. Dodaj nowe zadanie lub przenieś tutaj zadanie z Focusu.')
+  assert.equal(states.backlog.message, 'Nie masz pozostałych zadań. Dodaj nowe zadanie lub przenieś tutaj zadanie z priorytetów.')
   assert.equal(states.backlog.prominent, undefined)
 })
 

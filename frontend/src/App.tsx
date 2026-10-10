@@ -123,15 +123,15 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const sections: TaskSectionData[] = [
     {
       id: 'focus',
-      title: 'Focus',
-      description: 'Zadania, które wybierasz do realizacji.',
+      title: 'Moje priorytety',
+      description: 'Zadania, na których chcesz się teraz skupić.',
       emptyState: taskEmptyStates.focus,
       tasks: focusTasks,
     },
     {
       id: 'backlog',
-      title: 'Backlog',
-      description: 'Zadania czekające na realizację.',
+      title: 'Pozostałe zadania',
+      description: 'Zadania, które czekają na swoją kolej.',
       emptyState: taskEmptyStates.backlog,
       tasks: backlogTasks,
     },

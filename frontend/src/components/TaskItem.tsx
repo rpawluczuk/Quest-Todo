@@ -91,9 +91,9 @@ function TaskItem({
               className="secondary-button task-card-primary"
               disabled={disabled}
               onClick={() => void saveChange(onToggleFocus)}
-              aria-label={`Przenieś do Focus: ${task.title}`}
+              aria-label={`Przenieś do priorytetów: ${task.title}`}
             >
-              Do Focusu
+              Do priorytetów
             </button>
           )}
           {task.completed && (
@@ -112,7 +112,7 @@ function TaskItem({
             disabled={disabled}
             actions={[
               ...(!task.completed ? [{ label: 'Edytuj', onSelect: () => onStartEditing(task.id) }] : []),
-              ...(variant === 'focus' ? [{ label: 'Przenieś do Backlogu', onSelect: () => void saveChange(onToggleFocus) }] : []),
+              ...(variant === 'focus' ? [{ label: 'Przenieś do pozostałych zadań', onSelect: () => void saveChange(onToggleFocus) }] : []),
               {
                 label: 'Usuń',
                 destructive: true,

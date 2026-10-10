@@ -56,7 +56,7 @@ function TaskSection({
   return (
     <section className="tasks-section" aria-labelledby={`${id}-heading`}>
       <div className="section-header">
-        <h2 id={`${id}-heading`} lang={isCompletedSection ? 'pl' : 'en'}>
+        <h2 id={`${id}-heading`} lang="pl" className={isCompletedSection ? undefined : 'task-section-title'}>
           {isCompletedSection ? (
             <button
               type="button"
@@ -70,7 +70,7 @@ function TaskSection({
             >
               <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {title} ({tasks.length})
             </button>
-          ) : <>{title} ({tasks.length})</>}
+          ) : <><span>{title}</span><span className="task-section-count" aria-label={`Liczba zadań: ${tasks.length}`}>{tasks.length}</span></>}
         </h2>
         {showTasks && <p>{description}</p>}
       </div>
