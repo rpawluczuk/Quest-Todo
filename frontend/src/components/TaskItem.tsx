@@ -79,11 +79,7 @@ function TaskItem({
               />
             </label>
           )}
-          {variant === 'focus' ? (
-            <label className="task-card-title" id={titleId} htmlFor={checkboxId}>{task.title}</label>
-          ) : (
-            <span className="task-card-title" id={titleId}>{task.title}</span>
-          )}
+          <span className="task-card-title" id={titleId}>{task.title}</span>
           <span className="task-points task-card-points">{task.points} pkt</span>
           {variant === 'backlog' && (
             <button
