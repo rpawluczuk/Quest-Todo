@@ -32,7 +32,7 @@
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .email-confirmation-success-icon svg {
@@ -45,9 +45,9 @@
   min-height: 44px;
   margin-top: 16px;
   padding: 10px 16px;
-  border: 1px solid #5b42a6;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -55,7 +55,7 @@
 }
 
 .email-confirmation-primary:hover:not(:disabled) {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .email-confirmation-back {
@@ -69,7 +69,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -81,14 +81,14 @@
 }
 
 .email-confirmation-back:hover:not(:disabled) {
-  color: #493486;
+  color: var(--color-primary-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .email-confirmation-primary:focus-visible,
 .email-confirmation-back:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -146,13 +146,13 @@
 }
 
 .password-dialog-close:hover:not(:disabled) {
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .password-dialog-close:focus-visible,
 .login-form .password-dialog-cancel:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -213,8 +213,8 @@
 }
 
 .email-dialog-close:hover:not(:disabled) {
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .email-dialog-close:focus-visible,
@@ -222,7 +222,7 @@
 .email-use-another-link:focus-visible,
 .email-resend-back-link:focus-visible,
 .email-pending-primary:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -236,9 +236,9 @@
   gap: 3px;
   margin: 14px 0;
   padding: 10px 12px;
-  border: 1px solid #d8cfed;
+  border: 1px solid var(--color-primary-notice-border);
   border-radius: 10px;
-  background: #faf8fd;
+  background: var(--color-primary-notice-background);
 }
 
 .email-address-status span,
@@ -266,7 +266,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .email-pending-label svg {
@@ -289,7 +289,7 @@
 .email-cancel-link {
   border: 0;
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -300,9 +300,9 @@
   min-height: 44px;
   margin-top: 20px;
   padding: 10px 16px;
-  border: 1px solid #5b42a6;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -310,7 +310,7 @@
 }
 
 .email-pending-primary:hover:not(:disabled) {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .email-use-another-link,
@@ -344,7 +344,7 @@
 .email-resend-back-link:hover:not(:disabled),
 .email-cancel-link:hover:not(:disabled) {
   background: transparent;
-  color: #493486;
+  color: var(--color-primary-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -386,7 +386,7 @@
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .email-sent-icon svg {
@@ -446,7 +446,7 @@
 
 .login-form .password-visibility-button:hover:not(:disabled) {
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .login-form .login-inline-link {
@@ -456,7 +456,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
   font-size: inherit;
   font-weight: 600;
   text-decoration: none;
@@ -464,7 +464,7 @@
 
 .login-form .login-inline-link:hover:not(:disabled) {
   background: transparent;
-  color: #493486;
+  color: var(--color-primary-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -490,9 +490,9 @@
   margin-top: 16px;
   padding: 12px 14px;
   overflow-wrap: anywhere;
-  border: 1px solid #d8cfed;
+  border: 1px solid var(--color-primary-notice-border);
   border-radius: 10px;
-  background: #faf8fd;
+  background: var(--color-primary-notice-background);
   color: #3f3553;
 }
 
@@ -502,7 +502,7 @@
   flex: 0 0 22px;
   width: 22px;
   height: 22px;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .registration-success-icon svg {
@@ -552,7 +552,7 @@
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .recovery-success-icon svg {
@@ -576,7 +576,7 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -588,13 +588,13 @@
 }
 
 .recovery-back-link:hover:not(:disabled) {
-  color: #493486;
+  color: var(--color-primary-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .recovery-back-link:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -649,10 +649,10 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid #ded5f5;
+  border: 1px solid var(--color-primary-border);
   border-radius: 50%;
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -660,13 +660,13 @@
 
 .user-avatar:hover,
 .user-avatar[aria-expanded='true'] {
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .user-avatar:focus-visible,
 .user-menu-logout:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -706,8 +706,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -754,7 +754,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #5b42a6;
+  color: var(--color-primary);
   font: inherit;
   font-size: 0.9rem;
   text-align: left;
@@ -769,7 +769,7 @@
 }
 
 .user-menu-logout:hover {
-  background: #f1ecfa;
+  background: var(--color-primary-soft);
 }
 
 .app-header {
@@ -796,8 +796,8 @@
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 8px;
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   white-space: nowrap;
   font-size: 0.85rem;
   font-weight: 400;
@@ -819,7 +819,7 @@
 }
 
 .page-navigation button[aria-pressed='true'] {
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
 }
 
@@ -840,7 +840,7 @@
 }
 
 .habit-form select:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -905,7 +905,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #6b4caf;
+  color: var(--color-primary-status);
   cursor: help;
 }
 
@@ -956,9 +956,9 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border: 1px solid #d9cee9;
+  border: 1px solid var(--color-primary-toast-border);
   border-radius: 12px;
-  background: #faf7ff;
+  background: var(--color-primary-toast-background);
   color: #247044;
   box-shadow: 0 4px 16px #2919421a;
   overflow-wrap: anywhere;
@@ -980,7 +980,7 @@
 
 .reward-status {
   margin-top: 20px;
-  color: #51378e;
+  color: var(--color-primary-status-strong);
 }
 
 .reward-status,
@@ -1026,7 +1026,7 @@
 }
 
 .reward-purchases summary:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 4px;
 }
 
@@ -1070,7 +1070,7 @@
 
 .purchase-history-cost {
   flex-shrink: 0;
-  color: #5b42a6;
+  color: var(--color-primary);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1079,8 +1079,8 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 8px;
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -1101,7 +1101,7 @@
   width: 32px;
   height: 32px;
   margin-top: 20px;
-  color: #8a79b8;
+  color: var(--color-primary-muted);
 }
 
 .task-empty-icon svg {
@@ -1213,9 +1213,9 @@
 .task-form button,
 .secondary-button {
   padding: 10px 16px;
-  border: 1px solid #5b42a6;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
   font: inherit;
   font-size: 0.9rem;
@@ -1225,7 +1225,7 @@
 
 .login-form button:hover,
 .task-form button:hover {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .login-form input:focus-visible,
@@ -1233,7 +1233,7 @@
 .task-form input:focus-visible,
 .task-form button:focus-visible,
 .secondary-button:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -1250,9 +1250,9 @@
 
 .empty-state-primary-button {
   padding: 10px 16px;
-  border: 1px solid #5b42a6;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
   font: inherit;
   font-size: 0.9rem;
@@ -1261,11 +1261,11 @@
 }
 
 .empty-state-primary-button:hover {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .empty-state-primary-button:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
 
@@ -1289,12 +1289,12 @@
 .secondary-button,
 .task-form .secondary-button {
   background: #fff;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 
 .secondary-button:hover,
 .task-form .secondary-button:hover {
-  background: #f1ecfa;
+  background: var(--color-primary-soft);
 }
 
 .login-form button:disabled,
@@ -1357,12 +1357,12 @@
 
 .secondary-button.purchased-reward-use-button {
   flex-shrink: 0;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .secondary-button.purchased-reward-use-button:hover:not(:disabled) {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .reward-card {
@@ -1395,20 +1395,20 @@
 .secondary-button.reward-buy-button {
   grid-area: buy;
   justify-self: start;
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .secondary-button.reward-buy-button:hover:not(:disabled) {
-  background: #493486;
+  background: var(--color-primary-hover);
 }
 
 .task-points {
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 8px;
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -1485,13 +1485,13 @@
   width: 24px;
   height: 24px;
   margin: 0;
-  accent-color: #5b42a6;
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
 .task-card-check input:focus-visible,
 .task-menu-trigger:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -1557,8 +1557,8 @@
 
 .task-menu-trigger:hover,
 .task-menu-trigger[aria-expanded='true'] {
-  background: #f1ecfa;
-  color: #5b42a6;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .task-menu-trigger:disabled,
@@ -1602,9 +1602,9 @@
 
 .task-menu-item:hover,
 .task-menu-item:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: -2px;
-  background: #f1ecfa;
+  background: var(--color-primary-soft);
 }
 
 .task-menu-item-danger {
@@ -1618,7 +1618,7 @@
 }
 
 .completed-toggle:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 4px;
 }
 
@@ -1637,9 +1637,9 @@
   gap: 12px;
   margin-top: 24px;
   padding: 16px;
-  border: 1px solid #ded5f5;
+  border: 1px solid var(--color-primary-border);
   border-radius: 12px;
-  background: #f1ecfa;
+  background: var(--color-primary-soft);
   box-shadow: 0 4px 20px #30204a1a;
 }
 
@@ -1798,15 +1798,15 @@
 }
 .login-form .delete-account-actions .secondary-button {
   width: 100%;
-  border-color: #5b42a6;
+  border-color: var(--color-primary);
   background: #fff;
-  color: #5b42a6;
+  color: var(--color-primary);
 }
 .login-form .delete-account-actions .secondary-button:hover:not(:disabled) {
-  background: #f1ecfa;
+  background: var(--color-primary-soft);
 }
 .login-form .delete-account-actions .secondary-button:active:not(:disabled) {
-  background: #e6def4;
+  background: var(--color-primary-soft-hover);
 }
 .login-form .delete-account-confirmation input {
   width: auto;
@@ -1869,23 +1869,23 @@ body:has(dialog[open]) {
 }
 
 .week-day-today {
-  color: #5b42a6;
-  background: #f1ecfa;
-  box-shadow: inset 0 0 0 1px #ded5f5;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--color-primary-border);
 }
 
 .week-day:hover:not(:disabled):not(.week-day-selected) {
-  background: #e6def4;
+  background: var(--color-primary-soft-hover);
 }
 
 .week-day-selected,
 .week-day-selected:hover {
-  background: #5b42a6;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .week-day:focus-visible {
-  outline: 2px solid #5b42a6;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
