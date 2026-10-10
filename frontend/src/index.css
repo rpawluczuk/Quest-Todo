@@ -25,6 +25,21 @@
   overscroll-behavior-x: none;
 }
 
+:root[data-theme='pink'] {
+  --color-primary: #b83272;
+  --color-primary-hover: #97285e;
+  --color-primary-soft: #fbeaf2;
+  --color-primary-border: #f1cade;
+  --color-primary-soft-hover: #f5d8e7;
+  --color-primary-muted: #ae6f8d;
+  --color-primary-status: #ad3970;
+  --color-primary-status-strong: #94265b;
+  --color-primary-notice-border: #ebc7d9;
+  --color-primary-notice-background: #fdf8fa;
+  --color-primary-toast-border: #ecc7db;
+  --color-primary-toast-background: #fff7fb;
+}
+
 * {
   box-sizing: border-box;
 }

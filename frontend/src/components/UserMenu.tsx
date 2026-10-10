@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getEmail } from '../api/emailApi'
+import { readTheme, saveTheme, type Theme } from '../theme'
 
 type MenuIconName = 'password' | 'email' | 'logout' | 'delete'
 
@@ -27,6 +28,8 @@ type UserMenuProps = {
 
 export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount }: UserMenuProps) {
   const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState<Theme>(readTheme)
+  const [themeSaveError, setThemeSaveError] = useState(false)
   const [verifiedEmail, setVerifiedEmail] = useState<string | null | undefined>(undefined)
   const [emailError, setEmailError] = useState(false)
   const container = useRef<HTMLDivElement>(null)
@@ -93,6 +96,19 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
           </div>
         </div>
         <div className="user-menu-actions">
+        <label className="user-menu-theme">
+          <span>Kolor aplikacji</span>
+          <select value={theme} onChange={event => {
+            const selected = event.target.value === 'pink' ? 'pink' : 'purple'
+            setTheme(selected)
+            setThemeSaveError(!saveTheme(selected))
+          }}>
+            <option value="purple">Fioletowy</option>
+            <option value="pink">Różowy</option>
+          </select>
+          <small>Na tym urządzeniu</small>
+        </label>
+        {themeSaveError && <p className="form-error" role="status">Kolor zmieniono, ale nie udało się go zapamiętać.</p>}
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
           trigger.current?.focus()

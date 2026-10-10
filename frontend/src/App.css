@@ -743,6 +743,31 @@
   padding-top: 2px;
 }
 
+.user-menu-theme {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  color: #625b70;
+  font-size: 0.9rem;
+}
+
+.user-menu-theme select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-primary);
+  font: inherit;
+}
+
+.user-menu-theme select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .user-menu-logout {
   display: flex;
   align-items: center;
