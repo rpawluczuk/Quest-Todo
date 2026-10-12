@@ -1268,6 +1268,26 @@
   font-weight: 400;
 }
 
+.form-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 88px;
+  max-height: 50dvh;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid #c9c1d6;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.task-description-field { grid-column: 1 / -1; }
+
+
 .login-form button,
 .task-form button,
 .secondary-button {
@@ -1290,6 +1310,7 @@
 .login-form input:focus-visible,
 .login-form button:focus-visible,
 .task-form input:focus-visible,
+.task-form textarea:focus-visible,
 .task-form button:focus-visible,
 .secondary-button:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -1298,8 +1319,11 @@
 
 .edit-form {
   width: 100%;
+  grid-template-columns: minmax(0, 1fr) 100px;
   margin-top: 0;
 }
+
+.edit-form .task-actions { grid-column: 1 / -1; }
 
 .add-task-toggle,
 .add-reward-toggle {
@@ -1508,15 +1532,52 @@
   min-width: 0;
   overflow-wrap: anywhere;
   line-height: 1.4;
-}
-
-.task-card-focus .task-card-title {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.task-card-completed .task-card-title {
+.task-card-title:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.task-card-title:not(button) { cursor: default; }
+
+.task-card-has-note { cursor: pointer; }
+
+.task-card-description {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e9e5ef;
+  color: #625b70;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.task-card-description[hidden] { display: none; }
+
+.task-card-completed .task-card-title > span {
   color: #666173;
   text-decoration: line-through;
+}
+
+.task-note-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  vertical-align: -3px;
+  color: var(--color-primary-muted);
 }
 
 .task-card-check {
@@ -1801,6 +1862,7 @@
     flex-wrap: wrap;
     padding: 14px 12px;
   }
+
 }
 .login-form .delete-account-button {
   width: 100%;

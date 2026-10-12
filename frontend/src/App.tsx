@@ -164,8 +164,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     }
   }
 
-  async function addTask(title: string, taskPoints: number) {
-    const task = await createTask(title, taskPoints)
+  async function addTask(title: string, taskPoints: number, description: string) {
+    const task = await createTask(title, taskPoints, description)
     setTasks((currentTasks) => [...currentTasks, task])
   }
 
@@ -207,13 +207,13 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     setEditingTaskId(null)
   }
 
-  async function saveTask(title: string, taskPoints: number) {
+  async function saveTask(title: string, taskPoints: number, description: string) {
     if (editingTaskId === null) return
-    const updatedTask = await updateTask(editingTaskId, title, taskPoints)
+    const updatedTask = await updateTask(editingTaskId, title, taskPoints, description)
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
         task.id === editingTaskId && !task.completed
-          ? { ...task, title: updatedTask.title, points: updatedTask.points }
+          ? updatedTask
           : task,
       ),
     )

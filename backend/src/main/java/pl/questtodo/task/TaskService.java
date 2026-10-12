@@ -29,8 +29,8 @@ public class TaskService {
                 .toList();
     }
 
-    public Task createTask(String title, int points) {
-        return taskRepository.save(new TaskEntity(title, points, userService.currentReference())).toTask();
+    public Task createTask(String title, int points, String description) {
+        return taskRepository.save(new TaskEntity(title, points, description, userService.currentReference())).toTask();
     }
 
     public Task updateCompletion(long id, boolean completed) {
@@ -48,12 +48,12 @@ public class TaskService {
         return task.toTask();
     }
 
-    public Task updateTask(long id, String title, int points) {
+    public Task updateTask(long id, String title, int points, String description, boolean updateDescription) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie moÅ¼na edytowaÄ‡ wykonanego zadania.");
         }
-        task.updateDetails(title, points);
+        task.updateDetails(title, points, description, updateDescription);
         return task.toTask();
     }
 

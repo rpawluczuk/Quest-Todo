@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
@@ -10,7 +10,7 @@ type TaskItemProps = {
   readonly onToggleTask: (taskId: number) => Promise<void>
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
-  readonly onSave: (title: string, points: number) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
 }
@@ -28,9 +28,11 @@ function TaskItem({
 }: TaskItemProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const savingRef = useRef(false)
-  const titleId = useId()
   const checkboxId = useId()
+  const descriptionId = useId()
+  const titleButton = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLLIElement>(null)
   const wasEditing = useRef(isEditing)
   const disabled = isAnyTaskEditing || isSaving
@@ -38,7 +40,9 @@ function TaskItem({
 
   useEffect(() => {
     if (wasEditing.current && !isEditing) {
-      card.current?.querySelector<HTMLButtonElement>('.task-menu-trigger')?.focus()
+      requestAnimationFrame(() =>
+        (titleButton.current ?? card.current?.querySelector<HTMLButtonElement>('.task-menu-trigger'))?.focus(),
+      )
     }
     wasEditing.current = isEditing
   }, [isEditing])
@@ -61,25 +65,46 @@ function TaskItem({
     }
   }
 
+  function toggleDescription() {
+    if (task.description && !disabled) setDescriptionExpanded(expanded => !expanded)
+  }
+
+  async function saveDetails(title: string, points: number, description: string) {
+    await onSave(title, points, description)
+    setDescriptionExpanded(false)
+  }
+
+  function handleCardClick(event: MouseEvent<HTMLLIElement>) {
+    if (!(event.target instanceof Element) ||
+      event.target.closest('button, input, label, textarea, select, a, form, [role="button"]')) return
+    toggleDescription()
+  }
+
   return (
-    <li ref={card} className={`task-card task-card-${variant}${isEditing ? ' task-card-editing' : ''}`} aria-busy={isSaving}>
-      {isEditing ? (
-        <EditTaskForm task={task} onSave={onSave} onCancel={onCancel} />
-      ) : (
-        <>
+    <li ref={card} className={`task-card task-card-${variant}${isEditing ? ' task-card-editing' : ''}${task.description && !disabled ? ' task-card-has-note' : ''}`}
+      aria-busy={isSaving} onClick={handleCardClick}>
+      {isEditing ? <EditTaskForm task={task} onSave={saveDetails} onCancel={onCancel} /> : <>
           {variant === 'focus' && (
             <label className="task-card-check" htmlFor={checkboxId}>
               <input
                 id={checkboxId}
                 type="checkbox"
-                aria-labelledby={titleId}
+                aria-label={`Wykonane: ${task.title}`}
                 checked={task.completed}
                 disabled={disabled}
                 onChange={() => void saveChange(onToggleTask)}
               />
             </label>
           )}
-          <span className="task-card-title" id={titleId}>{task.title}</span>
+          {task.description ? <button ref={titleButton} type="button" className="task-card-title"
+            disabled={disabled} onClick={toggleDescription} aria-expanded={descriptionExpanded}
+            aria-controls={descriptionId} aria-label={`${descriptionExpanded ? 'Ukryj' : 'Pokaż'} notatkę: ${task.title}`}>
+            <span>{task.title}</span>
+            <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
+              stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
+              <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
+            </svg>
+          </button> : <span className="task-card-title"><span>{task.title}</span></span>}
           <span className="task-points task-card-points">{task.points} pkt</span>
           {variant === 'backlog' && (
             <button
@@ -116,8 +141,8 @@ function TaskItem({
               },
             ]}
           />
-        </>
-      )}
+          {task.description && <p id={descriptionId} className="task-card-description" hidden={!descriptionExpanded}>{task.description}</p>}
+      </>}
       {isSaving && <span className="task-card-status" role="status">Zapisywanie…</span>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </li>

@@ -178,6 +178,42 @@ class TaskControllerTests {
     }
 
     @Test
+    void createsEditsAndReadsMultilineDescriptionWithoutChangingTaskState() throws Exception {
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Plan\",\"points\":10,\"description\":\"  Linia 1\\nLinia 2  \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value("Linia 1\nLinia 2"));
+        mockMvc.perform(patch("/api/tasks/4/focus").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inFocus\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Linia 1\nLinia 2"));
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Nowy plan\",\"points\":15,\"description\":\"  Zmieniona notatka  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Zmieniona notatka"))
+                .andExpect(jsonPath("$.inFocus").value(true));
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[3].description").value("Zmieniona notatka"));
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Zmieniono bez notatki\",\"points\":15}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Zmieniona notatka"));
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Bez notatki\",\"points\":15,\"description\":\"  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").isEmpty());
+    }
+
+    @Test
+    void missingDescriptionRemainsOptionalForExistingClients() throws Exception {
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Bez opisu\",\"points\":10}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").isEmpty());
+    }
+
+    @Test
     void acceptsMaximumPointsAndRejectsValueAboveMaximum() throws Exception {
         mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Maksymalne punkty\",\"points\":1000}"))

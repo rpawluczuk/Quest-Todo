@@ -8,6 +8,7 @@ public record Task(
         int points,
         boolean completed,
         boolean inFocus,
-        Instant completedAt
+        Instant completedAt,
+        String description
 ) {
 }

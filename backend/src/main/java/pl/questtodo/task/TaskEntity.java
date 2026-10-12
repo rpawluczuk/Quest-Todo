@@ -26,6 +26,9 @@ public class TaskEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String title;
 
+    @Column(columnDefinition = "text")
+    private String description;
+
     @Column(nullable = false)
     private int points;
 
@@ -41,10 +44,11 @@ public class TaskEntity {
     protected TaskEntity() {
     }
 
-    public TaskEntity(String title, int points, UserEntity user) {
+    public TaskEntity(String title, int points, String description, UserEntity user) {
         this.user = user;
         this.title = title;
         this.points = points;
+        this.description = description;
     }
 
     public boolean isCompleted() {
@@ -53,9 +57,10 @@ public class TaskEntity {
 
     public int getPoints() { return points; }
 
-    public void updateDetails(String title, int points) {
+    public void updateDetails(String title, int points, String description, boolean updateDescription) {
         this.title = title;
         this.points = points;
+        if (updateDescription) this.description = description;
     }
 
     public void setCompleted(boolean completed) {
@@ -70,6 +75,6 @@ public class TaskEntity {
     }
 
     public Task toTask() {
-        return new Task(id, title, points, completed, inFocus, completedAt);
+        return new Task(id, title, points, completed, inFocus, completedAt, description);
     }
 }

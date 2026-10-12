@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
+import AutoResizeTextarea from './AutoResizeTextarea'
 
 type EditTaskFormProps = {
   readonly task: Task
-  readonly onSave: (title: string, points: number) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string) => Promise<void>
   readonly onCancel: () => void
 }
 
 function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editTitle, setEditTitle] = useState(task.title)
   const [editPoints, setEditPoints] = useState(String(task.points))
+  const [editDescription, setEditDescription] = useState(task.description ?? '')
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -34,14 +36,14 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
       return
     }
 
-    if (taskPoints > 2147483647) {
-      setEditError('Maksymalna liczba punktów to 2147483647.')
+    if (taskPoints > 1000) {
+      setEditError('Maksymalna liczba punktów za zadanie to 1000.')
       return
     }
     setIsSaving(true)
     setEditError('')
     try {
-      await onSave(updatedTitle, taskPoints)
+      await onSave(updatedTitle, taskPoints, editDescription.trim())
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'Nie udało się zapisać zmian. Spróbuj ponownie.')
     } finally {
@@ -70,10 +72,15 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           value={editPoints}
           onChange={(event) => setEditPoints(event.target.value)}
           min="1"
-          max={2147483647}
+          max={1000}
           step="1"
           required
         />
+      </label>
+      <label className="form-field task-description-field">
+        <span>Opis / notatki (opcjonalnie)</span>
+        <AutoResizeTextarea value={editDescription} disabled={isSaving}
+          onChange={event => setEditDescription(event.target.value)} />
       </label>
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Zapisz'}</button>

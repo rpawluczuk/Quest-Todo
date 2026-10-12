@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
+import AutoResizeTextarea from './AutoResizeTextarea'
 
 type CreateTaskFormProps = {
-  readonly onAddTask: (title: string, points: number) => Promise<void>
+  readonly onAddTask: (title: string, points: number, description: string) => Promise<void>
   readonly isFirstTask?: boolean
 }
 
@@ -10,6 +11,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   const [isExpanded, setIsExpanded] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
+  const [description, setDescription] = useState('')
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
@@ -25,6 +27,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   function cancel() {
     setNewTitle('')
     setNewPoints('10')
+    setDescription('')
     setFormError('')
     setIsExpanded(false)
   }
@@ -54,9 +57,10 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
     setIsSaving(true)
     setFormError('')
     try {
-      await onAddTask(title, taskPoints)
+      await onAddTask(title, taskPoints, description.trim())
       setNewTitle('')
       setNewPoints('10')
+      setDescription('')
       setIsExpanded(false)
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
@@ -87,10 +91,14 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
           value={newPoints}
           onChange={(event) => setNewPoints(event.target.value)}
           min="1"
-          max={2147483647}
+          max={1000}
           step="1"
           required
         />
+      </label>
+      <label className="form-field task-description-field">
+        <span>Opis / notatki (opcjonalnie)</span>
+        <AutoResizeTextarea value={description} disabled={isSaving} onChange={event => setDescription(event.target.value)} />
       </label>
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>

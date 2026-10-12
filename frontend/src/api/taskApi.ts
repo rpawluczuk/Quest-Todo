@@ -42,11 +42,11 @@ export function updateTaskFocus(id: number, inFocus: boolean): Promise<Task> {
   return updateTaskState(id, 'focus', { inFocus })
 }
 
-export async function updateTask(id: number, title: string, points: number): Promise<Task> {
+export async function updateTask(id: number, title: string, points: number, description: string): Promise<Task> {
   const response = await apiFetch(`/api/tasks/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, points }),
+    body: JSON.stringify({ title, points, description }),
   })
 
   if (!response.ok) {
@@ -58,11 +58,11 @@ export async function updateTask(id: number, title: string, points: number): Pro
   return response.json()
 }
 
-export async function createTask(title: string, points: number): Promise<Task> {
+export async function createTask(title: string, points: number, description: string): Promise<Task> {
   const response = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, points }),
+    body: JSON.stringify({ title, points, description }),
   })
 
   if (!response.ok) {

@@ -40,14 +40,14 @@ public class TaskController {
     public Task createTask(@Valid @RequestBody CreateTaskRequest request) {
         String title = request.title().strip();
         int points = request.points().intValueExact();
-        return taskService.createTask(title, points);
+        return taskService.createTask(title, points, normalizeDescription(request.description()));
     }
 
     @PatchMapping("/{id}")
     public Task updateTask(@PathVariable long id, @Valid @RequestBody UpdateTaskRequest request) {
         String title = request.title().strip();
         int points = request.points().intValueExact();
-        return taskService.updateTask(id, title, points);
+        return taskService.updateTask(id, title, points, normalizeDescription(request.description()), request.description() != null);
     }
 
     @PatchMapping("/{id}/completion")
@@ -70,5 +70,10 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(@PathVariable long id) {
         taskService.deleteTask(id);
+    }
+
+    private static String normalizeDescription(String description) {
+        if (description == null || description.isBlank()) return null;
+        return description.strip();
     }
 }
