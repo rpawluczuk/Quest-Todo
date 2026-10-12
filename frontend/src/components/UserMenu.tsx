@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getEmail } from '../api/emailApi'
 import type { Theme } from '../theme'
+import ThemeDialog from './ThemeDialog'
 
 type MenuIconName = 'password' | 'email' | 'logout' | 'delete'
 
@@ -30,19 +31,7 @@ type UserMenuProps = {
 
 export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount, theme, onThemeChange }: UserMenuProps) {
   const [open, setOpen] = useState(false)
-  const [themeSaveError, setThemeSaveError] = useState('')
-  const [savingTheme, setSavingTheme] = useState(false)
-  const themeSaving = useRef(false)
-
-  async function selectTheme(selected: Theme) {
-    if (themeSaving.current) return
-    themeSaving.current = true
-    setSavingTheme(true)
-    setThemeSaveError('')
-    try { await onThemeChange(selected) }
-    catch { setThemeSaveError('Nie udało się zapisać koloru. Przywrócono poprzedni. Spróbuj ponownie.') }
-    finally { themeSaving.current = false; setSavingTheme(false) }
-  }
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false)
   const [verifiedEmail, setVerifiedEmail] = useState<string | null | undefined>(undefined)
   const [emailError, setEmailError] = useState(false)
   const container = useRef<HTMLDivElement>(null)
@@ -87,6 +76,7 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
     : verifiedEmail ? 'Zmień adres e-mail' : 'Dodaj adres e-mail'
 
   return (
+    <>
     <div className="user-menu" ref={container} onBlur={(event) => {
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
     }}>
@@ -109,18 +99,11 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
           </div>
         </div>
         <div className="user-menu-actions">
-        <label className="user-menu-theme">
-          <span>Kolor aplikacji</span>
-          <select value={theme} disabled={savingTheme || loggingOut} onChange={event => {
-            const selected = event.target.value === 'pink' ? 'pink' : 'purple'
-            void selectTheme(selected)
-          }}>
-            <option value="purple">Fioletowy</option>
-            <option value="pink">Różowy</option>
-          </select>
-          <small role="status">{savingTheme ? 'Zapisywanie…' : 'Zapisany na Twoim koncie'}</small>
-        </label>
-        {themeSaveError && <p className="form-error" role="alert">{themeSaveError}</p>}
+        <button type="button" className="user-menu-logout" onClick={() => {
+          setOpen(false)
+          trigger.current?.focus()
+          setThemeDialogOpen(true)
+        }}><span className={`user-menu-color-dot theme-choice-${theme}`} aria-hidden="true" /><span>Kolor aplikacji</span></button>
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
           trigger.current?.focus()
@@ -146,5 +129,10 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
         </div>
       </div>}
     </div>
+    {themeDialogOpen && <ThemeDialog theme={theme} onChange={onThemeChange} onClose={() => {
+      setThemeDialogOpen(false)
+      requestAnimationFrame(() => trigger.current?.focus())
+    }} />}
+    </>
   )
 }
