@@ -91,7 +91,18 @@ export default function GoalsPage() {
     {loading && <p role="status">Ładowanie celów…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
     {!loading && !loadError && <>
-      {createOpen ? <form className="task-form goal-form" onSubmit={add}>
+      <div className={goals.length === 0 ? 'task-empty-state task-empty-state-prominent' : undefined}>
+        {goals.length === 0 && <>
+          <span className="task-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v2M22 12h-2M12 22v-2M2 12h2" />
+            </svg>
+          </span>
+          <p className="empty-state">Nie masz jeszcze celów. Dodaj pierwszy, aby zacząć!</p>
+        </>}
+        {createOpen ? <form className="task-form goal-form" onSubmit={add}>
         <label className="form-field"><span>Tytuł celu</span>
           <input ref={createInput} value={title} maxLength={120} required disabled={saving}
             onChange={event => setTitle(event.target.value)} placeholder="Np. Przebiec 5 km" /></label>
@@ -101,12 +112,12 @@ export default function GoalsPage() {
             setCreateOpen(false); setTitle(''); setError('')
           }}>Anuluj</button>
         </div>
-      </form> : <button type="button" className="secondary-button add-task-toggle" onClick={() => {
-        setEditingId(null); setError(''); setCreateOpen(true)
-      }}>+ Dodaj cel</button>}
+        </form> : <button type="button" className={`${goals.length === 0 ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`} onClick={() => {
+          setEditingId(null); setError(''); setCreateOpen(true)
+        }}>{goals.length === 0 ? '+ Dodaj pierwszy cel' : '+ Dodaj cel'}</button>}
+      </div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      {goals.length === 0 ? <p className="empty-state">Nie masz jeszcze celów. Dodaj pierwszy cel.</p> :
-        <ul className="task-list goal-list">{goals.map(goal => <li key={goal.id} className="task-card goal-card">
+      {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu</span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
