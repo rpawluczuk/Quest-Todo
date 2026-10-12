@@ -883,7 +883,13 @@
 }
 
 .task-form.habit-form {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 38%);
+}
+
+.habit-form .habit-frequency-field,
+.habit-form .habit-target-hint,
+.habit-form .task-actions {
+  grid-column: 1 / -1;
 }
 
 .habit-form select {
@@ -931,6 +937,27 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.habit-note-toggle {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.habit-note-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.habit-note-toggle:disabled { cursor: default; }
+.habit-description { grid-column: 1 / -1; }
 
 .habit-progress {
   grid-area: progress;

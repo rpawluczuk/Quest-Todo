@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createHabit, deleteHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm from '../components/CreateHabitForm'
 import EditHabitForm from '../components/EditHabitForm'
@@ -84,6 +84,23 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   const [deleteError, setDeleteError] = useState('')
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(() => new Set())
+
+  function toggleDescription(id: number) {
+    setExpandedDescriptions(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function handleCardClick(event: MouseEvent<HTMLLIElement>, habit: Habit) {
+    if (!habit.description || busy || editingId !== null ||
+      !(event.target instanceof Element) ||
+      event.target.closest('button, input, label, textarea, select, a, form, [role="button"]')) return
+    toggleDescription(habit.id)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -103,11 +120,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     return () => controller.abort()
   }, [date, today])
 
-  async function add(name: string, targetDays: number, rewardPoints: number) {
+  async function add(name: string, targetDays: number, rewardPoints: number, description: string) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name, targetDays, rewardPoints)
+      const habit = await createHabit(name, targetDays, rewardPoints, description)
       setAllHabitIds(current => [...current, habit.id])
       if (habit.createdOn <= date) {
         setHabits(current => [...current, { ...habit,
@@ -118,15 +135,16 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     }
   }
 
-  async function save(id: number, name: string, targetDays: number, rewardPoints: number) {
+  async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const result = await updateHabit(id, name, targetDays, rewardPoints)
+      const result = await updateHabit(id, name, targetDays, rewardPoints, description)
       const loaded = await getHabits(date)
       setHabits(loaded)
       onCompletionSaved(result)
       setEditingId(null)
+      setExpandedDescriptions(current => { const next = new Set(current); next.delete(id); return next })
     } finally {
       onBusy(false)
     }
@@ -187,9 +205,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
         </div>
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {habits.length > 0 && <ul className="task-list">
-          {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}`} key={habit.id}>
+          {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
+            key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays, points) => save(habit.id, name, targetDays, points)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays, points, description) => save(habit.id, name, targetDays, points, description)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null}
@@ -197,7 +216,16 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                   onChange={() => void toggleCompletion(habit)} />
               </label>
               <div className="habit-name">
-                <span className="task-title">{habit.name}</span>
+                {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
+                  aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
+                  aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}`}
+                  onClick={() => toggleDescription(habit.id)}>
+                  <span className="task-title">{habit.name}</span>
+                  <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
+                    <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
+                  </svg>
+                </button> : <span className="task-title">{habit.name}</span>}
                 <small className="habit-target-hint">{habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}</small>
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
@@ -214,6 +242,8 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                   { label: 'Edytuj', onSelect: () => setEditingId(habit.id) },
                   { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
                 ]} />
+              {habit.description && <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
+                hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>}
             </>}
           </li>)}
         </ul>}

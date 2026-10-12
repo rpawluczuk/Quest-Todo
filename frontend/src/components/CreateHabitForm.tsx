@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
+import AutoResizeTextarea from './AutoResizeTextarea'
 
 export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
-  onAdd: (name: string, targetDays: number, rewardPoints: number) => Promise<void>
+  onAdd: (name: string, targetDays: number, rewardPoints: number, description: string) => Promise<void>
   isFirstHabit?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const [name, setName] = useState('')
   const [targetDays, setTargetDays] = useState(7)
   const [rewardPoints, setRewardPoints] = useState('1')
+  const [description, setDescription] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -26,6 +28,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setRewardPoints('1')
     setTargetDays(7)
     setName('')
+    setDescription('')
     setError('')
     setExpanded(false)
   }
@@ -39,10 +42,11 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setSaving(true)
     setError('')
     try {
-      await onAdd(trimmedName, targetDays, Number(rewardPoints))
+      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim())
       setRewardPoints('1')
       setTargetDays(7)
       setName('')
+      setDescription('')
       setExpanded(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać nawyku.')
@@ -57,8 +61,12 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} placeholder="Np. Przeczytać 10 stron" required />
     </label>
-    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+    <label className="form-field task-description-field">
+      <span>Opis / notatki (opcjonalnie)</span>
+      <AutoResizeTextarea value={description} disabled={saving} onChange={event => setDescription(event.target.value)} />
+    </label>
     <div className="task-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj nawyk'}</button>
       <button type="button" className="secondary-button" disabled={saving} onClick={cancel}>Anuluj</button>

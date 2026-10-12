@@ -5,7 +5,7 @@ export default function HabitTargetField({ value, onChange, disabled }: {
   onChange: (days: number) => void
   disabled: boolean
 }) {
-  return <label className="form-field">
+  return <label className="form-field habit-frequency-field">
     <span>Jak często?</span>
     <select value={value} onChange={event => onChange(Number(event.target.value))} disabled={disabled}>
       {[7, 1, 2, 3, 4, 5, 6].map(days => <option key={days} value={days}>{targetLabel(days)}</option>)}

@@ -6,6 +6,7 @@ export type HabitTarget = {
 export type Habit = {
   readonly id: number
   readonly name: string
+  readonly description: string | null
   readonly createdOn: string
   readonly completed: boolean
   readonly weeklyCompletedDays: number

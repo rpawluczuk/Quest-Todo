@@ -61,9 +61,14 @@ public class HabitService {
     }
 
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints) {
+        return createHabit(name, targetDays, rewardPoints, null);
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description) {
         LocalDate today = calendar.today();
         HabitEntity habit = habits.save(new HabitEntity(name, users.currentReference(), today));
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
+        habit.changeDescription(description == null ? null : description.strip());
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
                 today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
         return toHabit(habit, today, false, List.of(target), 0, false);
@@ -74,9 +79,15 @@ public class HabitService {
     }
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints) {
+        return updateHabit(id, name, targetDays, rewardPoints, null);
+    }
+
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+                                             String description) {
         HabitEntity habit = findForUpdate(id);
         habit.rename(name);
         if (rewardPoints != null) habit.setRewardPoints(rewardPoints);
+        if (description != null) habit.changeDescription(description.strip());
         LocalDate today = calendar.today();
         Habit before = snapshot(habit, today);
         boolean targetLowered = targetDays != null && before.target() != null

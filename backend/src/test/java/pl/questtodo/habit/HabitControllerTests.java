@@ -65,6 +65,28 @@ class HabitControllerTests {
     }
 
     @Test
+    void createsUpdatesAndClearsOptionalDescription() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Czytanie\",\"description\":\"  Dziesięć stron dziennie\\nBez telefonu  \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value("Dziesięć stron dziennie\nBez telefonu"));
+        long id = jdbc.queryForObject("SELECT id FROM habits WHERE user_id = 1", Long.class);
+        mvc.perform(get("/api/habits"))
+                .andExpect(jsonPath("$[0].description").value("Dziesięć stron dziennie\nBez telefonu"));
+        mvc.perform(put("/api/habits/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Książka\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Dziesięć stron dziennie\nBez telefonu"));
+        mvc.perform(put("/api/habits/{id}/configuration", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Książka\",\"description\":\"  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.habit.description").value(""));
+        entityManager.flush();
+        assertEquals("", jdbc.queryForObject("SELECT description FROM habits WHERE id = ?", String.class, id));
+    }
+
+    @Test
     void validatesAndPersistsRewardConfiguration() throws Exception {
         when(currentUser.getUserId()).thenReturn(1L);
         mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)

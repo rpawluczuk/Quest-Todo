@@ -4,4 +4,4 @@ import java.time.LocalDate;
 
 public record Habit(long id, String name, LocalDate createdOn, boolean completed,
                     HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays, int rewardPoints,
-                    boolean weeklyRewardGranted) {}
+                    boolean weeklyRewardGranted, String description) {}

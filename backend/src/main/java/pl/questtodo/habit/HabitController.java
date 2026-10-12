@@ -34,18 +34,18 @@ public class HabitController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
-        return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints());
+        return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
-        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints()).habit();
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description()).habit();
     }
 
     @PutMapping("/{id}/configuration")
     public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
                                                            @Valid @RequestBody HabitRequest request) {
-        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints());
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description());
     }
 
     @DeleteMapping("/{id}")

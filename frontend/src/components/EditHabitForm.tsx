@@ -2,15 +2,17 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import type { Habit } from '../types/Habit'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
+import AutoResizeTextarea from './AutoResizeTextarea'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
-  onSave: (name: string, targetDays: number, rewardPoints: number) => Promise<void>
+  onSave: (name: string, targetDays: number, rewardPoints: number, description: string) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState(habit.name)
   const [targetDays, setTargetDays] = useState(habit.latestTarget?.targetDays ?? 7)
   const [rewardPoints, setRewardPoints] = useState(String(habit.rewardPoints))
+  const [description, setDescription] = useState(habit.description ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -26,7 +28,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     setSaving(true)
     setError('')
     try {
-      await onSave(trimmedName, targetDays, Number(rewardPoints))
+      await onSave(trimmedName, targetDays, Number(rewardPoints), description.trim())
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać nawyku.')
     } finally {
@@ -40,8 +42,12 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} required />
     </label>
-    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+    <label className="form-field task-description-field">
+      <span>Opis / notatki (opcjonalnie)</span>
+      <AutoResizeTextarea value={description} disabled={saving} onChange={event => setDescription(event.target.value)} />
+    </label>
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>

@@ -27,6 +27,9 @@ public class HabitEntity {
     @Column(nullable = false, length = 120)
     private String name;
 
+    @Column(columnDefinition = "text")
+    private String description;
+
     @Column(name = "created_on", nullable = false, updatable = false)
     private LocalDate createdOn;
 
@@ -48,10 +51,12 @@ public class HabitEntity {
         this.name = name;
     }
 
+    public void changeDescription(String description) { this.description = description; }
+
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays,
                          boolean weeklyRewardGranted) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
-                weeklyRewardGranted);
+                weeklyRewardGranted, description);
     }
 
     public long getId() { return id; }

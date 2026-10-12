@@ -13,4 +13,5 @@ public record HabitRequest(
         @Max(value = 7, message = "Wybierz od 1 do 7 dni w tygodniu.")
         Integer targetDays,
         @Min(value = 0, message = "Punkty nie mogą być ujemne.")
-        Integer rewardPoints) {}
+        Integer rewardPoints,
+        String description) {}
