@@ -864,13 +864,20 @@
 }
 
 .page-navigation {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 24px;
 }
 
+.page-navigation .secondary-button {
+  width: 100%;
+  min-width: 0;
+  border-color: var(--color-primary-border);
+}
+
 .page-navigation button[aria-pressed='true'] {
+  border-color: var(--color-primary);
   background: var(--color-primary);
   color: #fff;
 }
@@ -1775,13 +1782,13 @@
   }
 
   .page-navigation {
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 18px;
   }
 
   .page-navigation .secondary-button {
     min-height: 44px;
-    padding: 8px 12px;
+    padding: 8px;
     font-size: 14px;
     font-weight: 600;
   }

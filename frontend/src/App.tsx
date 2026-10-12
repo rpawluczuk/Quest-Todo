@@ -6,6 +6,7 @@ import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
 import HabitsPage from './pages/HabitsPage'
+import GoalsPage from './pages/GoalsPage'
 import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
@@ -27,7 +28,7 @@ type AppProps = {
 }
 
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
-  const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'rewards'>('tasks')
+  const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
@@ -273,6 +274,15 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         <button
           type="button"
           className="secondary-button"
+          aria-pressed={activePage === 'goals'}
+          aria-controls="goals-page"
+          onClick={() => setActivePage('goals')}
+        >
+          Cele
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
           aria-pressed={activePage === 'rewards'}
           aria-controls="rewards-page"
           onClick={() => setActivePage('rewards')}
@@ -315,6 +325,9 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           accountRequest.current++
           setPoints(balance)
         }} />
+      </div>
+      <div id="goals-page" hidden={activePage !== 'goals'}>
+        <GoalsPage />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}
