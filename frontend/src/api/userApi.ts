@@ -1,6 +1,15 @@
 import { apiFetch } from './apiFetch'
 
-export type User = { id: number; points: number; login: string }
+export type User = { id: number; points: number; login: string; theme: 'PURPLE' | 'PINK' }
+
+export async function updateTheme(theme: User['theme'], signal?: AbortSignal): Promise<User> {
+  const response = await apiFetch('/api/users/me/theme', {
+    method: 'PUT', signal, headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme }),
+  })
+  if (!response.ok) throw new Error('Nie udało się zapisać koloru. Spróbuj ponownie.')
+  return response.json()
+}
 export type Purchase = {
   id: number
   rewardId: number

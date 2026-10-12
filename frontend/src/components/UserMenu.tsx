@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getEmail } from '../api/emailApi'
-import { readTheme, saveTheme, type Theme } from '../theme'
+import type { Theme } from '../theme'
 
 type MenuIconName = 'password' | 'email' | 'logout' | 'delete'
 
@@ -18,6 +18,8 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 }
 
 type UserMenuProps = {
+  theme: Theme
+  onThemeChange: (theme: Theme) => Promise<void>
   username: string
   onLogout: () => Promise<void>
   loggingOut: boolean
@@ -26,10 +28,21 @@ type UserMenuProps = {
   onDeleteAccount: () => void
 }
 
-export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount }: UserMenuProps) {
+export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount, theme, onThemeChange }: UserMenuProps) {
   const [open, setOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>(readTheme)
-  const [themeSaveError, setThemeSaveError] = useState(false)
+  const [themeSaveError, setThemeSaveError] = useState('')
+  const [savingTheme, setSavingTheme] = useState(false)
+  const themeSaving = useRef(false)
+
+  async function selectTheme(selected: Theme) {
+    if (themeSaving.current) return
+    themeSaving.current = true
+    setSavingTheme(true)
+    setThemeSaveError('')
+    try { await onThemeChange(selected) }
+    catch { setThemeSaveError('Nie udało się zapisać koloru. Przywrócono poprzedni. Spróbuj ponownie.') }
+    finally { themeSaving.current = false; setSavingTheme(false) }
+  }
   const [verifiedEmail, setVerifiedEmail] = useState<string | null | undefined>(undefined)
   const [emailError, setEmailError] = useState(false)
   const container = useRef<HTMLDivElement>(null)
@@ -98,17 +111,16 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
         <div className="user-menu-actions">
         <label className="user-menu-theme">
           <span>Kolor aplikacji</span>
-          <select value={theme} onChange={event => {
+          <select value={theme} disabled={savingTheme || loggingOut} onChange={event => {
             const selected = event.target.value === 'pink' ? 'pink' : 'purple'
-            setTheme(selected)
-            setThemeSaveError(!saveTheme(selected))
+            void selectTheme(selected)
           }}>
             <option value="purple">Fioletowy</option>
             <option value="pink">Różowy</option>
           </select>
-          <small>Na tym urządzeniu</small>
+          <small role="status">{savingTheme ? 'Zapisywanie…' : 'Zapisany na Twoim koncie'}</small>
         </label>
-        {themeSaveError && <p className="form-error" role="status">Kolor zmieniono, ale nie udało się go zapamiętać.</p>}
+        {themeSaveError && <p className="form-error" role="alert">{themeSaveError}</p>}
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
           trigger.current?.focus()

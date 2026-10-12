@@ -13,8 +13,10 @@ import CreateTaskForm from './components/CreateTaskForm'
 import CompletionNotice from './components/CompletionNotice'
 import { getTaskEmptyStates } from './taskEmptyState'
 import './App.css'
+import type { Theme } from './theme'
 
 type AppProps = {
+  onThemeChange: (theme: Theme) => Promise<void>
   user: User
   onLogout: () => Promise<void>
   loggingOut: boolean
@@ -24,7 +26,7 @@ type AppProps = {
   onDeleteAccount: () => void
 }
 
-function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount }: AppProps) {
+function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
@@ -245,7 +247,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   }
   return (
     <main className="quest-app">
-      <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} onDeleteAccount={onDeleteAccount} />
+      <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} onDeleteAccount={onDeleteAccount}
+        theme={user.theme === 'PINK' ? 'pink' : 'purple'} onThemeChange={onThemeChange} />
       {logoutError && <p className="form-error" role="alert">{logoutError}</p>}
       {accountError && <p className="form-error" role="alert">{accountError}</p>}
       <nav className="page-navigation" aria-label="Widoki aplikacji">

@@ -23,5 +23,11 @@ public class UserService {
         return users.findForUpdate(currentUser.getUserId()).orElseThrow();
     }
 
+    public UserEntity.User changeTheme(UserTheme theme) {
+        var user = lockCurrentUser();
+        user.changeTheme(theme);
+        return user.toUser();
+    }
+
     public UserEntity currentReference() { return users.getReferenceById(currentUser.getUserId()); }
 }

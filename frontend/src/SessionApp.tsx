@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import App from './App'
 import LoginPage, { type LoginSuccessNotice } from './components/LoginPage'
 import ChangePasswordDialog from './components/ChangePasswordDialog'
@@ -7,7 +7,8 @@ import EmailConfirmationPage from './components/EmailConfirmationPage'
 import PasswordRecoveryPage from './components/PasswordRecoveryPage'
 import DeleteAccountDialog from './components/DeleteAccountDialog'
 import { logout, readSession } from './api/authApi'
-import type { User } from './api/userApi'
+import { updateTheme, type User } from './api/userApi'
+import { applyTheme, type Theme } from './theme'
 import './App.css'
 
 export default function SessionApp() {
@@ -23,6 +24,39 @@ export default function SessionApp() {
   const [loginSuccess, setLoginSuccess] = useState<LoginSuccessNotice | null>(null)
   const [resetToken, setResetToken] = useState<string | null>(() => new URLSearchParams(window.location.hash.slice(1)).get('reset-password'))
   const channel = useRef<BroadcastChannel | null>(null)
+  const themeRequest = useRef<AbortController | null>(null)
+
+  useLayoutEffect(() => {
+    applyTheme(user?.theme === 'PINK' ? 'pink' : 'purple')
+  }, [user?.theme])
+
+  useLayoutEffect(() => () => {
+    themeRequest.current?.abort()
+    themeRequest.current = null
+  }, [user?.id])
+
+  async function changeTheme(theme: Theme) {
+    if (!user || themeRequest.current) return
+    const ownerId = user.id
+    const previous = user.theme
+    const requested = theme === 'pink' ? 'PINK' : 'PURPLE'
+    const controller = new AbortController()
+    themeRequest.current = controller
+    setUser(current => current?.id === ownerId ? { ...current, theme: requested } : current)
+    try {
+      const saved = await updateTheme(requested, controller.signal)
+      if (!controller.signal.aborted) {
+        setUser(current => current?.id === ownerId ? { ...current, theme: saved.theme } : current)
+      }
+    } catch (failure) {
+      if (!controller.signal.aborted) {
+        setUser(current => current?.id === ownerId ? { ...current, theme: previous } : current)
+        throw failure
+      }
+    } finally {
+      if (themeRequest.current === controller) themeRequest.current = null
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -104,6 +138,7 @@ export default function SessionApp() {
   return (
     <>
       <App key={user.id} user={user} onLogout={signOut} loggingOut={loggingOut} logoutError={error}
+        onThemeChange={changeTheme}
         onChangePassword={() => setChangingPassword(true)} onEmail={() => setEditingEmail(true)}
         onDeleteAccount={() => setDeletingAccount(true)} />
       {deletingAccount && <DeleteAccountDialog login={user.login ?? ''} onClose={() => setDeletingAccount(false)}

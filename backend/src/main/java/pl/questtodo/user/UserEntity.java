@@ -36,6 +36,7 @@ public class UserEntity {
     public String getLogin() { return login; }
     public String getPasswordHash() { return passwordHash; }
     public UserTheme getTheme() { return theme; }
+    public void changeTheme(UserTheme theme) { this.theme = java.util.Objects.requireNonNull(theme); }
 
     public void changePassword(String passwordHash) { this.passwordHash = passwordHash; }
 
@@ -49,7 +50,7 @@ public class UserEntity {
 
     public void addPoints(long amount) { points = Math.addExact(points, amount); }
 
-    public User toUser() { return new User(id, name, points, login); }
+    public User toUser() { return new User(id, name, points, login, theme); }
 
-    public record User(long id, String name, long points, String login) {}
+    public record User(long id, String name, long points, String login, UserTheme theme) {}
 }
