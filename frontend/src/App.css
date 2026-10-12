@@ -1522,6 +1522,15 @@
   border-radius: 12px;
 }
 
+.goal-form { grid-template-columns: minmax(0, 1fr) auto; }
+.goal-list { margin-top: 24px; }
+.goal-card {
+  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-areas: 'title menu';
+}
+.goal-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
+.goal-edit-form { grid-column: 1 / -1; width: 100%; margin-top: 0; }
+
 .task-card-focus {
   grid-template-columns: 32px minmax(0, 1fr) auto 40px;
   grid-template-areas: 'check title points menu';
@@ -1785,6 +1794,11 @@
   .task-card-focus {
     grid-template-columns: 32px minmax(0, 1fr) 40px;
     grid-template-areas: 'check title menu' '. points .';
+  }
+
+  .goal-card {
+    grid-template-columns: minmax(0, 1fr) 40px;
+    grid-template-areas: 'title menu';
   }
 
   .task-card-check {
