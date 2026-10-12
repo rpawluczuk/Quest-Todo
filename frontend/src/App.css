@@ -1556,6 +1556,34 @@
   grid-template-areas: 'title menu';
 }
 .goal-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
+.goal-details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.goal-details-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 12px 0; border-top: 1px solid #e9e5ef; }
+.goal-tasks h3 { margin: 0; font-size: 1rem; }
+.goal-tasks .empty-state { margin-top: 12px; }
+.goal-linked-tasks { margin-top: 12px; }
+.goal-linked-task { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.goal-linked-task > input { width: 24px; height: 24px; margin: 10px 0; accent-color: var(--color-primary); }
+.goal-linked-task > span:first-of-type { flex: 1; min-width: 80px; overflow-wrap: anywhere; }
+.goal-linked-task button { min-height: 44px; }
+.goal-task-completed { text-decoration: line-through; color: #666173; }
+.goal-task-picker { grid-template-columns: minmax(0, 1fr); }
+.goal-task-picker select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #c9c1d6; border-radius: 8px; font: inherit; background: #fff; color: inherit; }
+.goal-task-picker select:focus-visible,
+.goal-linked-task > input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .goal-edit-form { grid-column: 1 / -1; width: 100%; margin-top: 0; }
 
 .task-card-focus {

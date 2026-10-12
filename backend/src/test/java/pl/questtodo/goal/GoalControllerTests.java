@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GoalControllerTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
+    @Autowired jakarta.persistence.EntityManager entityManager;
     @MockitoBean CurrentUserProvider currentUser;
 
     @BeforeEach
@@ -76,5 +77,66 @@ class GoalControllerTests {
         when(currentUser.getUserId()).thenReturn(2L);
         mvc.perform(get("/api/goals"))
                 .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].title").value("Other goal"));
+    }
+
+    @Test
+    void attachesOnceAndSharesTaskStateAcrossGoalsWithoutExtraPoints() throws Exception {
+        seedLinks();
+        long points = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class);
+        for (long goalId : new long[]{1001, 1001, 1002}) {
+            mvc.perform(put("/api/goals/{id}/tasks/1001", goalId)).andExpect(status().isNoContent());
+        }
+        entityManager.flush();
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        assertEquals(points, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
+        mvc.perform(patch("/api/tasks/1001/completion").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"completed\":true}")).andExpect(status().isOk());
+        for (long goalId : new long[]{1001, 1002}) {
+            mvc.perform(get("/api/goals/{id}/tasks", goalId))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].completed").value(true));
+        }
+        mvc.perform(delete("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/goals/1001/tasks")).andExpect(jsonPath("$.length()").value(0));
+        entityManager.flush();
+        assertEquals(points + 10, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001", Integer.class));
+    }
+
+    @Test
+    void cannotReadOrChangeLinksForAnotherUsersGoalOrTask() throws Exception {
+        seedLinks();
+        mvc.perform(get("/api/goals/2001/tasks")).andExpect(status().isNotFound());
+        for (String path : new String[]{"/api/goals/2001/tasks/1001", "/api/goals/1001/tasks/2001",
+                "/api/goals/9999/tasks/1001", "/api/goals/1001/tasks/9999"}) {
+            mvc.perform(put(path)).andExpect(status().isNotFound());
+            mvc.perform(delete(path)).andExpect(status().isNotFound());
+        }
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+    }
+
+    @Test
+    void deletingGoalPreservesTasksAndDeletingTaskRemovesLinks() throws Exception {
+        seedLinks();
+        mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+        mvc.perform(put("/api/goals/1002/tasks/1001")).andExpect(status().isNoContent());
+        // Real HTTP requests use separate persistence contexts; do not keep link entities
+        // managed across a later request whose database cascade deletes those links.
+        entityManager.flush();
+        entityManager.clear();
+        mvc.perform(delete("/api/goals/1001")).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        mvc.perform(delete("/api/tasks/1001")).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        mvc.perform(get("/api/goals/1002")).andExpect(status().isOk());
+    }
+
+    private void seedLinks() {
+        jdbc.update("INSERT INTO goals(id, user_id, title) VALUES (1001, 1, 'First'), (1002, 1, 'Second'), (2001, 2, 'Other')");
+        jdbc.update("INSERT INTO tasks(id, user_id, title, points) VALUES (1001, 1, 'Task', 10), (2001, 2, 'Other task', 10)");
     }
 }

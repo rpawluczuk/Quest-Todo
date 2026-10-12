@@ -1,5 +1,17 @@
 import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
+import type { Task } from '../types/Task'
+
+export async function getGoalTasks(goalId: number, signal?: AbortSignal): Promise<Task[]> {
+  const response = await apiFetch(`/api/goals/${goalId}/tasks`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać zadań celu'))
+  return response.json()
+}
+
+export async function setGoalTask(goalId: number, taskId: number, attached: boolean): Promise<void> {
+  const response = await apiFetch(`/api/goals/${goalId}/tasks/${taskId}`, { method: attached ? 'PUT' : 'DELETE' })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zmienić przypięcia zadania'))
+}
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   const problem = await response.json().catch(() => null) as { detail?: string } | null

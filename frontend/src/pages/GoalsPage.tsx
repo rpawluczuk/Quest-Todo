@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { createGoal, deleteGoal, getGoals, updateGoal } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
+import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 
 function titleError(title: string): string {
   if (!title.trim()) return 'Podaj tytuł celu.'
@@ -9,7 +10,8 @@ function titleError(title: string): string {
   return ''
 }
 
-export default function GoalsPage() {
+export default function GoalsPage(taskProps: GoalTasksProps) {
+  const [expandedId, setExpandedId] = useState<number | null>(null)
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -129,13 +131,18 @@ export default function GoalsPage() {
               }}>Anuluj</button>
             </div>
           </form> : <>
-            <span className="goal-title">{goal.title}</span>
+            <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
+              aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id}` : undefined}
+              onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
+              <span>{goal.title}</span><span aria-hidden="true">{expandedId === goal.id ? '▴' : '▾'}</span>
+            </button>
             <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
               { label: 'Edytuj', onSelect: () => {
                 setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title); setError('')
               } },
               { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
             ]} />
+            {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} {...taskProps} />}
           </>}
         </li>)}</ul>}
     </>}
