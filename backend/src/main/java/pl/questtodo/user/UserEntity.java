@@ -18,6 +18,10 @@ public class UserEntity {
     @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private UserTheme theme = UserTheme.PURPLE;
+
     protected UserEntity() {}
 
     public static UserEntity registered(String login, String passwordHash) {
@@ -31,6 +35,7 @@ public class UserEntity {
 
     public String getLogin() { return login; }
     public String getPasswordHash() { return passwordHash; }
+    public UserTheme getTheme() { return theme; }
 
     public void changePassword(String passwordHash) { this.passwordHash = passwordHash; }
 
