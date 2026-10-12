@@ -327,8 +327,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         }} />
       </div>
       <div id="goals-page" hidden={activePage !== 'goals'}>
-        <GoalsPage tasks={tasks} tasksLoading={isLoading} tasksError={loadError}
-          tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask} />
+        <GoalsPage tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}

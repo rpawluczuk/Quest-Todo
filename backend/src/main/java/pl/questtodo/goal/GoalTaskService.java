@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.server.ResponseStatusException;
 import pl.questtodo.task.Task;
 import pl.questtodo.task.TaskEntity;
@@ -31,6 +32,20 @@ public class GoalTaskService {
         long userId = currentUser.getUserId();
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
         return links.findTasks(goalId, userId).stream().map(TaskEntity::toTask).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AvailableGoalTasks getAvailableTasks(long goalId, boolean completed, String query, int page, int size) {
+        if (page < 0 || size < 1 || size > 20) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowe parametry stronicowania.");
+        }
+        long userId = currentUser.getUserId();
+        goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        String normalizedQuery = query == null ? "" : query.strip();
+        var result = links.findAvailableTasks(goalId, userId, completed, normalizedQuery,
+                PageRequest.of(page, size));
+        return new AvailableGoalTasks(result.getContent().stream().map(TaskEntity::toTask).toList(),
+                result.hasNext());
     }
 
     public void attach(long goalId, long taskId) {

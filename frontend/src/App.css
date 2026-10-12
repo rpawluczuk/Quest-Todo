@@ -1581,8 +1581,34 @@
 .goal-linked-task button { min-height: 44px; }
 .goal-task-completed { text-decoration: line-through; color: #666173; }
 .goal-task-picker { grid-template-columns: minmax(0, 1fr); }
-.goal-task-picker select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #c9c1d6; border-radius: 8px; font: inherit; background: #fff; color: inherit; }
-.goal-task-picker select:focus-visible,
+.goal-task-picker input[type='search'] { width: 100%; min-width: 0; }
+.goal-available-section { min-width: 0; }
+.goal-available-section h4 { margin: 4px 0 8px; font-size: 0.9rem; color: #514b5d; }
+.goal-available-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.goal-available-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e9e5ef;
+  border-radius: 10px;
+}
+.goal-available-task-title { flex: 1; min-width: 70px; overflow-wrap: anywhere; }
+.goal-available-task button { min-height: 44px; flex: 0 0 auto; }
+.goal-picker-link {
+  justify-self: center;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.goal-picker-link:hover { text-decoration: underline; }
+.goal-picker-close { width: 100%; }
+.goal-picker-link:focus-visible,
 .goal-linked-task > input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .goal-edit-form { grid-column: 1 / -1; width: 100%; margin-top: 0; }
 

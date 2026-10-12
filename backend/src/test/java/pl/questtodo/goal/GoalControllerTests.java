@@ -135,6 +135,45 @@ class GoalControllerTests {
         mvc.perform(get("/api/goals/1002")).andExpect(status().isOk());
     }
 
+    @Test
+    void listsAvailableTasksLazilyWithActivePrioritiesFirstAndCompletedOnRequest() throws Exception {
+        seedLinks();
+        jdbc.update("INSERT INTO tasks(id, user_id, title, points, in_focus, completed) VALUES "
+                + "(1002, 1, 'Picker backlog task', 10, false, false), "
+                + "(1003, 1, 'Picker priority task', 10, true, false), "
+                + "(1004, 1, 'Picker finished matching task', 10, false, true), "
+                + "(2002, 2, 'Other priority task', 10, true, false)");
+        mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/goals/1001/tasks/available").param("size", "1").param("query", "picker"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks.length()").value(1))
+                .andExpect(jsonPath("$.tasks[0].title").value("Picker priority task"))
+                .andExpect(jsonPath("$.hasMore").value(true));
+        mvc.perform(get("/api/goals/1001/tasks/available").param("size", "1").param("page", "1")
+                        .param("query", "picker"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks.length()").value(1))
+                .andExpect(jsonPath("$.tasks[0].title").value("Picker backlog task"))
+                .andExpect(jsonPath("$.hasMore").value(false));
+        mvc.perform(get("/api/goals/1001/tasks/available")
+                        .param("completed", "true").param("query", "matching"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks.length()").value(1))
+                .andExpect(jsonPath("$.tasks[0].title").value("Picker finished matching task"));
+    }
+
+    @Test
+    void validatesAvailableTaskPagingAndGoalOwnership() throws Exception {
+        seedLinks();
+        mvc.perform(get("/api/goals/1001/tasks/available").param("page", "-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/goals/1001/tasks/available").param("size", "21"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/goals/2001/tasks/available"))
+                .andExpect(status().isNotFound());
+    }
+
     private void seedLinks() {
         jdbc.update("INSERT INTO goals(id, user_id, title) VALUES (1001, 1, 'First'), (1002, 1, 'Second'), (2001, 2, 'Other')");
         jdbc.update("INSERT INTO tasks(id, user_id, title, points) VALUES (1001, 1, 'Task', 10), (2001, 2, 'Other task', 10)");

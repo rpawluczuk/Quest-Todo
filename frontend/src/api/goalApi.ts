@@ -2,9 +2,27 @@ import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
 
+export type AvailableGoalTasks = {
+  tasks: Task[]
+  hasMore: boolean
+}
+
 export async function getGoalTasks(goalId: number, signal?: AbortSignal): Promise<Task[]> {
   const response = await apiFetch(`/api/goals/${goalId}/tasks`, { signal })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać zadań celu'))
+  return response.json()
+}
+
+export async function getAvailableGoalTasks(
+  goalId: number,
+  completed: boolean,
+  query: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<AvailableGoalTasks> {
+  const params = new URLSearchParams({ completed: String(completed), query, page: String(page), size: '20' })
+  const response = await apiFetch(`/api/goals/${goalId}/tasks/available?${params}`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać zadań do przypięcia'))
   return response.json()
 }
 
