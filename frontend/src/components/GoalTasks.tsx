@@ -3,6 +3,7 @@ import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi
 import type { Task } from '../types/Task'
 
 export type GoalTasksProps = {
+  taskRevision: number
   tasksDisabled: boolean
   onToggleTask: (id: number) => Promise<void>
 }
@@ -12,7 +13,7 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
   return [...current, ...next.filter(task => !known.has(task.id))]
 }
 
-export default function GoalTasks({ goalId, tasksDisabled, onToggleTask }: GoalTasksProps & { goalId: number }) {
+export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggleTask }: GoalTasksProps & { goalId: number }) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -41,7 +42,7 @@ export default function GoalTasks({ goalId, tasksDisabled, onToggleTask }: GoalT
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać zadań celu.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [goalId])
+  }, [goalId, taskRevision])
 
   useEffect(() => {
     if (!pickerOpen || queryInput.trim() === query) return
@@ -147,9 +148,6 @@ export default function GoalTasks({ goalId, tasksDisabled, onToggleTask }: GoalT
           <input type="checkbox" checked={task.completed} disabled={disabled}
             aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
               await onToggleTask(task.id)
-              setAttached(current => current.map(item => item.id === task.id
-                ? { ...item, completed: !item.completed }
-                : item))
             })} />
           <span className={task.completed ? 'goal-task-completed' : undefined}>{task.title}</span>
           <span className="task-points">{task.points} pkt</span>

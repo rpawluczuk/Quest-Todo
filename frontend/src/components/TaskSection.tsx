@@ -1,8 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { getTaskHistory } from '../api/taskApi'
+import type { Task } from '../types/Task'
 import type { TaskSectionData } from '../types/TaskSectionData'
 import TaskItem from './TaskItem'
 
 type TaskSectionProps = {
+  readonly history?: { count: number; revision: number; onCount: (count: number) => void }
   readonly section: TaskSectionData
   readonly editingTaskId: number | null
   readonly onToggleTask: (taskId: number) => Promise<void>
@@ -45,13 +48,59 @@ function TaskSection({
   onCancel,
   onDelete,
   children,
+  history,
 }: TaskSectionProps) {
   const { id, title, description, emptyState, tasks } = section
   const isCompletedSection = id === 'completed'
   const [expanded, setExpanded] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(10)
+  const [historyTasks, setHistoryTasks] = useState<Task[]>([])
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
+  const request = useRef(0)
+  const onCount = history?.onCount
+  useEffect(() => {
+    if (!isCompletedSection || !expanded) return
+    const controller = new AbortController()
+    const version = ++request.current
+    // Loading state belongs to this network request, including mutation-triggered reloads.
+    // oxlint-disable-next-line react/set-state-in-effect
+    setBusy(true)
+    setError('')
+    getTaskHistory(0, controller.signal).then(result => {
+      if (controller.signal.aborted || version !== request.current) return
+      setHistoryTasks(result.tasks)
+      setPage(0)
+      setHasMore(result.hasMore)
+      onCount?.(result.total)
+    }).catch(failure => {
+      if (!controller.signal.aborted) setError(failure.message)
+    }).finally(() => { if (!controller.signal.aborted && version === request.current) setBusy(false) })
+    // This is a request generation counter, not a DOM ref: invalidate pending pages on cleanup.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    return () => { controller.abort(); request.current++ }
+  }, [isCompletedSection, expanded, history?.revision, retry, onCount])
+
+  async function more() {
+    if (busy) return
+    const version = ++request.current
+    setBusy(true)
+    setError('')
+    try {
+      const result = await getTaskHistory(page + 1)
+      if (version !== request.current) return
+      setHistoryTasks(current => [...current, ...result.tasks.filter(task => !current.some(item => item.id === task.id))])
+      setPage(current => current + 1)
+      setHasMore(result.hasMore)
+      onCount?.(result.total)
+    } catch (failure) {
+      if (version === request.current) setError(failure instanceof Error ? failure.message : 'Nie udało się pobrać historii.')
+    } finally { if (version === request.current) setBusy(false) }
+  }
   const showTasks = !isCompletedSection || expanded
-  const visibleTasks = isCompletedSection ? tasks.slice(0, visibleCount) : tasks
+  const visibleTasks = isCompletedSection ? historyTasks : tasks
 
   return (
     <section className="tasks-section" aria-labelledby={`${id}-heading`}>
@@ -65,10 +114,9 @@ function TaskSection({
               aria-controls="completed-content"
               onClick={() => {
                 setExpanded(!expanded)
-                setVisibleCount(10)
               }}
             >
-              <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {title} ({tasks.length})
+              <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {title} ({history?.count ?? tasks.length})
             </button>
           ) : <><span>{title}</span><span className="task-section-count" aria-label={`Liczba zadań: ${tasks.length}`}>{tasks.length}</span></>}
         </h2>
@@ -83,7 +131,7 @@ function TaskSection({
           </div>
         ) : <>
           {children}
-          {tasks.length === 0 && <div className={`task-empty-state${emptyState.centered ? ' task-empty-state-centered' : ''}`}>
+          {!isCompletedSection && tasks.length === 0 && <div className={`task-empty-state${emptyState.centered ? ' task-empty-state-centered' : ''}`}>
             {emptyState.icon && <EmptyStateIcon icon={emptyState.icon} />}
             <p className="empty-state">{emptyState.message}</p>
           </div>}
@@ -104,11 +152,11 @@ function TaskSection({
             />
           ))}
         </ul>
-        {isCompletedSection && visibleCount < tasks.length && (
-          <button type="button" className="secondary-button show-more" onClick={() => setVisibleCount((count) => count + 10)}>
-            Pokaż więcej ({tasks.length - visibleCount} pozostałych)
-          </button>
-        )}
+        {isCompletedSection && busy && <p role="status">Ładowanie historii…</p>}
+        {isCompletedSection && error && <div><p className="form-error" role="alert">{error}</p>
+          <button type="button" className="secondary-button" disabled={busy} onClick={() => setRetry(value => value + 1)}>Spróbuj ponownie</button></div>}
+        {isCompletedSection && !busy && !error && historyTasks.length === 0 && <p className="empty-state">{emptyState.message}</p>}
+        {isCompletedSection && hasMore && !error && <button type="button" className="secondary-button show-more" disabled={busy} onClick={() => void more()}>Pokaż więcej</button>}
       </div>
     </section>
   )

@@ -33,6 +33,29 @@ public class TaskService {
         return taskRepository.save(new TaskEntity(title, points, description, userService.currentReference())).toTask();
     }
 
+    public record Overview(List<Task> tasks, long completedCount) {}
+    public record History(List<Task> tasks, long total, boolean hasMore) {}
+
+    @Transactional(readOnly = true)
+    public Overview overview() {
+        long owner = currentUser.getUserId();
+        return new Overview(taskRepository.findByUserIdAndCompletedFalseOrderByIdAsc(owner).stream()
+                .map(TaskEntity::toTask).toList(), taskRepository.countByUserIdAndCompletedTrue(owner));
+    }
+
+    @Transactional(readOnly = true)
+    public History history(int page) {
+        if (page < 0 || page > Integer.MAX_VALUE / 20) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        var result = taskRepository.findHistory(currentUser.getUserId(), org.springframework.data.domain.PageRequest.of(page, 20));
+        return new History(result.getContent().stream().map(TaskEntity::toTask).toList(), result.getTotalElements(), result.hasNext());
+    }
+
+    @Transactional(readOnly = true)
+    public Task getTask(long id) {
+        return taskRepository.findByIdAndUserId(id, currentUser.getUserId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Zadanie nie istnieje.")).toTask();
+    }
+
     public Task updateCompletion(long id, boolean completed) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted() != completed) {

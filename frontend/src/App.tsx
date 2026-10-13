@@ -1,7 +1,7 @@
 import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase, type User } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
 import { createReward, deleteReward, getRewards, updateReward } from './api/rewardApi'
-import { createTask, deleteTask, getTasks, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
+import { createTask, deleteTask, getTask, getTaskOverview, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
 import type { Reward } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
@@ -30,6 +30,9 @@ type AppProps = {
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
+  const [completedCount, setCompletedCount] = useState(0)
+  const [taskRevision, setTaskRevision] = useState(0)
+  const [lastCompletedTask, setLastCompletedTask] = useState<Task | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
   const [accountLoading, setAccountLoading] = useState(true)
@@ -43,7 +46,6 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const buyingRef = useRef(false)
   const accountRequest = useRef(0)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
-  const [lastCompletedId, setLastCompletedId] = useState<number | null>(null)
   const completionRequests = useRef(new Set<number>())
 
   async function refreshAccount(signal?: AbortSignal) {
@@ -96,9 +98,10 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
 
     async function loadTasks() {
       try {
-        const loadedTasks = await getTasks(controller.signal)
+        const loadedTasks = await getTaskOverview(controller.signal)
         if (!controller.signal.aborted) {
-          setTasks(loadedTasks)
+          setTasks(loadedTasks.tasks)
+          setCompletedCount(loadedTasks.completedCount)
         }
       } catch {
         if (!controller.signal.aborted) {
@@ -121,8 +124,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     (b.completedAt ? Date.parse(b.completedAt) : 0) - (a.completedAt ? Date.parse(a.completedAt) : 0)
     || b.id - a.id,
   )
-  const lastCompletedTask = tasks.find((task) => task.id === lastCompletedId && task.completed)
-  const taskEmptyStates = getTaskEmptyStates(focusTasks.length, backlogTasks.length, tasks.length)
+  const taskEmptyStates = getTaskEmptyStates(focusTasks.length, backlogTasks.length, tasks.length + completedCount)
   const sections: TaskSectionData[] = [
     {
       id: 'focus',
@@ -218,11 +220,16 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
       ),
     )
     cancelEditing()
+    setTaskRevision(value => value + 1)
   }
 
   async function removeTask(taskId: number) {
+    const task = tasks.find(item => item.id === taskId) ?? await getTask(taskId)
     await deleteTask(taskId)
     setTasks((currentTasks) => currentTasks.filter((task) => task.id !== taskId))
+    if (task.completed) setCompletedCount(count => Math.max(0, count - 1))
+    setLastCompletedTask(current => current?.id === taskId ? null : current)
+    setTaskRevision(value => value + 1)
   }
 
   async function toggleFocus(taskId: number) {
@@ -233,14 +240,16 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   }
 
   async function toggleTask(taskId: number) {
-    const task = tasks.find((task) => task.id === taskId)
-    if (!task || completionRequests.current.has(taskId)) return
+    if (completionRequests.current.has(taskId)) return
     completionRequests.current.add(taskId)
     try {
+      const task = await getTask(taskId)
       const updatedTask = await updateTaskCompletion(taskId, !task.completed)
-      setTasks((currentTasks) => currentTasks.map((item) => item.id === taskId ? updatedTask : item))
-      if (updatedTask.completed) setLastCompletedId(taskId)
-      else setLastCompletedId((currentId) => currentId === taskId ? null : currentId)
+      setTasks(current => [...current.filter(item => item.id !== taskId), ...(!updatedTask.completed ? [updatedTask] : [])].sort((a, b) => a.id - b.id))
+      setCompletedCount(count => Math.max(0, count + (updatedTask.completed ? 1 : -1)))
+      if (updatedTask.completed) setLastCompletedTask(updatedTask)
+      else setLastCompletedTask(current => current?.id === taskId ? null : current)
+      setTaskRevision(value => value + 1)
     } finally {
       completionRequests.current.delete(taskId)
       await refreshAccount()
@@ -294,10 +303,11 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
       <div id="tasks-page" hidden={activePage !== 'tasks'}>
         {isLoading && <p role="status">Ładowanie zadań…</p>}
         {loadError && <p className="form-error" role="alert">{loadError}</p>}
-        {!isLoading && !loadError && sections.filter((section) => section.id !== 'completed' || section.tasks.length > 0).map((section) => (
+        {!isLoading && !loadError && sections.map((section) => (
           <TaskSection
             key={section.id}
             section={section}
+            history={section.id === 'completed' ? { count: completedCount, revision: taskRevision, onCount: setCompletedCount } : undefined}
             editingTaskId={editingTaskId}
             onToggleTask={toggleTask}
             onDelete={removeTask}
@@ -316,7 +326,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
             key={lastCompletedTask.id}
             task={lastCompletedTask}
             onUndo={toggleTask}
-            onDismiss={() => setLastCompletedId(null)}
+            onDismiss={() => setLastCompletedTask(null)}
           />
         )}
       </div>
@@ -327,7 +337,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         }} />
       </div>
       <div id="goals-page" hidden={activePage !== 'goals'}>
-        <GoalsPage tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask} />
+        <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}

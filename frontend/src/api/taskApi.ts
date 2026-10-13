@@ -1,6 +1,24 @@
 import type { Task } from '../types/Task'
 import { apiFetch } from './apiFetch'
 
+export async function getTaskOverview(signal?: AbortSignal): Promise<{ tasks: Task[]; completedCount: number }> {
+  const response = await apiFetch('/api/tasks/overview', { signal })
+  if (!response.ok) throw new Error('Nie udało się pobrać zadań.')
+  return response.json()
+}
+
+export async function getTaskHistory(page: number, signal?: AbortSignal): Promise<{ tasks: Task[]; total: number; hasMore: boolean }> {
+  const response = await apiFetch(`/api/tasks/history?page=${page}`, { signal })
+  if (!response.ok) throw new Error('Nie udało się pobrać historii zadań. Spróbuj ponownie.')
+  return response.json()
+}
+
+export async function getTask(id: number): Promise<Task> {
+  const response = await apiFetch(`/api/tasks/${id}`)
+  if (!response.ok) throw new Error('Nie udało się pobrać zadania. Odśwież stronę.')
+  return response.json()
+}
+
 async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
     const body: unknown = await response.json()

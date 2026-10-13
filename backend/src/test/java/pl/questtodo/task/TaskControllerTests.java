@@ -29,6 +29,40 @@ class TaskControllerTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void activeOverviewAndHistoryAreSeparatedPagedAndOwned() throws Exception {
+        jdbc.update("INSERT INTO users(id, name, points) VALUES (8765, 'Other', 0)");
+        try {
+            for (int i = 0; i < 25; i++) {
+                jdbc.update("INSERT INTO tasks(id,user_id,title,points,completed,completed_at) VALUES (?,?,?,1,true,?)",
+                        9000 + i, 1, "History " + i, java.sql.Timestamp.valueOf("2026-01-01 12:00:00"));
+            }
+            jdbc.update("INSERT INTO tasks(id,user_id,title,points,completed) VALUES (9999,8765,'Private',1,true)");
+            mockMvc.perform(get("/api/tasks/overview"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.completedCount").value(25))
+                    .andExpect(jsonPath("$.tasks[?(@.completed == true)]").isEmpty());
+            mockMvc.perform(get("/api/tasks/history"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(20))
+                    .andExpect(jsonPath("$.tasks[0].id").value(9024))
+                    .andExpect(jsonPath("$.total").value(25)).andExpect(jsonPath("$.hasMore").value(true));
+            mockMvc.perform(get("/api/tasks/history?page=1"))
+                    .andExpect(jsonPath("$.tasks.length()").value(5))
+                    .andExpect(jsonPath("$.tasks[0].id").value(9004))
+                    .andExpect(jsonPath("$.hasMore").value(false));
+            mockMvc.perform(get("/api/tasks/9999")).andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/tasks/history?page=-1")).andExpect(status().isBadRequest());
+            mockMvc.perform(patch("/api/tasks/9000/completion").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"completed\":false}")).andExpect(status().isOk());
+            mockMvc.perform(get("/api/tasks/overview")).andExpect(jsonPath("$.completedCount").value(24))
+                    .andExpect(jsonPath("$.tasks[?(@.id == 9000)].completed").value(org.hamcrest.Matchers.contains(false)));
+        } finally {
+            jdbc.update("DELETE FROM tasks WHERE id >= 9000");
+            jdbc.update("DELETE FROM users WHERE id = 8765");
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void completionDatePersistsAndUndoKeepsOriginalList(boolean inFocus) throws Exception {

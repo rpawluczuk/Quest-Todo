@@ -72,6 +72,17 @@ public class TaskController {
         taskService.deleteTask(id);
     }
 
+    @GetMapping("/overview")
+    public TaskService.Overview overview() { return taskService.overview(); }
+
+    @GetMapping("/history")
+    public TaskService.History history(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page) {
+        return taskService.history(page);
+    }
+
+    @GetMapping("/{id}")
+    public Task getTask(@PathVariable long id) { return taskService.getTask(id); }
+
     private static String normalizeDescription(String description) {
         if (description == null || description.isBlank()) return null;
         return description.strip();
