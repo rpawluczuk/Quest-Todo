@@ -142,7 +142,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
               } },
               { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
             ]} />
-            {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} {...taskProps} />}
+            {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
           </>}
         </li>)}</ul>}
     </>}

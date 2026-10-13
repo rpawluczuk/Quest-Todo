@@ -13,7 +13,7 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
   return [...current, ...next.filter(task => !known.has(task.id))]
 }
 
-export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggleTask }: GoalTasksProps & { goalId: number }) {
+export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask }: GoalTasksProps & { goalId: number; goalTitle: string }) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -22,17 +22,19 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
   const [active, setActive] = useState<Task[]>([])
-  const [activePage, setActivePage] = useState(0)
   const [activeHasMore, setActiveHasMore] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
   const [completed, setCompleted] = useState<Task[]>([])
-  const [completedPage, setCompletedPage] = useState(0)
   const [completedHasMore, setCompletedHasMore] = useState(false)
   const [pickerLoading, setPickerLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const sending = useRef(false)
   const searchInput = useRef<HTMLInputElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const [notice, setNotice] = useState('')
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -57,24 +59,30 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
     if (!pickerOpen) return
     const controller = new AbortController()
     const requests: Promise<void>[] = [getAvailableGoalTasks(goalId, false, query, 0, controller.signal).then(result => {
+      if (controller.signal.aborted) return
       setActive(result.tasks)
-      setActivePage(0)
       setActiveHasMore(result.hasMore)
     })]
     if (showCompleted) requests.push(getAvailableGoalTasks(goalId, true, query, 0, controller.signal).then(result => {
+      if (controller.signal.aborted) return
       setCompleted(result.tasks)
-      setCompletedPage(0)
       setCompletedHasMore(result.hasMore)
     }))
     Promise.all(requests).catch(failure => {
       if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Nie udało się pobrać zadań do przypięcia.')
     }).finally(() => { if (!controller.signal.aborted) setPickerLoading(false) })
     return () => controller.abort()
-  }, [goalId, pickerOpen, query, showCompleted])
+  }, [goalId, pickerOpen, query, showCompleted, retry])
 
-  useEffect(() => { if (pickerOpen) searchInput.current?.focus() }, [pickerOpen])
+  useEffect(() => {
+    if (!pickerOpen) return
+    const element = dialog.current
+    element?.showModal()
+    searchInput.current?.focus()
+    return () => element?.close()
+  }, [pickerOpen])
 
-  const disabled = busy || tasksDisabled
+  const disabled = busy || tasksDisabled || pageLoading
   const priorityTasks = active.filter(task => task.inFocus)
   const backlogTasks = active.filter(task => !task.inFocus)
 
@@ -89,6 +97,8 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
   }
 
   function closePicker() {
+    if (sending.current || busy) return
+    dialog.current?.close()
     setPickerOpen(false)
     setQueryInput('')
     setQuery('')
@@ -96,45 +106,51 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
     setActive([])
     setCompleted([])
     setError('')
-    trigger.current?.focus()
+    setNotice('')
+    requestAnimationFrame(() => trigger.current?.focus())
   }
 
   function attach(task: Task) {
     void run(async () => {
       await setGoalTask(goalId, task.id, true)
       setAttached(current => mergeTasks(current, [task]))
-      closePicker()
+      setNotice(`Przypięto: ${task.title}`)
     })
   }
 
   async function loadMore(isCompleted: boolean) {
     if (sending.current) return
     sending.current = true
-    setPickerLoading(true)
+    setPageLoading(true)
     setError('')
-    const nextPage = (isCompleted ? completedPage : activePage) + 1
+    const current = isCompleted ? completed : active
+    // Attached rows remain visible, but the server excludes them. Recalculate the
+    // offset from remaining candidates so attaching cannot skip a page of tasks.
+    const remaining = current.filter(task => !attached.some(item => item.id === task.id))
+    const nextPage = Math.floor(remaining.length / 20)
     try {
-      const result = await getAvailableGoalTasks(goalId, isCompleted, query, nextPage)
+      let result = await getAvailableGoalTasks(goalId, isCompleted, query, nextPage)
+      if (result.hasMore && result.tasks.every(task => current.some(item => item.id === task.id))) {
+        result = await getAvailableGoalTasks(goalId, isCompleted, query, nextPage + 1)
+      }
       if (isCompleted) {
         setCompleted(current => mergeTasks(current, result.tasks))
-        setCompletedPage(nextPage)
         setCompletedHasMore(result.hasMore)
       } else {
         setActive(current => mergeTasks(current, result.tasks))
-        setActivePage(nextPage)
         setActiveHasMore(result.hasMore)
       }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się pobrać kolejnych zadań.')
-    } finally { sending.current = false; setPickerLoading(false) }
+    } finally { sending.current = false; setPageLoading(false) }
   }
 
   function availableList(tasks: Task[]) {
     return <ul className="goal-available-list">{tasks.map(task => <li key={task.id} className="goal-available-task">
       <span className="goal-available-task-title">{task.title}</span>
-      <span className="task-points">{task.points} pkt</span>
-      <button type="button" className="secondary-button" disabled={disabled}
-        aria-label={`Przypnij zadanie: ${task.title}`} onClick={() => attach(task)}>Przypnij</button>
+      {attached.some(item => item.id === task.id) ? <span className="goal-picker-attached">✓ Przypięto</span> :
+        <button type="button" className="goal-picker-link" disabled={disabled || pickerLoading}
+          aria-label={`Przypnij zadanie: ${task.title}`} onClick={() => attach(task)}>Przypnij</button>}
     </li>)}</ul>
   }
 
@@ -160,12 +176,20 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
       </ul>}
       <button ref={trigger} type="button" className="secondary-button add-task-toggle" disabled={disabled || pickerOpen}
         onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>Przypnij zadanie</button>
-      {pickerOpen && <div className="task-form goal-task-picker">
+      {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog" aria-labelledby="goal-picker-title"
+        onCancel={event => { event.preventDefault(); closePicker() }}>
+        <div className="goal-picker-header">
+        <button type="button" className="password-dialog-close" aria-label="Zamknij" disabled={busy || pageLoading} onClick={closePicker}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+        <h2 id="goal-picker-title">Przypnij zadania</h2>
+        <p className="goal-picker-context">Do celu: {goalTitle}</p>
         <label className="form-field"><span>Wyszukaj zadanie</span>
           <input ref={searchInput} type="search" value={queryInput} disabled={disabled}
-            placeholder="Wpisz tytuł zadania" onChange={event => setQueryInput(event.target.value)} />
+            placeholder="Wpisz tytuł zadania" onChange={event => { setError(''); setQueryInput(event.target.value) }} />
         </label>
-
+        </div>
+        <div className="goal-picker-results" aria-busy={pickerLoading}>
         {!pickerLoading && priorityTasks.length > 0 && <section className="goal-available-section">
           <h4>Moje priorytety</h4>{availableList(priorityTasks)}
         </section>}
@@ -175,10 +199,11 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
         {!pickerLoading && active.length === 0 && <p className="empty-state">
           {query ? 'Nie znaleziono aktywnych zadań.' : 'Brak aktywnych zadań do przypięcia.'}
         </p>}
-        {activeHasMore && <button type="button" className="goal-picker-link" disabled={disabled}
+        {activeHasMore && <button type="button" className="goal-picker-link" disabled={disabled || pickerLoading}
           onClick={() => void loadMore(false)}>Pokaż więcej aktywnych</button>}
 
-        <button type="button" className="goal-picker-link" disabled={disabled} onClick={() => {
+        <button type="button" className="goal-picker-link" disabled={disabled || pickerLoading} onClick={() => {
+          setError('')
           setPickerLoading(true)
           setShowCompleted(current => !current)
           if (showCompleted) setCompleted([])
@@ -188,14 +213,22 @@ export default function GoalTasks({ goalId, taskRevision, tasksDisabled, onToggl
           {completed.length > 0 ? availableList(completed) : <p className="empty-state">
             {query ? 'Nie znaleziono wykonanych zadań.' : 'Brak wykonanych zadań do przypięcia.'}
           </p>}
-          {completedHasMore && <button type="button" className="goal-picker-link" disabled={disabled}
+          {completedHasMore && <button type="button" className="goal-picker-link" disabled={disabled || pickerLoading}
             onClick={() => void loadMore(true)}>Pokaż więcej wykonanych</button>}
         </section>}
-        {pickerLoading && <p role="status">Ładowanie zadań…</p>}
-        <button type="button" className="secondary-button goal-picker-close" disabled={busy} onClick={closePicker}>Zamknij</button>
-      </div>}
-      {busy && <p role="status">Zapisywanie…</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+        {(pickerLoading || pageLoading) && <p role="status">Ładowanie zadań…</p>}
+        </div>
+        <div className="goal-picker-footer">
+          <p className="goal-picker-notice" role="status">{busy ? 'Zapisywanie…' : notice}</p>
+          {error && <div><p className="form-error" role="alert">{error}</p>
+            <button type="button" className="goal-picker-link" disabled={busy || pickerLoading} onClick={() => {
+              setError(''); setPickerLoading(true); setRetry(value => value + 1)
+            }}>Odśwież listę</button></div>}
+          <button type="button" className="goal-picker-close" disabled={busy || pageLoading} onClick={closePicker}>Gotowe</button>
+        </div>
+      </dialog>}
+      {!pickerOpen && busy && <p role="status">Zapisywanie…</p>}
+      {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}
     </>}
   </div>
 }
