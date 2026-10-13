@@ -1570,8 +1570,8 @@
 
 .task-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto 40px;
-  grid-template-areas: 'title points primary menu' 'due due primary menu';
+  grid-template-columns: minmax(0, 1fr) auto 40px;
+  grid-template-areas: 'title primary menu' 'meta primary menu';
   align-items: center;
   gap: 4px 10px;
   min-width: 0;
@@ -1680,8 +1680,8 @@
 .goal-edit-form { grid-column: 1 / -1; width: 100%; margin-top: 0; }
 
 .task-card-focus {
-  grid-template-columns: 32px minmax(0, 1fr) auto 40px;
-  grid-template-areas: 'check title points menu' 'check due due menu';
+  grid-template-columns: 32px minmax(0, 1fr) 40px;
+  grid-template-areas: 'check title menu' 'check meta menu';
 }
 
 .task-card-title {
@@ -1773,11 +1773,18 @@
 }
 
 .task-card-points {
-  grid-area: points;
-  justify-self: start;
   padding: 2px 8px;
   font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.task-card-meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  min-width: 0;
 }
 
 .task-card-primary {
@@ -1819,7 +1826,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #666173;
+  color: #514b5d;
   font: inherit;
   font-size: 1.5rem;
   line-height: 1;
@@ -1934,14 +1941,34 @@
 
   .task-card {
     grid-template-columns: minmax(0, 1fr) auto 40px;
-    grid-template-areas: 'title title menu' 'due due menu' 'points primary primary';
+    grid-template-areas: 'title title menu' 'meta meta menu' 'primary primary primary';
     column-gap: 8px;
     row-gap: 2px;
   }
 
   .task-card-focus {
     grid-template-columns: 32px minmax(0, 1fr) 40px;
-    grid-template-areas: 'check title menu' 'check due menu' '. points .';
+    grid-template-areas: 'check title menu' 'check meta menu';
+  }
+
+  .task-card-backlog,
+  .task-card-completed {
+    grid-template-columns: minmax(0, 1fr) auto 32px;
+    grid-template-areas: 'title title menu' 'meta meta menu' 'primary primary primary';
+    column-gap: 6px;
+  }
+
+  .task-card-focus {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    grid-template-areas: 'check title menu' 'check meta menu';
+    column-gap: 6px;
+  }
+
+  .task-card-backlog > .task-menu,
+  .task-card-completed > .task-menu,
+  .task-card-focus > .task-menu {
+    /* Keep the 44px hit area while using the card's right padding. */
+    justify-self: start;
   }
 
   .goal-card {
@@ -2032,7 +2059,6 @@
 }
 
 .task-card-due {
-  grid-area: due;
   display: inline-flex;
   align-items: center;
   gap: 5px;
