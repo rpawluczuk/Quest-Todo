@@ -134,7 +134,9 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id}` : undefined}
               onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
-              <span>{goal.title}</span><span aria-hidden="true">{expandedId === goal.id ? '▴' : '▾'}</span>
+              <span>{goal.title}</span>
+              <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
             </button>
             <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
               { label: 'Edytuj', onSelect: () => {

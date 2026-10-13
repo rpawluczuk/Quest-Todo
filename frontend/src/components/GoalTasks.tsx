@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi'
 import type { Task } from '../types/Task'
+import TaskActionsMenu from './TaskActionsMenu'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -155,7 +156,7 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   }
 
   return <div className="goal-tasks" id={`goal-tasks-${goalId}`}>
-    <h3>Zadania</h3>
+    <h3>Zadania{!loading && !loadError && <> · {attached.length}</>}</h3>
     {loading ? <p role="status">Ładowanie zadań…</p> : loadError ?
       <p className="form-error" role="alert">{loadError}</p> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij zadania, które pomogą Ci osiągnąć ten cel.</p>}
@@ -165,17 +166,20 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
             aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
               await onToggleTask(task.id)
             })} />
-          <span className={task.completed ? 'goal-task-completed' : undefined}>{task.title}</span>
-          <span className="task-points">{task.points} pkt</span>
-          <button type="button" className="secondary-button" disabled={disabled}
-            aria-label={`Odepnij zadanie: ${task.title}`} onClick={() => void run(async () => {
+          <div className="goal-linked-task-body">
+            <span className={task.completed ? 'goal-task-completed' : undefined}>{task.title}</span>
+            <span className="task-points">{task.points} pkt</span>
+          </div>
+          <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
+            label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalTask(goalId, task.id, false)
               setAttached(current => current.filter(item => item.id !== task.id))
-            })}>Odepnij</button>
+            }),
+          }]} />
         </li>)}
       </ul>}
-      <button ref={trigger} type="button" className="secondary-button add-task-toggle" disabled={disabled || pickerOpen}
-        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>Przypnij zadanie</button>
+      <button ref={trigger} type="button" className="goal-picker-link goal-attach-trigger" disabled={disabled || pickerOpen}
+        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>+ Przypnij zadanie</button>
       {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog" aria-labelledby="goal-picker-title"
         onCancel={event => { event.preventDefault(); closePicker() }}>
         <div className="goal-picker-header">
