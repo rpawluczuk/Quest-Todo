@@ -47,7 +47,7 @@ async function updateTaskState(id: number, endpoint: string, body: object): Prom
   })
   if (!response.ok) {
     if (response.status === 404) throw new Error('Zadanie nie istnieje na serwerze. Odśwież stronę.')
-    throw new Error(`Nie udało się zapisać zmiany (HTTP ${response.status}).`)
+    throw new Error(await responseErrorMessage(response, 'Nie udało się zapisać zmiany'))
   }
   return response.json()
 }

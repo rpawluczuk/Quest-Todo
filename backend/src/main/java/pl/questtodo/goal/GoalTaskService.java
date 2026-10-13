@@ -18,29 +18,31 @@ public class GoalTaskService {
     private final TaskRepository tasks;
     private final GoalTaskRepository links;
     private final CurrentUserProvider currentUser;
+    private final pl.questtodo.task.TaskPriorityService priorities;
 
     public GoalTaskService(GoalRepository goals, TaskRepository tasks, GoalTaskRepository links,
-                           CurrentUserProvider currentUser) {
+                           CurrentUserProvider currentUser, pl.questtodo.task.TaskPriorityService priorities) {
         this.goals = goals;
         this.tasks = tasks;
         this.links = links;
         this.currentUser = currentUser;
+        this.priorities = priorities;
     }
 
-    @Transactional(readOnly = true)
     public List<Task> getTasks(long goalId) {
         long userId = currentUser.getUserId();
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        priorities.promoteForUser(userId);
         return links.findTasks(goalId, userId).stream().map(TaskEntity::toTask).toList();
     }
 
-    @Transactional(readOnly = true)
     public AvailableGoalTasks getAvailableTasks(long goalId, boolean completed, String query, int page, int size) {
         if (page < 0 || size < 1 || size > 20) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowe parametry stronicowania.");
         }
         long userId = currentUser.getUserId();
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        priorities.promoteForUser(userId);
         String normalizedQuery = query == null ? "" : query.strip();
         var result = links.findAvailableTasks(goalId, userId, completed, normalizedQuery,
                 PageRequest.of(page, size));

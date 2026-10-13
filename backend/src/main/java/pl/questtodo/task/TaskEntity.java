@@ -89,6 +89,14 @@ public class TaskEntity {
         this.inFocus = inFocus;
     }
 
+    public boolean requiresPriority(java.time.LocalDate cutoff) {
+        return !completed && dueDate != null && !dueDate.isAfter(cutoff);
+    }
+
+    public void promoteIfDue(java.time.LocalDate cutoff) {
+        if (requiresPriority(cutoff)) inFocus = true;
+    }
+
     public Task toTask() {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime);
     }

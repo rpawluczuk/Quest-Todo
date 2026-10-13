@@ -118,6 +118,42 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    const day = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(new Date())
+    let lastDay = day()
+    let refreshing = false
+    async function refreshPriorities() {
+      const today = day()
+      if (today === lastDay || refreshing || document.visibilityState === 'hidden') return
+      refreshing = true
+      try {
+        const overview = await getTaskOverview(controller.signal)
+        if (controller.signal.aborted) return
+        const promoted = new Map(overview.tasks.filter(task => task.inFocus).map(task => [task.id, task]))
+        // Preserve local edits and loaded history while applying automatic promotions.
+        setTasks(current => current.map(task => {
+          const remote = promoted.get(task.id)
+          return remote && !task.completed && !task.inFocus && task.dueDate === remote.dueDate
+            ? { ...task, inFocus: true } : task
+        }))
+        setTaskRevision(value => value + 1)
+        lastDay = today
+      } catch {
+        // Retry on the next tick or when the app becomes visible again.
+      } finally { refreshing = false }
+    }
+    const timer = window.setInterval(() => void refreshPriorities(), 60_000)
+    document.addEventListener('visibilitychange', refreshPriorities)
+    window.addEventListener('focus', refreshPriorities)
+    return () => {
+      controller.abort()
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', refreshPriorities)
+      window.removeEventListener('focus', refreshPriorities)
+    }
+  }, [])
+
   const focusTasks = tasks.filter((task) => !task.completed && task.inFocus)
   const backlogTasks = tasks.filter((task) => !task.completed && !task.inFocus)
   const completedTasks = tasks.filter((task) => task.completed).sort((a, b) =>

@@ -59,8 +59,8 @@ function TaskItem({
     setError('')
     try {
       await action(task.id)
-    } catch {
-      setError(errorMessage)
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : errorMessage)
     } finally {
       savingRef.current = false
       setIsSaving(false)
