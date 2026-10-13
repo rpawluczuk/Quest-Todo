@@ -8,8 +8,22 @@ export default function AutoResizeTextarea({ value, ...props }: Props) {
   useLayoutEffect(() => {
     const element = textarea.current
     if (!element) return
-    element.style.height = 'auto'
-    element.style.height = `${element.scrollHeight}px`
+
+    const resize = () => {
+      element.style.height = 'auto'
+      element.style.height = `${element.scrollHeight}px`
+    }
+
+    resize()
+    let width = element.clientWidth
+    const observer = new ResizeObserver(() => {
+      const nextWidth = element.clientWidth
+      if (nextWidth === width) return
+      width = nextWidth
+      resize()
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
   }, [value])
 
   return <textarea ref={textarea} value={value} rows={3} {...props} />
