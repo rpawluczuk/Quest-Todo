@@ -2,6 +2,29 @@ import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
 
+export type GoalHabit = { id: number; name: string }
+export type AvailableGoalHabits = { habits: GoalHabit[]; hasMore: boolean }
+
+export async function getGoalHabits(goalId: number, signal?: AbortSignal): Promise<GoalHabit[]> {
+  const response = await apiFetch(`/api/goals/${goalId}/habits`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać nawyków celu'))
+  return response.json()
+}
+
+export async function getAvailableGoalHabits(
+  goalId: number, query: string, page: number, signal?: AbortSignal,
+): Promise<AvailableGoalHabits> {
+  const params = new URLSearchParams({ query, page: String(page), size: '20' })
+  const response = await apiFetch(`/api/goals/${goalId}/habits/available?${params}`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać nawyków do przypięcia'))
+  return response.json()
+}
+
+export async function setGoalHabit(goalId: number, habitId: number, attached: boolean): Promise<void> {
+  const response = await apiFetch(`/api/goals/${goalId}/habits/${habitId}`, { method: attached ? 'PUT' : 'DELETE' })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zmienić przypięcia nawyku'))
+}
+
 export type AvailableGoalTasks = {
   tasks: Task[]
   hasMore: boolean

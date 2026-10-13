@@ -3,6 +3,7 @@ import { createGoal, deleteGoal, getGoals, updateGoal } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
+import GoalHabits from '../components/GoalHabits'
 
 function titleError(title: string): string {
   if (!title.trim()) return 'Podaj tytuł celu.'
@@ -132,7 +133,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
             </div>
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
-              aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id}` : undefined}
+              aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id}` : undefined}
               onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
               <span>{goal.title}</span>
               <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -145,6 +146,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
               { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
             ]} />
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
+            {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title} />}
           </>}
         </li>)}</ul>}
     </>}

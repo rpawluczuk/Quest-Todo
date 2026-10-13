@@ -1648,6 +1648,7 @@
 .goal-linked-task-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; padding-top: 9px; overflow-wrap: anywhere; }
 .goal-linked-task-due { color: #625b70; font-size: 0.8rem; line-height: 1.35; }
 .goal-linked-task > .task-menu { grid-area: auto; }
+.goal-linked-habit { grid-template-columns: minmax(0, 1fr) 40px; }
 .goal-tasks .goal-attach-trigger { margin-top: 8px; padding-inline: 0; font-size: 0.9rem; }
 .goal-attach-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
 .goal-linked-task button { min-height: 44px; }
