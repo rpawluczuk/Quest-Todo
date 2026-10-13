@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import AutoResizeTextarea from './AutoResizeTextarea'
 
@@ -18,7 +18,9 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   const [isSaving, setIsSaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
   const titleInput = useRef<HTMLInputElement>(null)
+  const dueDateInput = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
+  const dueTimeHintId = useId()
 
   useEffect(() => {
     if (isExpanded) titleInput.current?.focus()
@@ -76,7 +78,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   }
 
   return (
-    isExpanded ? <form className="task-form" onSubmit={handleSubmit}>
+    isExpanded ? <form className="task-form task-details-form" onSubmit={handleSubmit}>
       <label className="form-field">
         <span>Nazwa zadania</span>
         <input
@@ -102,25 +104,33 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
           required
         />
       </label>
-      <label className="form-field task-description-field">
-        <span>Opis / notatki (opcjonalnie)</span>
-        <AutoResizeTextarea value={description} disabled={isSaving} onChange={event => setDescription(event.target.value)} />
-      </label>
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
         <div className="task-due-inputs">
           <label className="form-field">
             <span>Data</span>
-            <input type="date" value={dueDate} disabled={isSaving}
+            <input ref={dueDateInput} type="date" value={dueDate} disabled={isSaving}
               onChange={event => { setDueDate(event.target.value); if (!event.target.value) setDueTime('') }} />
           </label>
           <label className="form-field">
             <span>Godzina (opcjonalnie)</span>
             <input type="time" value={dueTime} disabled={isSaving || !dueDate}
+              aria-describedby={!dueDate ? dueTimeHintId : undefined}
               onChange={event => setDueTime(event.target.value)} />
+            {!dueDate && <small id={dueTimeHintId} className="task-due-hint">Najpierw wybierz datę.</small>}
           </label>
         </div>
+        {dueDate && <button type="button" className="task-due-clear" disabled={isSaving}
+          onClick={() => {
+            setDueDate('')
+            setDueTime('')
+            requestAnimationFrame(() => dueDateInput.current?.focus())
+          }}>Usuń termin</button>}
       </fieldset>
+      <label className="form-field task-description-field">
+        <span>Opis / notatki (opcjonalnie)</span>
+        <AutoResizeTextarea value={description} disabled={isSaving} onChange={event => setDescription(event.target.value)} />
+      </label>
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
         <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>

@@ -1295,6 +1295,14 @@
   font-weight: 400;
 }
 
+.task-form.task-details-form {
+  grid-template-columns: minmax(0, 1fr) 90px;
+}
+
+.task-details-form .task-actions {
+  grid-column: 1 / -1;
+}
+
 .form-field textarea {
   width: 100%;
   min-width: 0;
@@ -1315,6 +1323,7 @@
 .task-description-field { grid-column: 1 / -1; }
 
 .task-due-field {
+  position: relative;
   grid-column: 1 / -1;
   min-width: 0;
   margin: 0;
@@ -1341,6 +1350,13 @@
   cursor: not-allowed;
 }
 
+.task-due-hint {
+  color: #777181;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
 
 .login-form button,
 .goal-picker-close,
@@ -1361,6 +1377,24 @@
 .goal-picker-close:hover,
 .task-form button:hover {
   background: var(--color-primary-hover);
+}
+
+.task-form .task-due-clear {
+  position: absolute;
+  top: -10px;
+  right: 0;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.task-form .task-due-clear:hover:not(:disabled) {
+  background: transparent;
+  text-decoration: underline;
 }
 
 .login-form input:focus-visible,
@@ -1984,12 +2018,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .task-form.task-details-form {
+    grid-template-columns: minmax(0, 1fr) 90px;
+  }
+
   .task-form.habit-form {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .task-due-inputs {
-    grid-template-columns: minmax(0, 1fr);
+  .task-details-form .task-due-inputs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .quest-app {
@@ -2056,6 +2094,13 @@
     padding: 14px 12px;
   }
 
+}
+
+@media (max-width: 360px) {
+  .task-form.task-details-form,
+  .task-details-form .task-due-inputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .task-card-due {
