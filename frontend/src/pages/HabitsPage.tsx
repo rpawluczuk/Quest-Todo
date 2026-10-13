@@ -5,7 +5,7 @@ import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
-import { hasReachedWeeklyTarget } from '../habitProgress'
+import { hasReachedWeeklyTarget, sortHabitsForDay } from '../habitProgress'
 import type { Habit, HabitAward, HabitCompletionResult } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
 
@@ -85,6 +85,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(() => new Set())
+  const sortedHabits = sortHabitsForDay(habits)
 
   function toggleDescription(id: number) {
     setExpandedDescriptions(current => {
@@ -205,7 +206,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
         </div>
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {habits.length > 0 && <ul className="task-list">
-          {habits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
+          {sortedHabits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
               onSave={(name, targetDays, points, description) => save(habit.id, name, targetDays, points, description)} onCancel={() => setEditingId(null)} /> : <>
