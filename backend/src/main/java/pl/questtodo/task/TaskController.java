@@ -38,16 +38,19 @@ public class TaskController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTask(@Valid @RequestBody CreateTaskRequest request) {
+        validateDueDate(request.dueDate(), request.dueTime());
         String title = request.title().strip();
         int points = request.points().intValueExact();
-        return taskService.createTask(title, points, normalizeDescription(request.description()));
+        return taskService.createTask(title, points, normalizeDescription(request.description()), request.dueDate(), request.dueTime());
     }
 
     @PatchMapping("/{id}")
     public Task updateTask(@PathVariable long id, @Valid @RequestBody UpdateTaskRequest request) {
+        validateDueDate(request.dueDate(), request.dueTime());
         String title = request.title().strip();
         int points = request.points().intValueExact();
-        return taskService.updateTask(id, title, points, normalizeDescription(request.description()), request.description() != null);
+        return taskService.updateTask(id, title, points, normalizeDescription(request.description()), request.description() != null,
+                request.dueDate(), request.dueTime(), Boolean.TRUE.equals(request.clearDueDate()) || request.dueDate() != null || request.dueTime() != null);
     }
 
     @PatchMapping("/{id}/completion")
@@ -86,5 +89,11 @@ public class TaskController {
     private static String normalizeDescription(String description) {
         if (description == null || description.isBlank()) return null;
         return description.strip();
+    }
+
+    private static void validateDueDate(java.time.LocalDate dueDate, java.time.LocalTime dueTime) {
+        if (dueTime != null && dueDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybierz datę terminu przed ustawieniem godziny.");
+        }
     }
 }

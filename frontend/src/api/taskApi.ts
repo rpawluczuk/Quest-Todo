@@ -60,11 +60,13 @@ export function updateTaskFocus(id: number, inFocus: boolean): Promise<Task> {
   return updateTaskState(id, 'focus', { inFocus })
 }
 
-export async function updateTask(id: number, title: string, points: number, description: string): Promise<Task> {
+export async function updateTask(id: number, title: string, points: number, description: string,
+  dueDate: string, dueTime: string): Promise<Task> {
   const response = await apiFetch(`/api/tasks/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, points, description }),
+    body: JSON.stringify({ title, points, description, dueDate: dueDate || null,
+      dueTime: dueDate && dueTime ? dueTime : null, clearDueDate: !dueDate }),
   })
 
   if (!response.ok) {
@@ -76,11 +78,12 @@ export async function updateTask(id: number, title: string, points: number, desc
   return response.json()
 }
 
-export async function createTask(title: string, points: number, description: string): Promise<Task> {
+export async function createTask(title: string, points: number, description: string,
+  dueDate: string, dueTime: string): Promise<Task> {
   const response = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, points, description }),
+    body: JSON.stringify({ title, points, description, dueDate: dueDate || null, dueTime: dueDate && dueTime ? dueTime : null }),
   })
 
   if (!response.ok) {

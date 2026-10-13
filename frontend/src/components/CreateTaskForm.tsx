@@ -3,7 +3,7 @@ import type { SubmitEvent } from 'react'
 import AutoResizeTextarea from './AutoResizeTextarea'
 
 type CreateTaskFormProps = {
-  readonly onAddTask: (title: string, points: number, description: string) => Promise<void>
+  readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
   readonly isFirstTask?: boolean
 }
 
@@ -12,6 +12,8 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
   const [description, setDescription] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [dueTime, setDueTime] = useState('')
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
@@ -28,6 +30,8 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
     setNewTitle('')
     setNewPoints('10')
     setDescription('')
+    setDueDate('')
+    setDueTime('')
     setFormError('')
     setIsExpanded(false)
   }
@@ -57,10 +61,12 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
     setIsSaving(true)
     setFormError('')
     try {
-      await onAddTask(title, taskPoints, description.trim())
+      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime)
       setNewTitle('')
       setNewPoints('10')
       setDescription('')
+      setDueDate('')
+      setDueTime('')
       setIsExpanded(false)
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
@@ -100,6 +106,21 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
         <span>Opis / notatki (opcjonalnie)</span>
         <AutoResizeTextarea value={description} disabled={isSaving} onChange={event => setDescription(event.target.value)} />
       </label>
+      <fieldset className="task-due-field">
+        <legend>Termin (opcjonalnie)</legend>
+        <div className="task-due-inputs">
+          <label className="form-field">
+            <span>Data</span>
+            <input type="date" value={dueDate} disabled={isSaving}
+              onChange={event => { setDueDate(event.target.value); if (!event.target.value) setDueTime('') }} />
+          </label>
+          <label className="form-field">
+            <span>Godzina (opcjonalnie)</span>
+            <input type="time" value={dueTime} disabled={isSaving || !dueDate}
+              onChange={event => setDueTime(event.target.value)} />
+          </label>
+        </div>
+      </fieldset>
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
         <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>

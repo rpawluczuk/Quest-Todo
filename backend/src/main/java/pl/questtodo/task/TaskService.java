@@ -1,6 +1,8 @@
 package pl.questtodo.task;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import pl.questtodo.user.CurrentUserProvider;
 import pl.questtodo.user.UserService;
 
@@ -29,8 +31,8 @@ public class TaskService {
                 .toList();
     }
 
-    public Task createTask(String title, int points, String description) {
-        return taskRepository.save(new TaskEntity(title, points, description, userService.currentReference())).toTask();
+    public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime) {
+        return taskRepository.save(new TaskEntity(title, points, description, dueDate, dueTime, userService.currentReference())).toTask();
     }
 
     public record Overview(List<Task> tasks, long completedCount) {}
@@ -71,12 +73,13 @@ public class TaskService {
         return task.toTask();
     }
 
-    public Task updateTask(long id, String title, int points, String description, boolean updateDescription) {
+    public Task updateTask(long id, String title, int points, String description, boolean updateDescription,
+                           LocalDate dueDate, LocalTime dueTime, boolean updateDueDate) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie moÅ¼na edytowaÄ‡ wykonanego zadania.");
         }
-        task.updateDetails(title, points, description, updateDescription);
+        task.updateDetails(title, points, description, updateDescription, dueDate, dueTime, updateDueDate);
         return task.toTask();
     }
 

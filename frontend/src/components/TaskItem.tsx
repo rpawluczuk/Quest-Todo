@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
+import { getTaskDuePresentation } from '../taskDue'
 
 type TaskItemProps = {
   readonly task: Task
@@ -10,7 +11,7 @@ type TaskItemProps = {
   readonly onToggleTask: (taskId: number) => Promise<void>
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
-  readonly onSave: (title: string, points: number, description: string) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
 }
@@ -37,6 +38,7 @@ function TaskItem({
   const wasEditing = useRef(isEditing)
   const disabled = isAnyTaskEditing || isSaving
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
+  const due = getTaskDuePresentation(task)
 
   useEffect(() => {
     if (wasEditing.current && !isEditing) {
@@ -69,8 +71,8 @@ function TaskItem({
     if (task.description && !disabled) setDescriptionExpanded(expanded => !expanded)
   }
 
-  async function saveDetails(title: string, points: number, description: string) {
-    await onSave(title, points, description)
+  async function saveDetails(title: string, points: number, description: string, dueDate: string, dueTime: string) {
+    await onSave(title, points, description, dueDate, dueTime)
     setDescriptionExpanded(false)
   }
 
@@ -105,6 +107,13 @@ function TaskItem({
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
           </button> : <span className="task-card-title"><span>{task.title}</span></span>}
+          {due && <span className={`task-card-due${due.overdue ? ' task-card-due-overdue' : ''}`}>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <rect x="3" y="4.5" width="14" height="12.5" rx="2" />
+              <path d="M6.5 2.5v4M13.5 2.5v4M3 8h14" />
+            </svg>
+            <span>{due.label}</span>
+          </span>}
           <span className="task-points task-card-points">{task.points} pkt</span>
           {variant === 'backlog' && (
             <button

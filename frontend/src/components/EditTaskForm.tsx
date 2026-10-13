@@ -5,7 +5,7 @@ import AutoResizeTextarea from './AutoResizeTextarea'
 
 type EditTaskFormProps = {
   readonly task: Task
-  readonly onSave: (title: string, points: number, description: string) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
   readonly onCancel: () => void
 }
 
@@ -13,6 +13,8 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editTitle, setEditTitle] = useState(task.title)
   const [editPoints, setEditPoints] = useState(String(task.points))
   const [editDescription, setEditDescription] = useState(task.description ?? '')
+  const [editDueDate, setEditDueDate] = useState(task.dueDate ?? '')
+  const [editDueTime, setEditDueTime] = useState(task.dueTime?.slice(0, 5) ?? '')
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -43,7 +45,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
     setIsSaving(true)
     setEditError('')
     try {
-      await onSave(updatedTitle, taskPoints, editDescription.trim())
+      await onSave(updatedTitle, taskPoints, editDescription.trim(), editDueDate, editDueTime)
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'Nie udało się zapisać zmian. Spróbuj ponownie.')
     } finally {
@@ -82,6 +84,21 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
         <AutoResizeTextarea value={editDescription} disabled={isSaving}
           onChange={event => setEditDescription(event.target.value)} />
       </label>
+      <fieldset className="task-due-field">
+        <legend>Termin (opcjonalnie)</legend>
+        <div className="task-due-inputs">
+          <label className="form-field">
+            <span>Data</span>
+            <input type="date" value={editDueDate} disabled={isSaving}
+              onChange={event => { setEditDueDate(event.target.value); if (!event.target.value) setEditDueTime('') }} />
+          </label>
+          <label className="form-field">
+            <span>Godzina (opcjonalnie)</span>
+            <input type="time" value={editDueTime} disabled={isSaving || !editDueDate}
+              onChange={event => setEditDueTime(event.target.value)} />
+          </label>
+        </div>
+      </fieldset>
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Zapisz'}</button>
         <button type="button" className="secondary-button" onClick={onCancel} disabled={isSaving}>

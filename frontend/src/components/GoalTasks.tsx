@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi'
 import type { Task } from '../types/Task'
 import TaskActionsMenu from './TaskActionsMenu'
+import { getTaskDuePresentation } from '../taskDue'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -161,13 +162,16 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
       <p className="form-error" role="alert">{loadError}</p> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij zadania, które pomogą Ci osiągnąć ten cel.</p>}
       {attached.length > 0 && <ul className="task-list goal-linked-tasks">
-        {attached.map(task => <li key={task.id} className="goal-linked-task">
+        {attached.map(task => {
+          const due = getTaskDuePresentation(task)
+          return <li key={task.id} className="goal-linked-task">
           <input type="checkbox" checked={task.completed} disabled={disabled}
             aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
               await onToggleTask(task.id)
             })} />
           <div className="goal-linked-task-body">
             <span className={task.completed ? 'goal-task-completed' : undefined}>{task.title}</span>
+            {due && <span className={`goal-linked-task-due${due.overdue ? ' task-card-due-overdue' : ''}`}>{due.label}</span>}
             <span className="task-points">{task.points} pkt</span>
           </div>
           <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
@@ -176,7 +180,7 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
               setAttached(current => current.filter(item => item.id !== task.id))
             }),
           }]} />
-        </li>)}
+        </li>})}
       </ul>}
       <button ref={trigger} type="button" className="goal-picker-link goal-attach-trigger" disabled={disabled || pickerOpen}
         onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>+ Przypnij zadanie</button>

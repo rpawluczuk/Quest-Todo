@@ -1,6 +1,8 @@
 package pl.questtodo.task.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
@@ -16,5 +18,7 @@ public record CreateTaskRequest(
     @Max(value = 1000, message = "Maksymalna liczba punktów za zadanie to 1000.")
     @Digits(integer = 5, fraction = 0, message = "Punkty muszą być liczbą całkowitą.")
     BigDecimal points,
-    String description) {
+    String description,
+    LocalDate dueDate,
+    LocalTime dueTime) {
 }

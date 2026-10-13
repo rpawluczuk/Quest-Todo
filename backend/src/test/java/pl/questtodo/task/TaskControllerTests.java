@@ -248,6 +248,44 @@ class TaskControllerTests {
     }
 
     @Test
+    void createsUpdatesClearsAndReadsOptionalDueDateAndTime() throws Exception {
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Wizyta\",\"points\":10,\"dueDate\":\"2026-10-20\",\"dueTime\":\"14:30\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.dueDate").value("2026-10-20"))
+                .andExpect(jsonPath("$.dueTime").value("14:30:00"));
+
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Wizyta później\",\"points\":10,\"dueDate\":\"2026-10-21\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dueDate").value("2026-10-21"))
+                .andExpect(jsonPath("$.dueTime").isEmpty());
+
+        // Brak pól terminu w starszym żądaniu PATCH nie usuwa istniejącej daty.
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Wizyta bez zmiany terminu\",\"points\":10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dueDate").value("2026-10-21"));
+
+        mockMvc.perform(patch("/api/tasks/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Wizyta bez terminu\",\"points\":10,\"clearDueDate\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dueDate").isEmpty())
+                .andExpect(jsonPath("$.dueTime").isEmpty());
+
+        mockMvc.perform(get("/api/tasks/4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dueDate").isEmpty());
+    }
+
+    @Test
+    void rejectsDueTimeWithoutDate() throws Exception {
+        mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Wizyta\",\"points\":10,\"dueTime\":\"14:30\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void acceptsMaximumPointsAndRejectsValueAboveMaximum() throws Exception {
         mockMvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Maksymalne punkty\",\"points\":1000}"))

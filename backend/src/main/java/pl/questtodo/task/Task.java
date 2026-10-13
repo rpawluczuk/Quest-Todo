@@ -1,6 +1,8 @@
 package pl.questtodo.task;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public record Task(
         long id,
@@ -9,6 +11,8 @@ public record Task(
         boolean completed,
         boolean inFocus,
         Instant completedAt,
-        String description
+        String description,
+        LocalDate dueDate,
+        LocalTime dueTime
 ) {
 }

@@ -1,6 +1,8 @@
 package pl.questtodo.task;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,14 +43,22 @@ public class TaskEntity {
     @Column(name = "in_focus", nullable = false)
     private boolean inFocus;
 
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    @Column(name = "due_time")
+    private LocalTime dueTime;
+
     protected TaskEntity() {
     }
 
-    public TaskEntity(String title, int points, String description, UserEntity user) {
+    public TaskEntity(String title, int points, String description, LocalDate dueDate, LocalTime dueTime, UserEntity user) {
         this.user = user;
         this.title = title;
         this.points = points;
         this.description = description;
+        this.dueDate = dueDate;
+        this.dueTime = dueTime;
     }
 
     public boolean isCompleted() {
@@ -57,10 +67,15 @@ public class TaskEntity {
 
     public int getPoints() { return points; }
 
-    public void updateDetails(String title, int points, String description, boolean updateDescription) {
+    public void updateDetails(String title, int points, String description, boolean updateDescription,
+                              LocalDate dueDate, LocalTime dueTime, boolean updateDueDate) {
         this.title = title;
         this.points = points;
         if (updateDescription) this.description = description;
+        if (updateDueDate) {
+            this.dueDate = dueDate;
+            this.dueTime = dueTime;
+        }
     }
 
     public void setCompleted(boolean completed) {
@@ -75,6 +90,6 @@ public class TaskEntity {
     }
 
     public Task toTask() {
-        return new Task(id, title, points, completed, inFocus, completedAt, description);
+        return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime);
     }
 }

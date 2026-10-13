@@ -6,4 +6,6 @@ export type Task = {
   completed: boolean
   completedAt: string | null
   inFocus: boolean
+  dueDate: string | null
+  dueTime: string | null
 }
