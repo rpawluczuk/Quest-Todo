@@ -1,4 +1,6 @@
 export type Goal = {
   id: number
   title: string
+  currentState: string | null
+  desiredOutcome: string | null
 }

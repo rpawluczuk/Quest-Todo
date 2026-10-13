@@ -1615,6 +1615,22 @@
 }
 
 .goal-form { grid-template-columns: minmax(0, 1fr) auto; }
+.goal-form .task-actions,
+.goal-definition-field,
+.goal-definition-toggle { grid-column: 1 / -1; }
+.goal-definition-toggle {
+  justify-self: start;
+  min-height: 44px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.goal-definition-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.field-optional { color: #767080; font-weight: 400; }
 .goal-list { margin-top: 24px; }
 .goal-card {
   grid-template-columns: minmax(0, 1fr) 40px;
@@ -1639,6 +1655,18 @@
 .goal-details-toggle { font-size: 18px; font-weight: 650; }
 .goal-chevron { width: 20px; height: 20px; flex-shrink: 0; color: #625b70; }
 .goal-details-toggle[aria-expanded='true'] .goal-chevron { transform: rotate(180deg); }
+.goal-definition {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 0;
+  border-top: 1px solid #e9e5ef;
+}
+.goal-definition section { min-width: 0; padding: 12px; border-radius: 10px; background: var(--color-primary-soft); }
+.goal-definition h3 { margin: 0 0 6px; color: #625b70; font-size: 0.8rem; font-weight: 600; }
+.goal-definition p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 10px 0 0; border-top: 1px solid #e9e5ef; }
 .goal-tasks h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: #625b70; }
 .goal-tasks .empty-state { margin-top: 12px; }
@@ -2028,6 +2056,7 @@
 }
 
 @media (max-width: 600px) {
+  .goal-definition { grid-template-columns: minmax(0, 1fr); }
   .reward-card {
     grid-template-columns: minmax(0, 1fr) auto 40px;
     grid-template-areas: 'title title menu' 'points buy buy';

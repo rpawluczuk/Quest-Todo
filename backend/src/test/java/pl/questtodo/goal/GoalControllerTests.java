@@ -38,8 +38,12 @@ class GoalControllerTests {
     @Test
     void createsListsUpdatesAndDeletesOwnGoal() throws Exception {
         mvc.perform(post("/api/goals").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"  Przebiec 5 km  \"}"))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.title").value("Przebiec 5 km"));
+                        .content("{\"title\":\"  Przebiec 5 km  \",\"currentState\":\"  Biegam kilometr  \","
+                                + "\"desiredOutcome\":\"  Przebiegam pięć kilometrów  \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Przebiec 5 km"))
+                .andExpect(jsonPath("$.currentState").value("Biegam kilometr"))
+                .andExpect(jsonPath("$.desiredOutcome").value("Przebiegam pięć kilometrów"));
         long id = jdbc.queryForObject("SELECT id FROM goals WHERE user_id = 1", Long.class);
         mvc.perform(get("/api/goals"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
@@ -47,8 +51,11 @@ class GoalControllerTests {
         mvc.perform(get("/api/goals/{id}", id))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Przebiec 5 km"));
         mvc.perform(put("/api/goals/{id}", id).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"  Nowy cel  \"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Nowy cel"));
+                        .content("{\"title\":\"  Nowy cel  \",\"currentState\":\"   \","
+                                + "\"desiredOutcome\":\"Nowy efekt\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Nowy cel"))
+                .andExpect(jsonPath("$.currentState").doesNotExist())
+                .andExpect(jsonPath("$.desiredOutcome").value("Nowy efekt"));
         mvc.perform(delete("/api/goals/{id}", id)).andExpect(status().isNoContent());
         mvc.perform(get("/api/goals")).andExpect(jsonPath("$.length()").value(0));
     }
@@ -58,6 +65,17 @@ class GoalControllerTests {
         for (String title : new String[]{"", "   ", "x".repeat(121)}) {
             mvc.perform(post("/api/goals").contentType(MediaType.APPLICATION_JSON)
                             .content("{\"title\":\"" + title + "\"}"))
+                    .andExpect(status().isBadRequest());
+        }
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goals", Integer.class));
+    }
+
+    @Test
+    void rejectsGoalDefinitionFieldsLongerThanLimit() throws Exception {
+        String tooLong = "x".repeat(2001);
+        for (String field : new String[]{"currentState", "desiredOutcome"}) {
+            mvc.perform(post("/api/goals").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"Cel\",\"" + field + "\":\"" + tooLong + "\"}"))
                     .andExpect(status().isBadRequest());
         }
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goals", Integer.class));

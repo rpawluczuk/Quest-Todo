@@ -29,12 +29,12 @@ public class GoalController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Goal createGoal(@Valid @RequestBody GoalRequest request) {
-        return goals.createGoal(request.title().strip());
+        return goals.createGoal(request.title().strip(), request.currentState(), request.desiredOutcome());
     }
 
     @PutMapping("/{id}")
     public Goal updateGoal(@PathVariable long id, @Valid @RequestBody GoalRequest request) {
-        return goals.updateGoal(id, request.title().strip());
+        return goals.updateGoal(id, request.title().strip(), request.currentState(), request.desiredOutcome());
     }
 
     @DeleteMapping("/{id}")

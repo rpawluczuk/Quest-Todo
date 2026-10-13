@@ -4,10 +4,17 @@ import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 import GoalHabits from '../components/GoalHabits'
+import AutoResizeTextarea from '../components/AutoResizeTextarea'
 
 function titleError(title: string): string {
   if (!title.trim()) return 'Podaj tytuł celu.'
   if (title.length > 120) return 'Tytuł celu może mieć maksymalnie 120 znaków.'
+  return ''
+}
+
+function definitionError(currentState: string, desiredOutcome: string): string {
+  if (currentState.length > 2000) return 'Stan obecny może mieć maksymalnie 2000 znaków.'
+  if (desiredOutcome.length > 2000) return 'Zamierzony efekt może mieć maksymalnie 2000 znaków.'
   return ''
 }
 
@@ -18,8 +25,13 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
   const [loadError, setLoadError] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState('')
+  const [currentState, setCurrentState] = useState('')
+  const [desiredOutcome, setDesiredOutcome] = useState('')
+  const [createDetailsOpen, setCreateDetailsOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const [editCurrentState, setEditCurrentState] = useState('')
+  const [editDesiredOutcome, setEditDesiredOutcome] = useState('')
   const [saving, setSaving] = useState(false)
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -41,15 +53,18 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
   async function add(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current) return
-    const validation = titleError(title)
+    const validation = titleError(title) || definitionError(currentState, desiredOutcome)
     if (validation) { setError(validation); return }
     sending.current = true
     setSaving(true)
     setError('')
     try {
-      const goal = await createGoal(title.trim())
+      const goal = await createGoal(title.trim(), currentState, desiredOutcome)
       setGoals(current => [...current, goal])
       setTitle('')
+      setCurrentState('')
+      setDesiredOutcome('')
+      setCreateDetailsOpen(false)
       setCreateOpen(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać celu.')
@@ -59,13 +74,13 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
   async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current || editingId === null) return
-    const validation = titleError(editTitle)
+    const validation = titleError(editTitle) || definitionError(editCurrentState, editDesiredOutcome)
     if (validation) { setError(validation); return }
     sending.current = true
     setPendingId(editingId)
     setError('')
     try {
-      const updated = await updateGoal(editingId, editTitle.trim())
+      const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome)
       setGoals(current => current.map(goal => goal.id === updated.id ? updated : goal))
       setEditingId(null)
     } catch (failure) {
@@ -109,10 +124,23 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
         <label className="form-field"><span>Tytuł celu</span>
           <input ref={createInput} value={title} maxLength={120} required disabled={saving}
             onChange={event => setTitle(event.target.value)} placeholder="Np. Przebiec 5 km" /></label>
+        {!createDetailsOpen && <button type="button" className="goal-definition-toggle" disabled={saving}
+          onClick={() => setCreateDetailsOpen(true)}>+ Doprecyzuj cel</button>}
+        {createDetailsOpen && <>
+          <label className="form-field goal-definition-field"><span>Stan obecny <span className="field-optional">(opcjonalnie)</span></span>
+            <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
+              placeholder="Opisz punkt wyjścia i obecną sytuację…"
+              onChange={event => setCurrentState(event.target.value)} /></label>
+          <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
+            <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
+              placeholder="Opisz rezultat, który chcesz osiągnąć…"
+              onChange={event => setDesiredOutcome(event.target.value)} /></label>
+        </>}
         <div className="task-actions">
           <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj cel'}</button>
           <button type="button" className="secondary-button" disabled={saving} onClick={() => {
-            setCreateOpen(false); setTitle(''); setError('')
+            setCreateOpen(false); setTitle(''); setCurrentState(''); setDesiredOutcome('')
+            setCreateDetailsOpen(false); setError('')
           }}>Anuluj</button>
         </div>
         </form> : <button type="button" className={`${goals.length === 0 ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`} onClick={() => {
@@ -125,6 +153,14 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
             <label className="form-field"><span>Tytuł celu</span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
                 onChange={event => setEditTitle(event.target.value)} /></label>
+            <label className="form-field goal-definition-field"><span>Stan obecny <span className="field-optional">(opcjonalnie)</span></span>
+              <AutoResizeTextarea value={editCurrentState} maxLength={2000} disabled={pendingId !== null}
+                placeholder="Opisz punkt wyjścia i obecną sytuację…"
+                onChange={event => setEditCurrentState(event.target.value)} /></label>
+            <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
+              <AutoResizeTextarea value={editDesiredOutcome} maxLength={2000} disabled={pendingId !== null}
+                placeholder="Opisz rezultat, który chcesz osiągnąć…"
+                onChange={event => setEditDesiredOutcome(event.target.value)} /></label>
             <div className="task-actions">
               <button type="submit" disabled={pendingId !== null}>{pendingId === goal.id ? 'Zapisywanie…' : 'Zapisz'}</button>
               <button type="button" className="secondary-button" disabled={pendingId !== null} onClick={() => {
@@ -141,10 +177,16 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
             </button>
             <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
               { label: 'Edytuj', onSelect: () => {
-                setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title); setError('')
+                setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
+                setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
               } },
               { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
             ]} />
+            {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) &&
+              <div className="goal-definition" id={`goal-definition-${goal.id}`}>
+                {goal.currentState && <section><h3>Stan obecny</h3><p>{goal.currentState}</p></section>}
+                {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><p>{goal.desiredOutcome}</p></section>}
+              </div>}
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
             {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title} />}
           </>}

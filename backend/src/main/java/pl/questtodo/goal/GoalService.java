@@ -30,13 +30,14 @@ public class GoalService {
     @Transactional(readOnly = true)
     public Goal getGoal(long id) { return findOwned(id).toGoal(); }
 
-    public Goal createGoal(String title) {
-        return goals.save(new GoalEntity(title, users.currentReference())).toGoal();
+    public Goal createGoal(String title, String currentState, String desiredOutcome) {
+        return goals.save(new GoalEntity(title, optionalText(currentState), optionalText(desiredOutcome),
+                users.currentReference())).toGoal();
     }
 
-    public Goal updateGoal(long id, String title) {
+    public Goal updateGoal(long id, String title, String currentState, String desiredOutcome) {
         GoalEntity goal = findOwned(id);
-        goal.rename(title);
+        goal.updateDetails(title, optionalText(currentState), optionalText(desiredOutcome));
         return goal.toGoal();
     }
 
@@ -47,5 +48,10 @@ public class GoalService {
     private GoalEntity findOwned(long id) {
         return goals.findByIdAndUserId(id, currentUser.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje."));
+    }
+
+    private static String optionalText(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.strip();
     }
 }

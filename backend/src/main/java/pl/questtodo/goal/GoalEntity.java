@@ -25,14 +25,26 @@ public class GoalEntity {
     @Column(nullable = false, length = 120)
     private String title;
 
+    @Column(name = "current_state", columnDefinition = "text")
+    private String currentState;
+
+    @Column(name = "desired_outcome", columnDefinition = "text")
+    private String desiredOutcome;
+
     protected GoalEntity() {}
 
-    public GoalEntity(String title, UserEntity user) {
+    public GoalEntity(String title, String currentState, String desiredOutcome, UserEntity user) {
         this.title = title;
+        this.currentState = currentState;
+        this.desiredOutcome = desiredOutcome;
         this.user = user;
     }
 
-    public void rename(String title) { this.title = title; }
+    public void updateDetails(String title, String currentState, String desiredOutcome) {
+        this.title = title;
+        this.currentState = currentState;
+        this.desiredOutcome = desiredOutcome;
+    }
 
-    public Goal toGoal() { return new Goal(id, title); }
+    public Goal toGoal() { return new Goal(id, title, currentState, desiredOutcome); }
 }
