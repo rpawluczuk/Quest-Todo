@@ -5,7 +5,7 @@ import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
-import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, type HabitDayGroup } from '../habitProgress'
+import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
 import { canToggleHabit, habitEndDateLabel } from '../habitSchedule'
 import type { Habit, HabitAward, HabitCompletionResult, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
@@ -157,15 +157,18 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
 
   async function toggleCompletion(habit: Habit) {
     if (busy || savingCompletion.current || !canToggleHabit(habit)) return
+    const completed = !habit.completed
     savingCompletion.current = true
     onBusy(true)
     setSavingCompletionId(habit.id)
     setCompletionError('')
+    setHabits(current => current.map(item => item.id === habit.id ? withOptimisticCompletion(item, completed) : item))
     try {
-      const result = await setHabitCompletion(habit.id, date, !habit.completed)
+      const result = await setHabitCompletion(habit.id, date, completed)
       setHabits(current => current.map(item => item.id === habit.id ? result.habit : item))
       onCompletionSaved(result)
     } catch (failure) {
+      setHabits(current => current.map(item => item.id === habit.id ? habit : item))
       setCompletionError(failure instanceof Error ? failure.message : 'Nie udało się zapisać wykonania nawyku.')
     } finally {
       savingCompletion.current = false
@@ -214,7 +217,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
             && (group.dayGroup === undefined || habitDayGroup(habit) === group.dayGroup)))
           if (!items.length) return null
           const list = <ul className="task-list habit-group-list">
-          {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
+          {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${hasReachedWeeklyTarget(habit) ? ' habit-card-achieved' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
               onSave={(name, targetDays, points, description, schedule) => save(habit.id, name, targetDays, points, description, schedule)} onCancel={() => setEditingId(null)} /> : <>
@@ -234,17 +237,21 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                     stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
                     <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
                   </svg>
-                  <svg className={`habit-note-chevron${expandedDescriptions.has(habit.id) ? ' habit-note-chevron-expanded' : ''}`}
-                    viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="m6 8 4 4 4-4" />
-                  </svg>
                 </button> : <span className="task-title">{habit.name}</span>}
-                <small className="habit-target-hint">
+              </div>
+              <div className="habit-meta">
+                <small className="habit-frequency">
                   {habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}
-                  {habit.completionLimit !== null && <> · {habit.totalCompletions}/{habit.completionLimit} łącznie</>}
                 </small>
-                {habit.status === 'UPCOMING' && <small className="habit-target-hint">Od {displayDate.format(dateFromKey(habit.startDate))}</small>}
-                {habit.endDate && <small className="habit-target-hint">Do {habitEndDateLabel(habit.endDate, today)}</small>}
+                {habit.completionLimit !== null && <small className="habit-total-progress">
+                  Wykonania: {habit.totalCompletions}/{habit.completionLimit}
+                </small>}
+                {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
+                  <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}
+                </small>}
+                {habit.endDate && <small className="habit-schedule-meta">
+                  <HabitCalendarIcon />Do {habitEndDateLabel(habit.endDate, today)}
+                </small>}
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
                 aria-label={habit.target
@@ -270,7 +277,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
               aria-label={`Liczba zakończonych nawyków: ${items.length}`}>{items.length}</span></summary>
             {list}
           </details>
-          return <section className={`habit-list-group${group.title ? ' habit-list-group-separated' : ''}`} key={group.key}
+          return <section className={`habit-list-group${group.title ? ' habit-list-group-separated' : ''}${group.dayGroup === 'TARGET_REACHED' ? ' habit-list-group-achieved' : ''}`} key={group.key}
             aria-label={group.title || undefined}>
             {group.title && <h3>{group.title}</h3>}
             {list}
@@ -288,6 +295,14 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
 function HabitSuccessIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
     <circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" />
+  </svg>
+}
+
+function HabitCalendarIcon() {
+  return <svg className="habit-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M16 3v4M8 3v4M3 10h18" />
   </svg>
 }
 

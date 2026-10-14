@@ -950,9 +950,12 @@
 .task.habit-card {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto 40px;
-  grid-template-areas: 'check name progress menu';
+  grid-template-areas:
+    'check name progress menu'
+    'check meta meta menu';
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 2px;
   min-width: 0;
   padding: 8px 12px;
 }
@@ -962,16 +965,21 @@
   padding: 12px;
 }
 
+.task.habit-card-achieved {
+  border-color: #b9ddc7;
+  background: #fbfefc;
+  box-shadow: inset 3px 0 0 #4d9a69;
+}
+
 .habit-name {
   grid-area: name;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .habit-note-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  display: inline;
   max-width: 100%;
   padding: 0;
   border: 0;
@@ -979,7 +987,8 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   cursor: pointer;
 }
 
@@ -993,19 +1002,57 @@
 .habit-description { grid-column: 1 / -1; }
 
 .habit-note-toggle .task-note-icon {
-  flex-shrink: 0;
   margin-left: 1px;
 }
 
-.habit-note-chevron {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  color: var(--color-primary-muted);
-  transition: transform 150ms ease;
+.habit-name .task-title {
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
-.habit-note-chevron-expanded { transform: rotate(180deg); }
+.habit-meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-width: 0;
+  color: #625b70;
+}
+
+.habit-meta small {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.habit-frequency,
+.habit-total-progress,
+.habit-schedule-meta {
+  white-space: nowrap;
+}
+
+.habit-total-progress {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-status-strong);
+  font-size: 0.8rem !important;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.habit-schedule-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #767080;
+}
+
+.habit-calendar-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
 
 .habit-list-group-separated,
 .habit-finished-section {
@@ -1019,6 +1066,10 @@
   color: #625b70;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.habit-list-group-achieved h3 {
+  color: #2f7a4d;
 }
 
 .habit-group-list { margin-top: 0; }

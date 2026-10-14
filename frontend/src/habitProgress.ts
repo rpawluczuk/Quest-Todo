@@ -4,6 +4,17 @@ export function hasReachedWeeklyTarget(habit: Habit): boolean {
   return habit.target !== null && habit.weeklyCompletedDays >= habit.target.targetDays
 }
 
+export function withOptimisticCompletion(habit: Habit, completed: boolean): Habit {
+  if (habit.completed === completed) return habit
+  const change = completed ? 1 : -1
+  return {
+    ...habit,
+    completed,
+    weeklyCompletedDays: Math.max(0, habit.weeklyCompletedDays + change),
+    totalCompletions: Math.max(0, habit.totalCompletions + change),
+  }
+}
+
 export type HabitDayGroup = 'PENDING' | 'COMPLETED_TODAY' | 'TARGET_REACHED'
 
 export function habitDayGroup(habit: Habit): HabitDayGroup {

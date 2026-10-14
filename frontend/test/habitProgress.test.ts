@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay } from '../src/habitProgress.ts'
+import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion } from '../src/habitProgress.ts'
 import { dateFromKey, selectedDayInWeek } from '../src/weekDates.ts'
 import type { Habit } from '../src/types/Habit.ts'
 
@@ -19,6 +19,22 @@ test('weekly achievement depends on count and target, independently of selected 
   assert.equal(hasReachedWeeklyTarget(habit(6, 7)), false)
   assert.equal(hasReachedWeeklyTarget(habit(7, 7)), true)
   assert.equal(hasReachedWeeklyTarget(habit(7, null)), false)
+})
+
+test('updates day and progress counters immediately while saving a completion', () => {
+  const original = habit(1, 2, false)
+  const completed = withOptimisticCompletion(original, true)
+
+  assert.equal(completed.completed, true)
+  assert.equal(completed.weeklyCompletedDays, 2)
+  assert.equal(completed.totalCompletions, 2)
+  assert.equal(hasReachedWeeklyTarget(completed), true)
+  assert.equal(original.weeklyCompletedDays, 1)
+
+  const unchecked = withOptimisticCompletion(completed, false)
+  assert.equal(unchecked.completed, false)
+  assert.equal(unchecked.weeklyCompletedDays, 1)
+  assert.equal(unchecked.totalCompletions, 1)
 })
 
 test('sorts habits by day status and then by descending weekly frequency', () => {
