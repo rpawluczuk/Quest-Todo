@@ -65,6 +65,25 @@ class HabitControllerTests {
     }
 
     @Test
+    void manuallyEndsHabitWithAValidatedReason() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Czytanie\"}"))
+                .andExpect(status().isCreated());
+        long id = jdbc.queryForObject("SELECT id FROM habits WHERE user_id = 1", Long.class);
+
+        mvc.perform(put("/api/habits/{id}/ending", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"ACHIEVED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINISHED"))
+                .andExpect(jsonPath("$.endedOn").value("2026-10-09"))
+                .andExpect(jsonPath("$.endReason").value("ACHIEVED"));
+        mvc.perform(put("/api/habits/{id}/ending", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void createsUpdatesAndClearsOptionalDescription() throws Exception {
         when(currentUser.getUserId()).thenReturn(1L);
         mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)

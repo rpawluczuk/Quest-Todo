@@ -108,6 +108,8 @@ public class HabitService {
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit) {
         HabitEntity habit = findForUpdate(id);
+        if (habit.getEndedOn() != null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Zakończonego nawyku nie można edytować.");
         if (startDate == null && (endDate != null || completionLimit != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Podaj datę rozpoczęcia nawyku.");
         if (startDate != null) {
@@ -170,7 +172,8 @@ public class HabitService {
             latest = target.toTarget();
             if (!target.getEffectiveFrom().isAfter(date)) active = latest;
         }
-        String status = date.isBefore(habit.getStartDate()) ? "UPCOMING"
+        String status = habit.getEndedOn() != null && !date.isBefore(habit.getEndedOn()) ? "FINISHED"
+                : date.isBefore(habit.getStartDate()) ? "UPCOMING"
                 : (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
                     || (habit.getCompletionLimit() != null && completedThroughDate >= habit.getCompletionLimit())
                     ? "FINISHED" : "ACTIVE";
@@ -185,17 +188,30 @@ public class HabitService {
         habits.delete(habit);
     }
 
+    public Habit endHabit(long id, HabitEndReason reason) {
+        if (reason == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybierz powód zakończenia nawyku.");
+        HabitEntity habit = findForUpdate(id);
+        if (habit.getEndedOn() != null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten nawyk został już zakończony.");
+        habit.end(calendar.today(), reason);
+        return snapshot(habit, calendar.today());
+    }
+
     public HabitCompletionResult setCompletion(long id, LocalDate date, boolean completed) {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
-        if (date.isBefore(habit.getStartDate())
-                || (habit.getEndDate() != null && date.isAfter(habit.getEndDate())))
+        boolean existingCompletion = completions.existsByHabitIdAndDate(id, date);
+        boolean outsideActivePeriod = date.isBefore(habit.getStartDate())
+                || (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
+                || (habit.getEndedOn() != null && !date.isBefore(habit.getEndedOn()));
+        if (outsideActivePeriod && (completed || !existingCompletion))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten dzień jest poza okresem obowiązywania nawyku.");
         HabitAwardEntity award = null;
         Long balance = null;
         // Locking the habit serializes repeated or simultaneous changes to its completions.
         if (completed) {
-            if (!completions.existsByHabitIdAndDate(id, date)) {
+            if (!existingCompletion) {
                 if (habit.getCompletionLimit() != null && completions.countByHabitId(id) >= habit.getCompletionLimit())
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Osiągnięto liczbę wykonań kończącą ten nawyk.");
                 var completion = completions.save(new HabitCompletionEntity(habit, date));

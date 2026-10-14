@@ -8,6 +8,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -45,12 +47,23 @@ public class HabitEntity {
     private LocalDate endDate;
     @Column(name = "completion_limit")
     private Integer completionLimit;
+    @Column(name = "ended_on")
+    private LocalDate endedOn;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "end_reason", length = 24)
+    private HabitEndReason endReason;
 
     public LocalDate getStartDate() { return startDate == null ? createdOn : startDate; }
     public LocalDate getEndDate() { return endDate; }
     public Integer getCompletionLimit() { return completionLimit; }
+    public LocalDate getEndedOn() { return endedOn; }
+    public HabitEndReason getEndReason() { return endReason; }
     public void schedule(LocalDate start, LocalDate end, Integer limit) {
         startDate = start; endDate = end; completionLimit = limit;
+    }
+    public void end(LocalDate date, HabitEndReason reason) {
+        endedOn = date;
+        endReason = reason;
     }
 
     protected HabitEntity() {}
@@ -70,7 +83,8 @@ public class HabitEntity {
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays,
                          boolean weeklyRewardGranted, long totalCompletions, String status) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
-                weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status);
+                weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status,
+                endedOn, endReason);
     }
 
     public long getId() { return id; }

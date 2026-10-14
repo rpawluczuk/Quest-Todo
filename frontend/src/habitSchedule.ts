@@ -1,4 +1,4 @@
-import type { Habit } from './types/Habit'
+import type { Habit, HabitEndReason } from './types/Habit'
 
 const shortDate = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short' })
 const shortDateWithYear = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -17,4 +17,10 @@ export function habitEndDateLabel(endDate: string, today: string): string {
   const date = calendarDate(endDate)
   const formatter = date.getFullYear() === calendarDate(today).getFullYear() ? shortDate : shortDateWithYear
   return formatter.format(date)
+}
+
+export function habitEndReasonLabel(reason: HabitEndReason): string {
+  if (reason === 'ACHIEVED') return 'Osiągnięto zamierzony efekt'
+  if (reason === 'ESTABLISHED') return 'Nawyk utrwalony'
+  return 'Zakończono realizację'
 }

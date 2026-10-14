@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.questtodo.habit.dto.HabitRequest;
+import pl.questtodo.habit.dto.EndHabitRequest;
 
 @RestController
 @RequestMapping("/api/habits")
@@ -53,6 +54,11 @@ public class HabitController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteHabit(@PathVariable long id) {
         habits.deleteHabit(id);
+    }
+
+    @PutMapping("/{id}/ending")
+    public Habit endHabit(@PathVariable long id, @Valid @RequestBody EndHabitRequest request) {
+        return habits.endHabit(id, request.reason());
     }
 
     @PutMapping("/{id}/completions/{date}")

@@ -4,6 +4,7 @@ export type HabitTarget = {
 }
 
 export type HabitSchedule = { startDate: string; endDate: string | null; completionLimit: number | null }
+export type HabitEndReason = 'ACHIEVED' | 'ESTABLISHED' | 'STOPPED'
 
 export type Habit = HabitSchedule & {
   readonly totalCompletions: number
@@ -18,6 +19,8 @@ export type Habit = HabitSchedule & {
   readonly weeklyRewardGranted: boolean
   readonly target: HabitTarget | null
   readonly latestTarget: HabitTarget | null
+  readonly endedOn: string | null
+  readonly endReason: HabitEndReason | null
 }
 
 export type HabitAward = { id: string; points: number; undoUntil: string }

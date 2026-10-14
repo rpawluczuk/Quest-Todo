@@ -7,7 +7,7 @@ import type { Habit } from '../src/types/Habit.ts'
 function habit(count: number, goal: number | null = 2, completed = false, id = 1): Habit {
   return { id, name: `Nawyk ${id}`, description: null, createdOn: '2026-10-09', completed, rewardPoints: 1,
     weeklyRewardGranted: false, startDate: '2026-10-09', endDate: null, completionLimit: null,
-    totalCompletions: count, status: 'ACTIVE',
+    totalCompletions: count, status: 'ACTIVE', endedOn: null, endReason: null,
     target: goal === null ? null : { targetDays: goal, effectiveFrom: '2026-10-05' },
     latestTarget: null, weeklyCompletedDays: count }
 }

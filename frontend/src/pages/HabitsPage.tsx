@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
-import { createHabit, deleteHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
+import { createHabit, deleteHabit, endHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm from '../components/CreateHabitForm'
+import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
 import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
-import { canToggleHabit, habitEndDateLabel } from '../habitSchedule'
-import type { Habit, HabitAward, HabitCompletionResult, HabitSchedule } from '../types/Habit'
+import { canToggleHabit, habitEndDateLabel, habitEndReasonLabel } from '../habitSchedule'
+import type { Habit, HabitAward, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
 
 const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
@@ -85,6 +86,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   const [deleteError, setDeleteError] = useState('')
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
+  const [endingHabit, setEndingHabit] = useState<Habit | null>(null)
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(() => new Set())
   const groups: Array<{
     key: string; title: string; status: Habit['status']; dayGroup?: HabitDayGroup; collapsible?: boolean
@@ -195,6 +197,18 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     }
   }
 
+  async function finish(habit: Habit, reason: HabitEndReason) {
+    if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
+    onBusy(true)
+    try {
+      await endHabit(habit.id, reason)
+      setHabits(await getHabits(date))
+      setEndingHabit(null)
+    } finally {
+      onBusy(false)
+    }
+  }
+
   return (
     <>
       {loading && <p role="status">Ładowanie nawyków…</p>}
@@ -249,8 +263,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                 {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
                   <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}
                 </small>}
-                {habit.endDate && <small className="habit-schedule-meta">
+                {habit.endDate && !(habit.status === 'FINISHED' && habit.endedOn) && <small className="habit-schedule-meta">
                   <HabitCalendarIcon />Do {habitEndDateLabel(habit.endDate, today)}
+                </small>}
+                {habit.status === 'FINISHED' && habit.endedOn && habit.endReason && <small className="habit-schedule-meta habit-manual-ending">
+                  <HabitCalendarIcon /><span>Zakończono {habitEndDateLabel(habit.endedOn, today)} · {habitEndReasonLabel(habit.endReason)}</span>
                 </small>}
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
@@ -264,7 +281,9 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
               <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                 disabled={busy || editingId !== null}
                 actions={[
-                  { label: 'Edytuj', onSelect: () => setEditingId(habit.id) },
+                  ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
+                  ...(!habit.endedOn && habit.status !== 'FINISHED'
+                    ? [{ label: 'Zakończ nawyk', onSelect: () => setEndingHabit(habit) }] : []),
                   { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
                 ]} />
               {habit.description && <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
@@ -287,6 +306,8 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
         {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
         {savingCompletionId !== null && <p role="status">Zapisywanie wykonania…</p>}
         {completionError && <p className="form-error" role="alert">{completionError}</p>}
+        {endingHabit && <EndHabitDialog habit={endingHabit} onClose={() => setEndingHabit(null)}
+          onConfirm={reason => finish(endingHabit, reason)} />}
       </>}
     </>
   )

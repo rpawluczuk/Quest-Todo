@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canToggleHabit, habitEndDateLabel } from '../src/habitSchedule.ts'
+import { canToggleHabit, habitEndDateLabel, habitEndReasonLabel } from '../src/habitSchedule.ts'
 import type { Habit } from '../src/types/Habit.ts'
 
 const habit: Habit = {
   id: 1, name: 'Test', description: null, createdOn: '2026-10-14', startDate: '2026-10-01',
   endDate: null, completionLimit: 3, totalCompletions: 2, status: 'ACTIVE', completed: false,
   weeklyCompletedDays: 2, rewardPoints: 1, weeklyRewardGranted: false, target: null, latestTarget: null,
+  endedOn: null, endReason: null,
 }
 
 test('allows active habits until the lifetime limit, independently of weekly progress', () => {
@@ -24,4 +25,10 @@ test('upcoming and finished habits cannot be checked but their history can be un
 test('uses a compact end date and shows the year only when needed', () => {
   assert.equal(habitEndDateLabel('2026-10-28', '2026-10-14'), '28 paź')
   assert.equal(habitEndDateLabel('2027-10-28', '2026-10-14'), '28 paź 2027')
+})
+
+test('uses concise user-facing labels for manual ending reasons', () => {
+  assert.equal(habitEndReasonLabel('ACHIEVED'), 'Osiągnięto zamierzony efekt')
+  assert.equal(habitEndReasonLabel('ESTABLISHED'), 'Nawyk utrwalony')
+  assert.equal(habitEndReasonLabel('STOPPED'), 'Zakończono realizację')
 })

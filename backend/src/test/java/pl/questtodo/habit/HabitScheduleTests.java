@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.when;
 @Transactional
 class HabitScheduleTests {
     @Autowired HabitService service;
+    @Autowired JdbcTemplate jdbc;
     @MockitoBean CurrentUserProvider currentUser;
     @MockitoBean HabitCalendar calendar;
     static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
@@ -139,6 +141,43 @@ class HabitScheduleTests {
     @Test void rejectsZeroLimit() {
         assertThrows(ResponseStatusException.class, () -> create(TODAY, null, 0));
     }
+    @Test void manualEndingPreservesHistoryAndBlocksNewCompletions() {
+        var habit = create(TODAY.minusDays(2), null, null);
+        service.setCompletion(habit.id(), TODAY.minusDays(2), true);
+        service.setCompletion(habit.id(), TODAY.minusDays(1), true);
+        int balanceBeforeEnding = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class);
+
+        var ended = service.endHabit(habit.id(), HabitEndReason.ESTABLISHED);
+
+        assertEquals("FINISHED", ended.status());
+        assertEquals(TODAY, ended.endedOn());
+        assertEquals(HabitEndReason.ESTABLISHED, ended.endReason());
+        assertEquals(balanceBeforeEnding,
+                jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class));
+        assertEquals("ACTIVE", service.getHabits(TODAY.minusDays(1)).getFirst().status());
+        assertThrows(ResponseStatusException.class, () -> service.setCompletion(habit.id(), TODAY, true));
+        assertDoesNotThrow(() -> service.setCompletion(habit.id(), TODAY.minusDays(1), false));
+        assertEquals(balanceBeforeEnding,
+                jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class));
+        assertThrows(ResponseStatusException.class, () -> service.endHabit(habit.id(), HabitEndReason.ACHIEVED));
+        assertThrows(ResponseStatusException.class, () -> service.updateHabit(habit.id(), "Changed", 2, 10,
+                "", habit.startDate(), null, null));
+    }
+
+    @Test void manualEndingRequiresAReason() {
+        var habit = create(TODAY, null, null);
+        var error = assertThrows(ResponseStatusException.class, () -> service.endHabit(habit.id(), null));
+        assertEquals(400, error.getStatusCode().value());
+    }
+
+    @Test void manualEndingCannotChangeAnotherUsersHabit() {
+        var habit = create(TODAY, null, null);
+        when(currentUser.getUserId()).thenReturn(999L);
+        var error = assertThrows(ResponseStatusException.class,
+                () -> service.endHabit(habit.id(), HabitEndReason.STOPPED));
+        assertEquals(404, error.getStatusCode().value());
+    }
+
     @Test void scheduleCannotBeChangedByAnotherUser() {
         var habit = create(TODAY, null, null);
         when(currentUser.getUserId()).thenReturn(999L);

@@ -116,6 +116,67 @@
 .password-dialog h2 { margin-top: 0; }
 .password-dialog::backdrop { background: #26213366; }
 
+.end-habit-dialog {
+  position: relative;
+  overflow-wrap: anywhere;
+}
+
+.end-habit-dialog h2 {
+  padding-right: 40px;
+}
+
+.end-habit-dialog > p {
+  color: #625b70;
+  line-height: 1.5;
+}
+
+.end-habit-form fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.end-habit-form legend {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.end-habit-reasons {
+  display: grid;
+  gap: 8px;
+}
+
+.end-habit-reasons label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d8d2e2;
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.end-habit-reasons label:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.login-form .end-habit-reasons input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 3px 0 0;
+  padding: 0;
+  accent-color: var(--color-primary);
+}
+
+.end-habit-reasons label:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .change-password-dialog {
   position: relative;
 }
@@ -1144,6 +1205,11 @@
 .habit-total-progress,
 .habit-schedule-meta {
   white-space: nowrap;
+}
+
+.habit-manual-ending {
+  align-items: flex-start;
+  white-space: normal;
 }
 
 .habit-total-progress {

@@ -1,5 +1,5 @@
 import { apiFetch } from './apiFetch'
-import type { Habit, HabitCompletionResult, HabitSchedule } from '../types/Habit'
+import type { Habit, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   const problem = await response.json().catch(() => null) as { detail?: string } | null
@@ -54,4 +54,14 @@ export async function deleteHabit(id: number): Promise<void> {
   if (!response.ok && response.status !== 404) {
     throw new Error(await errorMessage(response, 'Nie udało się usunąć nawyku'))
   }
+}
+
+export async function endHabit(id: number, reason: HabitEndReason): Promise<Habit> {
+  const response = await apiFetch(`/api/habits/${id}/ending`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zakończyć nawyku'))
+  return response.json()
 }
