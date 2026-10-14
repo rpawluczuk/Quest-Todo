@@ -241,51 +241,63 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                   aria-label={`${habit.name} — ${displayDate.format(dateFromKey(date))}`}
                   onChange={() => void toggleCompletion(habit)} />
               </label>
-              <div className="habit-name">
-                {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
-                  aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
-                  aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}`}
-                  onClick={() => toggleDescription(habit.id)}>
-                  <span className="task-title">{habit.name}</span>
-                  <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
-                    stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
-                    <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
-                  </svg>
-                </button> : <span className="task-title">{habit.name}</span>}
+              <div className="habit-card-content">
+                <div className="habit-heading-row">
+                  <div className="habit-name">
+                    {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
+                      aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
+                      aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}`}
+                      onClick={() => toggleDescription(habit.id)}>
+                      <span className="task-title">{habit.name}</span>
+                      <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
+                        stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
+                        <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
+                      </svg>
+                    </button> : <span className="task-title">{habit.name}</span>}
+                  </div>
+                  <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
+                    disabled={busy || editingId !== null}
+                    actions={[
+                      ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
+                      ...(!habit.endedOn && habit.status !== 'FINISHED'
+                        ? [{ label: 'Zakończ nawyk', onSelect: () => setEndingHabit(habit) }] : []),
+                      { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
+                    ]} />
+                </div>
+                <div className="habit-meta">
+                <div className="habit-primary-meta">
+                  <small className="habit-frequency">
+                    {habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}
+                  </small>
+                  <span className="habit-card-result">
+                    <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
+                      aria-label={habit.target
+                        ? `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, cel: ${habit.target.targetDays}${hasReachedWeeklyTarget(habit) ? ', cel osiągnięty' : ''}`
+                        : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`}>
+                      {habit.weeklyCompletedDays}/{habit.target?.targetDays ?? '—'}
+                      {hasReachedWeeklyTarget(habit) && <HabitSuccessIcon />}
+                      {!hasReachedWeeklyTarget(habit) && habit.weeklyRewardGranted && <HabitAwardStatus />}
+                    </span>
+                    <span className="task-points task-card-points">{habit.rewardPoints} pkt</span>
+                  </span>
+                </div>
+                {(habit.completionLimit !== null || habit.status === 'UPCOMING' || habit.endDate !== null
+                  || (habit.status === 'FINISHED' && habit.endedOn && habit.endReason)) && <div className="habit-extra-meta">
+                  {habit.completionLimit !== null && <small className="habit-total-progress">
+                    Wykonania: {habit.totalCompletions}/{habit.completionLimit}
+                  </small>}
+                  {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
+                    <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}
+                  </small>}
+                  {habit.endDate && !(habit.status === 'FINISHED' && habit.endedOn) && <small className="habit-schedule-meta">
+                    <HabitCalendarIcon />Do {habitEndDateLabel(habit.endDate, today)}
+                  </small>}
+                  {habit.status === 'FINISHED' && habit.endedOn && habit.endReason && <small className="habit-schedule-meta habit-manual-ending">
+                    <HabitCalendarIcon /><span>Zakończono {habitEndDateLabel(habit.endedOn, today)} · {habitEndReasonLabel(habit.endReason)}</span>
+                  </small>}
+                </div>}
+                </div>
               </div>
-              <div className="habit-meta">
-                <small className="habit-frequency">
-                  {habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}
-                </small>
-                {habit.completionLimit !== null && <small className="habit-total-progress">
-                  Wykonania: {habit.totalCompletions}/{habit.completionLimit}
-                </small>}
-                {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
-                  <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}
-                </small>}
-                {habit.endDate && !(habit.status === 'FINISHED' && habit.endedOn) && <small className="habit-schedule-meta">
-                  <HabitCalendarIcon />Do {habitEndDateLabel(habit.endDate, today)}
-                </small>}
-                {habit.status === 'FINISHED' && habit.endedOn && habit.endReason && <small className="habit-schedule-meta habit-manual-ending">
-                  <HabitCalendarIcon /><span>Zakończono {habitEndDateLabel(habit.endedOn, today)} · {habitEndReasonLabel(habit.endReason)}</span>
-                </small>}
-              </div>
-              <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
-                aria-label={habit.target
-                  ? `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, cel: ${habit.target.targetDays}${hasReachedWeeklyTarget(habit) ? ', cel osiągnięty' : ''}`
-                  : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`}>
-                {habit.weeklyCompletedDays}/{habit.target?.targetDays ?? '—'}
-                {hasReachedWeeklyTarget(habit) && <HabitSuccessIcon />}
-                {!hasReachedWeeklyTarget(habit) && habit.weeklyRewardGranted && <HabitAwardStatus />}
-              </span>
-              <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
-                disabled={busy || editingId !== null}
-                actions={[
-                  ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
-                  ...(!habit.endedOn && habit.status !== 'FINISHED'
-                    ? [{ label: 'Zakończ nawyk', onSelect: () => setEndingHabit(habit) }] : []),
-                  { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
-                ]} />
               {habit.description && <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
                 hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>}
             </>}

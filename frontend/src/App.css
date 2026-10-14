@@ -1125,13 +1125,10 @@
 
 .task.habit-card {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto 40px;
-  grid-template-areas:
-    'check name progress menu'
-    'check meta meta menu';
-  align-items: center;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-areas: 'check content';
+  align-items: start;
   column-gap: 10px;
-  row-gap: 2px;
   min-width: 0;
   padding: 8px 12px;
 }
@@ -1147,8 +1144,26 @@
   box-shadow: inset 3px 0 0 #4d9a69;
 }
 
+.habit-card-content {
+  grid-area: content;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.habit-heading-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: start;
+  column-gap: 6px;
+  min-width: 0;
+}
+
+.habit-heading-row > .task-menu {
+  grid-area: auto;
+}
+
 .habit-name {
-  grid-area: name;
   min-width: 0;
   overflow-wrap: break-word;
   word-break: normal;
@@ -1187,13 +1202,33 @@
 }
 
 .habit-meta {
-  grid-area: meta;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: #625b70;
+}
+
+.habit-primary-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.habit-card-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.habit-extra-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px 10px;
   min-width: 0;
-  color: #625b70;
 }
 
 .habit-meta small {
@@ -1204,6 +1239,11 @@
 .habit-frequency,
 .habit-total-progress,
 .habit-schedule-meta {
+  white-space: nowrap;
+}
+
+.habit-frequency {
+  min-width: 0;
   white-space: nowrap;
 }
 
@@ -1274,9 +1314,6 @@
 }
 
 .habit-progress {
-  grid-area: progress;
-  align-self: start;
-  margin-top: 1px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
