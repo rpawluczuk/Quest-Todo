@@ -39,6 +39,20 @@ public class HabitEntity {
     public int getRewardPoints() { return rewardPoints; }
     public void setRewardPoints(int points) { this.rewardPoints = points; }
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+    @Column(name = "end_date")
+    private LocalDate endDate;
+    @Column(name = "completion_limit")
+    private Integer completionLimit;
+
+    public LocalDate getStartDate() { return startDate == null ? createdOn : startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public Integer getCompletionLimit() { return completionLimit; }
+    public void schedule(LocalDate start, LocalDate end, Integer limit) {
+        startDate = start; endDate = end; completionLimit = limit;
+    }
+
     protected HabitEntity() {}
 
     public HabitEntity(String name, UserEntity user, LocalDate createdOn) {
@@ -54,9 +68,9 @@ public class HabitEntity {
     public void changeDescription(String description) { this.description = description; }
 
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays,
-                         boolean weeklyRewardGranted) {
+                         boolean weeklyRewardGranted, long totalCompletions, String status) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
-                weeklyRewardGranted, description);
+                weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status);
     }
 
     public long getId() { return id; }

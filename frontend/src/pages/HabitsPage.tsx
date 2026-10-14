@@ -6,7 +6,8 @@ import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
 import { hasReachedWeeklyTarget, sortHabitsForDay } from '../habitProgress'
-import type { Habit, HabitAward, HabitCompletionResult } from '../types/Habit'
+import { canToggleHabit } from '../habitSchedule'
+import type { Habit, HabitAward, HabitCompletionResult, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
 
 const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
@@ -85,7 +86,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(() => new Set())
-  const sortedHabits = sortHabitsForDay(habits)
+  const groups = [
+    { status: 'ACTIVE', title: '' },
+    { status: 'UPCOMING', title: 'Zaplanowane' },
+    { status: 'FINISHED', title: 'Zakończone' },
+  ] as const
 
   function toggleDescription(id: number) {
     setExpandedDescriptions(current => {
@@ -105,13 +110,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
 
   useEffect(() => {
     const controller = new AbortController()
-    const dayRequest = getHabits(date, controller.signal)
-    // All existing habits are available today, even when the selected day predates them.
-    const todayRequest = date === today ? dayRequest : getHabits(today, controller.signal)
-    Promise.all([dayRequest, todayRequest]).then(([loaded, current]) => {
+    getHabits(date, controller.signal).then(loaded => {
       if (!controller.signal.aborted) {
         setHabits(loaded)
-        setAllHabitIds(current.map(habit => habit.id))
+        setAllHabitIds(loaded.map(habit => habit.id))
       }
     }).catch(() => {
       if (!controller.signal.aborted) setLoadError('Nie udało się pobrać nawyków. Odśwież stronę i spróbuj ponownie.')
@@ -121,26 +123,23 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     return () => controller.abort()
   }, [date, today])
 
-  async function add(name: string, targetDays: number, rewardPoints: number, description: string) {
+  async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name, targetDays, rewardPoints, description)
+      const habit = await createHabit(name, targetDays, rewardPoints, description, schedule)
       setAllHabitIds(current => [...current, habit.id])
-      if (habit.createdOn <= date) {
-        setHabits(current => [...current, { ...habit,
-          target: habit.target && habit.target.effectiveFrom <= date ? habit.target : null }])
-      }
+      setHabits(await getHabits(date))
     } finally {
       onBusy(false)
     }
   }
 
-  async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string) {
+  async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const result = await updateHabit(id, name, targetDays, rewardPoints, description)
+      const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule)
       const loaded = await getHabits(date)
       setHabits(loaded)
       onCompletionSaved(result)
@@ -152,7 +151,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   }
 
   async function toggleCompletion(habit: Habit) {
-    if (busy || savingCompletion.current) return
+    if (busy || savingCompletion.current || !canToggleHabit(habit)) return
     savingCompletion.current = true
     onBusy(true)
     setSavingCompletionId(habit.id)
@@ -205,14 +204,19 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
           <CreateHabitForm onAdd={add} isFirstHabit={allHabitIds.length === 0} />
         </div>
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
-        {habits.length > 0 && <ul className="task-list">
-          {sortedHabits.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
+        {groups.map(group => {
+          const items = sortHabitsForDay(habits.filter(habit => habit.status === group.status))
+          if (!items.length) return null
+          return <div key={group.status}>
+          {group.title && <h3>{group.title}</h3>}
+          <ul className="task-list">
+          {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays, points, description) => save(habit.id, name, targetDays, points, description)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays, points, description, schedule) => save(habit.id, name, targetDays, points, description, schedule)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
-                  disabled={busy || editingId !== null}
+                  disabled={busy || editingId !== null || !canToggleHabit(habit)}
                   aria-label={`${habit.name} — ${displayDate.format(dateFromKey(date))}`}
                   onChange={() => void toggleCompletion(habit)} />
               </label>
@@ -228,6 +232,9 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                   </svg>
                 </button> : <span className="task-title">{habit.name}</span>}
                 <small className="habit-target-hint">{habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}</small>
+                {habit.status === 'UPCOMING' && <small className="habit-target-hint">Od {displayDate.format(dateFromKey(habit.startDate))}</small>}
+                {habit.endDate && <small className="habit-target-hint">Do {displayDate.format(dateFromKey(habit.endDate))} włącznie</small>}
+                {habit.completionLimit !== null && <small className="habit-target-hint">Łącznie: {habit.totalCompletions}/{habit.completionLimit} wykonań</small>}
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
                 aria-label={habit.target
@@ -247,7 +254,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                 hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>}
             </>}
           </li>)}
-        </ul>}
+        </ul></div>})}
         {deletingId !== null && <p className="reward-status" role="status">Usuwanie nawyku…</p>}
         {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
         {savingCompletionId !== null && <p role="status">Zapisywanie wykonania…</p>}

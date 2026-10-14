@@ -28,5 +28,16 @@ public interface HabitCompletionRepository extends JpaRepository<HabitCompletion
     List<WeeklyCount> countWeek(@Param("userId") long userId, @Param("monday") LocalDate monday,
                                @Param("sunday") LocalDate sunday);
 
+    @Query("select c.habit.id as habitId, count(c) as completedDays from HabitCompletionEntity c "
+            + "where c.habit.user.id = :userId group by c.habit.id")
+    List<WeeklyCount> countAll(@Param("userId") long userId);
+    @Query("select c.habit.id as habitId, count(c) as completedDays from HabitCompletionEntity c "
+            + "where c.habit.user.id = :userId and c.date <= :date group by c.habit.id")
+    List<WeeklyCount> countThrough(@Param("userId") long userId, @Param("date") LocalDate date);
+    long countByHabitId(long habitId);
+    boolean existsByHabitIdAndDateBefore(long habitId, LocalDate date);
+    boolean existsByHabitIdAndDateAfter(long habitId, LocalDate date);
+    long countByHabitIdAndDateLessThanEqual(long habitId, LocalDate date);
+
     long countByHabitIdAndDateBetween(long habitId, LocalDate monday, LocalDate sunday);
 }

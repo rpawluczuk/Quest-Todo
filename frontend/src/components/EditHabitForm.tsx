@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import type { Habit } from '../types/Habit'
+import HabitScheduleFields from './HabitScheduleFields'
+import type { HabitSchedule } from '../types/Habit'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
 import AutoResizeTextarea from './AutoResizeTextarea'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
-  onSave: (name: string, targetDays: number, rewardPoints: number, description: string) => Promise<void>
+  onSave: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState(habit.name)
   const [targetDays, setTargetDays] = useState(habit.latestTarget?.targetDays ?? 7)
   const [rewardPoints, setRewardPoints] = useState(String(habit.rewardPoints))
   const [description, setDescription] = useState(habit.description ?? '')
+  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habit.startDate, endDate: habit.endDate, completionLimit: habit.completionLimit })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -28,7 +31,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     setSaving(true)
     setError('')
     try {
-      await onSave(trimmedName, targetDays, Number(rewardPoints), description.trim())
+      await onSave(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać nawyku.')
     } finally {
@@ -51,6 +54,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>
+    <HabitScheduleFields value={schedule} onChange={setSchedule} disabled={saving} />
     <div className="task-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
       <button type="button" className="secondary-button" disabled={saving} onClick={onCancel}>Anuluj</button>

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import HabitScheduleFields from './HabitScheduleFields'
+import type { HabitSchedule } from '../types/Habit'
+import { habitToday } from '../weekDates'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
 import AutoResizeTextarea from './AutoResizeTextarea'
 
 export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
-  onAdd: (name: string, targetDays: number, rewardPoints: number, description: string) => Promise<void>
+  onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) => Promise<void>
   isFirstHabit?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -12,6 +15,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
   const [targetDays, setTargetDays] = useState(7)
   const [rewardPoints, setRewardPoints] = useState('1')
   const [description, setDescription] = useState('')
+  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habitToday(), endDate: null, completionLimit: null })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -30,6 +34,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setName('')
     setDescription('')
     setError('')
+    setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
     setExpanded(false)
   }
 
@@ -42,11 +47,12 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setSaving(true)
     setError('')
     try {
-      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim())
+      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule)
       setRewardPoints('1')
       setTargetDays(7)
       setName('')
       setDescription('')
+      setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
       setExpanded(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać nawyku.')
@@ -67,6 +73,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
       <span>Opis / notatki (opcjonalnie)</span>
       <AutoResizeTextarea value={description} disabled={saving} onChange={event => setDescription(event.target.value)} />
     </label>
+    <HabitScheduleFields value={schedule} onChange={setSchedule} disabled={saving} />
     <div className="task-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj nawyk'}</button>
       <button type="button" className="secondary-button" disabled={saving} onClick={cancel}>Anuluj</button>

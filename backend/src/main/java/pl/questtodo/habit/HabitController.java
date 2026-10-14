@@ -27,25 +27,26 @@ public class HabitController {
     }
 
     @GetMapping
-    public List<Habit> getHabits(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return habits.getHabits(date);
+    public List<Habit> getHabits(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "false") boolean includeInactive) {
+        return habits.getHabits(date, includeInactive);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
-        return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description());
+        return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(), request.startDate(), request.endDate(), request.completionLimit());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
-        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description()).habit();
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(), request.startDate(), request.endDate(), request.completionLimit()).habit();
     }
 
     @PutMapping("/{id}/configuration")
     public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
                                                            @Valid @RequestBody HabitRequest request) {
-        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description());
+        return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(), request.startDate(), request.endDate(), request.completionLimit());
     }
 
     @DeleteMapping("/{id}")

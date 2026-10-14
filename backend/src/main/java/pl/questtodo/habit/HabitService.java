@@ -37,6 +37,11 @@ public class HabitService {
 
     @Transactional(readOnly = true)
     public List<Habit> getHabits(LocalDate requestedDate) {
+        return getHabits(requestedDate, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Habit> getHabits(LocalDate requestedDate, boolean includeInactive) {
         LocalDate date = requestedDate == null ? calendar.today() : requestedDate;
         validateDate(date);
         long userId = currentUser.getUserId();
@@ -46,13 +51,18 @@ public class HabitService {
         var weeklyCounts = completions.countWeek(userId, monday, monday.plusDays(6)).stream()
                 .collect(Collectors.toMap(HabitCompletionRepository.WeeklyCount::getHabitId,
                         HabitCompletionRepository.WeeklyCount::getCompletedDays));
+        var totals = completions.countAll(userId).stream().collect(Collectors.toMap(
+                HabitCompletionRepository.WeeklyCount::getHabitId, HabitCompletionRepository.WeeklyCount::getCompletedDays));
+        var throughDate = completions.countThrough(userId, date).stream().collect(Collectors.toMap(
+                HabitCompletionRepository.WeeklyCount::getHabitId, HabitCompletionRepository.WeeklyCount::getCompletedDays));
         var targetHistory = targets.findByHabitUserIdOrderByEffectiveFromAsc(userId).stream()
                 .collect(Collectors.groupingBy(HabitTargetEntity::getHabitId));
         return habits.findByUserIdOrderByIdAsc(userId).stream()
-                .filter(habit -> !habit.getCreatedOn().isAfter(date))
+                .filter(habit -> includeInactive || !habit.getStartDate().isAfter(date))
                 .map(habit -> toHabit(habit, date, completedIds.contains(habit.getId()),
                         targetHistory.getOrDefault(habit.getId(), List.of()),
-                        weeklyCounts.getOrDefault(habit.getId(), 0L), awardedIds.contains(habit.getId())))
+                        weeklyCounts.getOrDefault(habit.getId(), 0L), awardedIds.contains(habit.getId()),
+                        totals.getOrDefault(habit.getId(), 0L), throughDate.getOrDefault(habit.getId(), 0L)))
                 .toList();
     }
 
@@ -65,13 +75,21 @@ public class HabitService {
     }
 
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description) {
+        return createHabit(name, targetDays, rewardPoints, description, null, null, null);
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
+                             LocalDate startDate, LocalDate endDate, Integer completionLimit) {
         LocalDate today = calendar.today();
+        LocalDate start = startDate == null ? today : startDate;
+        validateSchedule(start, endDate, completionLimit);
         HabitEntity habit = habits.save(new HabitEntity(name, users.currentReference(), today));
+        habit.schedule(start, endDate, completionLimit);
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
         habit.changeDescription(description == null ? null : description.strip());
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
-                today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
-        return toHabit(habit, today, false, List.of(target), 0, false);
+                start.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
+        return toHabit(habit, today, false, List.of(target), 0, false, 0, 0);
     }
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays) {
@@ -84,7 +102,26 @@ public class HabitService {
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
                                              String description) {
+        return updateHabit(id, name, targetDays, rewardPoints, description, null, null, null);
+    }
+
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+            String description, LocalDate startDate, LocalDate endDate, Integer completionLimit) {
         HabitEntity habit = findForUpdate(id);
+        if (startDate == null && (endDate != null || completionLimit != null))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Podaj datę rozpoczęcia nawyku.");
+        if (startDate != null) {
+            validateSchedule(startDate, endDate, completionLimit);
+            if (completions.existsByHabitIdAndDateBefore(id, startDate)
+                    || (endDate != null && completions.existsByHabitIdAndDateAfter(id, endDate)))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Wybrany okres pomija zapisane wykonania. Najpierw cofnij je lub rozszerz zakres dat.");
+            habit.schedule(startDate, endDate, completionLimit);
+            var history = targets.findByHabit_IdOrderByEffectiveFromAsc(id);
+            var monday = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            if (!history.isEmpty() && monday.isBefore(history.getFirst().getEffectiveFrom()))
+                targets.save(new HabitTargetEntity(habit, history.getFirst().getTargetDays(), monday));
+        }
         habit.rename(name);
         if (rewardPoints != null) habit.setRewardPoints(rewardPoints);
         if (description != null) habit.changeDescription(description.strip());
@@ -126,14 +163,18 @@ public class HabitService {
     }
 
     private Habit toHabit(HabitEntity habit, LocalDate date, boolean completed, List<HabitTargetEntity> history,
-                          long weeklyCompletedDays, boolean weeklyRewardGranted) {
+                          long weeklyCompletedDays, boolean weeklyRewardGranted, long totalCompletions, long completedThroughDate) {
         HabitTarget active = null;
         HabitTarget latest = null;
         for (var target : history) {
             latest = target.toTarget();
             if (!target.getEffectiveFrom().isAfter(date)) active = latest;
         }
-        return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted);
+        String status = date.isBefore(habit.getStartDate()) ? "UPCOMING"
+                : (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
+                    || (habit.getCompletionLimit() != null && completedThroughDate >= habit.getCompletionLimit())
+                    ? "FINISHED" : "ACTIVE";
+        return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted, totalCompletions, status);
     }
 
     public void deleteHabit(long id) {
@@ -147,13 +188,16 @@ public class HabitService {
     public HabitCompletionResult setCompletion(long id, LocalDate date, boolean completed) {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
-        if (date.isBefore(habit.getCreatedOn()))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nie można zapisać wykonania sprzed utworzenia nawyku.");
+        if (date.isBefore(habit.getStartDate())
+                || (habit.getEndDate() != null && date.isAfter(habit.getEndDate())))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten dzień jest poza okresem obowiązywania nawyku.");
         HabitAwardEntity award = null;
         Long balance = null;
         // Locking the habit serializes repeated or simultaneous changes to its completions.
         if (completed) {
             if (!completions.existsByHabitIdAndDate(id, date)) {
+                if (habit.getCompletionLimit() != null && completions.countByHabitId(id) >= habit.getCompletionLimit())
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Osiągnięto liczbę wykonań kończącą ten nawyk.");
                 var completion = completions.save(new HabitCompletionEntity(habit, date));
                 var snapshot = snapshot(habit, date);
                 LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -191,7 +235,8 @@ public class HabitService {
         return toHabit(habit, date, completions.existsByHabitIdAndDate(habit.getId(), date),
                 targets.findByHabit_IdOrderByEffectiveFromAsc(habit.getId()),
                 completions.countByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)),
-                awards.existsByHabit_IdAndWeekStart(habit.getId(), monday));
+                awards.existsByHabit_IdAndWeekStart(habit.getId(), monday), completions.countByHabitId(habit.getId()),
+                completions.countByHabitIdAndDateLessThanEqual(habit.getId(), date));
     }
 
     private HabitAwardEntity grantAward(HabitEntity habit, LocalDate monday,
@@ -200,6 +245,13 @@ public class HabitService {
         user.addPoints(habit.getRewardPoints());
         return awards.save(new HabitAwardEntity(habit, monday, habit.getRewardPoints(),
                 completion.getId(), completionDate, calendar.now()));
+    }
+
+    private void validateSchedule(LocalDate start, LocalDate end, Integer limit) {
+        if (end != null && end.isBefore(start))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data zakończenia nie może być wcześniejsza niż początek.");
+        if (limit != null && (limit < 1 || end != null))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybierz datę zakończenia albo dodatnią liczbę wykonań.");
     }
 
     private void validateDate(LocalDate date) {

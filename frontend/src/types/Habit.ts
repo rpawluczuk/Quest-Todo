@@ -3,7 +3,11 @@ export type HabitTarget = {
   readonly effectiveFrom: string
 }
 
-export type Habit = {
+export type HabitSchedule = { startDate: string; endDate: string | null; completionLimit: number | null }
+
+export type Habit = HabitSchedule & {
+  readonly totalCompletions: number
+  readonly status: 'ACTIVE' | 'UPCOMING' | 'FINISHED'
   readonly id: number
   readonly name: string
   readonly description: string | null

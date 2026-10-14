@@ -14,4 +14,5 @@ public record HabitRequest(
         Integer targetDays,
         @Min(value = 0, message = "Punkty nie mogą być ujemne.")
         Integer rewardPoints,
-        String description) {}
+        String description, java.time.LocalDate startDate, java.time.LocalDate endDate,
+        @Min(value = 1, message = "Podaj co najmniej jedno wykonanie.") Integer completionLimit) {}
