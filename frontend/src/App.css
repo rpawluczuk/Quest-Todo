@@ -969,6 +969,9 @@
 }
 
 .habit-note-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   max-width: 100%;
   padding: 0;
   border: 0;
@@ -988,6 +991,55 @@
 
 .habit-note-toggle:disabled { cursor: default; }
 .habit-description { grid-column: 1 / -1; }
+
+.habit-note-toggle .task-note-icon {
+  flex-shrink: 0;
+  margin-left: 1px;
+}
+
+.habit-note-chevron {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--color-primary-muted);
+  transition: transform 150ms ease;
+}
+
+.habit-note-chevron-expanded { transform: rotate(180deg); }
+
+.habit-list-group-separated,
+.habit-finished-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e9e5ef;
+}
+
+.habit-list-group h3 {
+  margin: 0 0 10px;
+  color: #625b70;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.habit-group-list { margin-top: 0; }
+
+.habit-finished-section summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 44px;
+  color: #625b70;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.habit-finished-section summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .habit-progress {
   grid-area: progress;

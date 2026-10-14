@@ -4,9 +4,18 @@ export function hasReachedWeeklyTarget(habit: Habit): boolean {
   return habit.target !== null && habit.weeklyCompletedDays >= habit.target.targetDays
 }
 
+export type HabitDayGroup = 'PENDING' | 'COMPLETED_TODAY' | 'TARGET_REACHED'
+
+export function habitDayGroup(habit: Habit): HabitDayGroup {
+  if (hasReachedWeeklyTarget(habit)) return 'TARGET_REACHED'
+  if (habit.completed) return 'COMPLETED_TODAY'
+  return 'PENDING'
+}
+
 function completionGroup(habit: Habit): number {
-  if (hasReachedWeeklyTarget(habit)) return 2
-  if (habit.completed) return 1
+  const group = habitDayGroup(habit)
+  if (group === 'TARGET_REACHED') return 2
+  if (group === 'COMPLETED_TODAY') return 1
   return 0
 }
 

@@ -5,7 +5,7 @@ import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
-import { hasReachedWeeklyTarget, sortHabitsForDay } from '../habitProgress'
+import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, type HabitDayGroup } from '../habitProgress'
 import { canToggleHabit } from '../habitSchedule'
 import type { Habit, HabitAward, HabitCompletionResult, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
@@ -86,11 +86,16 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   const [savingCompletionId, setSavingCompletionId] = useState<number | null>(null)
   const [completionError, setCompletionError] = useState('')
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(() => new Set())
-  const groups = [
-    { status: 'ACTIVE', title: '' },
-    { status: 'UPCOMING', title: 'Zaplanowane' },
-    { status: 'FINISHED', title: 'Zakończone' },
-  ] as const
+  const groups: Array<{
+    key: string; title: string; status: Habit['status']; dayGroup?: HabitDayGroup; collapsible?: boolean
+  }> = [
+    { key: 'pending', status: 'ACTIVE', dayGroup: 'PENDING', title: '' },
+    { key: 'completed-today', status: 'ACTIVE', dayGroup: 'COMPLETED_TODAY',
+      title: date === today ? 'Wykonane dzisiaj' : 'Wykonane tego dnia' },
+    { key: 'target-reached', status: 'ACTIVE', dayGroup: 'TARGET_REACHED', title: 'Cel tygodniowy osiągnięty' },
+    { key: 'upcoming', status: 'UPCOMING', title: 'Zaplanowane' },
+    { key: 'finished', status: 'FINISHED', title: 'Zakończone', collapsible: true },
+  ]
 
   function toggleDescription(id: number) {
     setExpandedDescriptions(current => {
@@ -205,11 +210,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
         </div>
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {groups.map(group => {
-          const items = sortHabitsForDay(habits.filter(habit => habit.status === group.status))
+          const items = sortHabitsForDay(habits.filter(habit => habit.status === group.status
+            && (group.dayGroup === undefined || habitDayGroup(habit) === group.dayGroup)))
           if (!items.length) return null
-          return <div key={group.status}>
-          {group.title && <h3>{group.title}</h3>}
-          <ul className="task-list">
+          const list = <ul className="task-list habit-group-list">
           {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
@@ -230,11 +234,17 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                     stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
                     <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
                   </svg>
+                  <svg className={`habit-note-chevron${expandedDescriptions.has(habit.id) ? ' habit-note-chevron-expanded' : ''}`}
+                    viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="m6 8 4 4 4-4" />
+                  </svg>
                 </button> : <span className="task-title">{habit.name}</span>}
-                <small className="habit-target-hint">{habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}</small>
+                <small className="habit-target-hint">
+                  {habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}
+                  {habit.completionLimit !== null && <> · {habit.totalCompletions}/{habit.completionLimit} łącznie</>}
+                </small>
                 {habit.status === 'UPCOMING' && <small className="habit-target-hint">Od {displayDate.format(dateFromKey(habit.startDate))}</small>}
                 {habit.endDate && <small className="habit-target-hint">Do {displayDate.format(dateFromKey(habit.endDate))} włącznie</small>}
-                {habit.completionLimit !== null && <small className="habit-target-hint">Łącznie: {habit.totalCompletions}/{habit.completionLimit} wykonań</small>}
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
                 aria-label={habit.target
@@ -254,7 +264,18 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                 hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>}
             </>}
           </li>)}
-        </ul></div>})}
+          </ul>
+          if (group.collapsible) return <details className="habit-finished-section" key={group.key}>
+            <summary><span>{group.title}</span><span className="task-section-count"
+              aria-label={`Liczba zakończonych nawyków: ${items.length}`}>{items.length}</span></summary>
+            {list}
+          </details>
+          return <section className={`habit-list-group${group.title ? ' habit-list-group-separated' : ''}`} key={group.key}
+            aria-label={group.title || undefined}>
+            {group.title && <h3>{group.title}</h3>}
+            {list}
+          </section>
+        })}
         {deletingId !== null && <p className="reward-status" role="status">Usuwanie nawyku…</p>}
         {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
         {savingCompletionId !== null && <p role="status">Zapisywanie wykonania…</p>}

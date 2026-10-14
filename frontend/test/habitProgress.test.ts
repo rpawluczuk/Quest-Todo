@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { hasReachedWeeklyTarget, sortHabitsForDay } from '../src/habitProgress.ts'
+import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay } from '../src/habitProgress.ts'
 import { dateFromKey, selectedDayInWeek } from '../src/weekDates.ts'
 import type { Habit } from '../src/types/Habit.ts'
 
@@ -33,6 +33,12 @@ test('sorts habits by day status and then by descending weekly frequency', () =>
   ])
 
   assert.deepEqual(sorted.map(item => item.id), [1, 2, 3, 4, 5, 6, 7])
+})
+
+test('names the three visible day groups consistently with sorting', () => {
+  assert.equal(habitDayGroup(habit(1, 3, false)), 'PENDING')
+  assert.equal(habitDayGroup(habit(1, 3, true)), 'COMPLETED_TODAY')
+  assert.equal(habitDayGroup(habit(3, 3, false)), 'TARGET_REACHED')
 })
 
 test('keeps habits without an active target at the bottom of their status group', () => {
