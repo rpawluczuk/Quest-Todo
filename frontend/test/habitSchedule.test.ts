@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canToggleHabit } from '../src/habitSchedule.ts'
+import { canToggleHabit, habitEndDateLabel } from '../src/habitSchedule.ts'
 import type { Habit } from '../src/types/Habit.ts'
 
 const habit: Habit = {
@@ -19,4 +19,9 @@ test('upcoming and finished habits cannot be checked but their history can be un
   assert.equal(canToggleHabit({ ...habit, status: 'UPCOMING' }), false)
   assert.equal(canToggleHabit({ ...habit, status: 'FINISHED' }), false)
   assert.equal(canToggleHabit({ ...habit, status: 'FINISHED', completed: true }), true)
+})
+
+test('uses a compact end date and shows the year only when needed', () => {
+  assert.equal(habitEndDateLabel('2026-10-28', '2026-10-14'), '28 paź')
+  assert.equal(habitEndDateLabel('2027-10-28', '2026-10-14'), '28 paź 2027')
 })

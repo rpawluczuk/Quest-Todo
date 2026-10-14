@@ -6,7 +6,7 @@ import TaskActionsMenu from '../components/TaskActionsMenu'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
 import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, type HabitDayGroup } from '../habitProgress'
-import { canToggleHabit } from '../habitSchedule'
+import { canToggleHabit, habitEndDateLabel } from '../habitSchedule'
 import type { Habit, HabitAward, HabitCompletionResult, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
 
@@ -244,7 +244,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                   {habit.completionLimit !== null && <> · {habit.totalCompletions}/{habit.completionLimit} łącznie</>}
                 </small>
                 {habit.status === 'UPCOMING' && <small className="habit-target-hint">Od {displayDate.format(dateFromKey(habit.startDate))}</small>}
-                {habit.endDate && <small className="habit-target-hint">Do {displayDate.format(dateFromKey(habit.endDate))} włącznie</small>}
+                {habit.endDate && <small className="habit-target-hint">Do {habitEndDateLabel(habit.endDate, today)}</small>}
               </div>
               <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
                 aria-label={habit.target

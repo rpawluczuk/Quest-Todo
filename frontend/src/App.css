@@ -1043,6 +1043,8 @@
 
 .habit-progress {
   grid-area: progress;
+  align-self: start;
+  margin-top: 1px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
