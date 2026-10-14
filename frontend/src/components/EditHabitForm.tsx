@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import type { Habit } from '../types/Habit'
-import HabitScheduleFields from './HabitScheduleFields'
 import type { HabitSchedule } from '../types/Habit'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
-import AutoResizeTextarea from './AutoResizeTextarea'
+import HabitAdditionalSettings from './HabitAdditionalSettings'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
@@ -40,22 +39,19 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
   }
 
   return <form className="task-form habit-form edit-form" onSubmit={submit}>
-    <label className="form-field">
+    <label className="form-field habit-name-field">
       <span>Nazwa nawyku</span>
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} required />
     </label>
-    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
-    <label className="form-field task-description-field">
-      <span>Opis / notatki (opcjonalnie)</span>
-      <AutoResizeTextarea value={description} disabled={saving} onChange={event => setDescription(event.target.value)} />
-    </label>
+    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>
-    <HabitScheduleFields value={schedule} onChange={setSchedule} disabled={saving} />
-    <div className="task-actions">
+    <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
+      onDescriptionChange={setDescription} onScheduleChange={setSchedule} />
+    <div className="task-actions habit-form-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
       <button type="button" className="secondary-button" disabled={saving} onClick={onCancel}>Anuluj</button>
     </div>

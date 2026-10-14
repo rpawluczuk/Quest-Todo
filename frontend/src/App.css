@@ -883,36 +883,147 @@
 }
 
 .task-form.habit-form {
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 38%);
+  grid-template-columns: minmax(0, 1fr) 160px;
 }
 
-.habit-form .habit-frequency-field,
-.habit-form .habit-schedule-fields,
+.habit-form .habit-name-field,
+.habit-form .habit-additional-settings,
 .habit-form .habit-target-hint,
 .habit-form .task-actions {
   grid-column: 1 / -1;
 }
 
-.habit-schedule-fields {
+.habit-form .habit-frequency-field { grid-column: 1; }
+.habit-form .habit-points-field { grid-column: 2; }
+
+.habit-points-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.habit-frequency-field > span {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.task-form .habit-points-info {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-muted);
+  cursor: help;
+}
+
+.task-form .habit-points-info:hover:not(:disabled),
+.task-form .habit-points-info:focus-visible {
+  background: transparent;
+  color: var(--color-primary);
+}
+
+.habit-points-info svg {
+  width: 17px;
+  height: 17px;
+}
+
+.habit-points-info::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 2;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 40px));
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #2f2938;
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.habit-points-info:hover::after,
+.habit-points-info:focus-visible::after,
+.habit-points-info:focus::after,
+.habit-points-info-open::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.habit-additional-settings {
   min-width: 0;
 }
 
-.habit-schedule-fields summary {
+.habit-additional-settings > summary {
   cursor: pointer;
   color: var(--color-primary);
-  padding: 12px 0;
+  padding: 8px 0;
   min-height: 44px;
 }
 
-.habit-schedule-fields summary:focus-visible {
+.habit-additional-settings > summary > span {
+  display: block;
+  font-weight: 600;
+}
+
+.habit-additional-settings > summary small {
+  display: block;
+  margin: 3px 0 0 2px;
+  color: #767080;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.habit-additional-settings > summary:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
+.habit-additional-content {
+  display: grid;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.habit-schedule-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid #e9e5ef;
+}
+
+.habit-schedule-fields legend {
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.habit-schedule-summary {
+  margin: 4px 0 12px;
+  color: #767080;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .habit-schedule-inputs {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -945,6 +1056,10 @@
   color: #625b70;
   font-size: 0.875rem;
   overflow-wrap: anywhere;
+}
+
+.habit-form .task-description-field textarea {
+  min-height: 72px;
 }
 
 .task.habit-card {
@@ -2262,7 +2377,42 @@
   }
 
   .task-form.habit-form {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    gap: 12px 10px;
+  }
+
+  .habit-form .habit-name-field {
+    grid-column: 1 / -1;
+  }
+
+  .habit-form .habit-points-field {
+    grid-column: 2;
+  }
+
+  .habit-form .habit-form-actions {
+    display: grid;
     grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .habit-form-actions > button[type='submit'] {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .task-form .habit-form-actions > .secondary-button {
+    justify-self: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .task-form .habit-form-actions > .secondary-button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .task-details-form .task-due-inputs {
