@@ -3,6 +3,7 @@ package pl.questtodo.habit;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
@@ -14,6 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 import pl.questtodo.user.CurrentUserProvider;
 import pl.questtodo.user.UserService;
 import pl.questtodo.goal.GoalHabitRepository;
+import pl.questtodo.goal.GoalHabitEntity;
+import pl.questtodo.goal.GoalEntity;
+import pl.questtodo.goal.GoalRepository;
 
 @Service
 @Transactional
@@ -26,10 +30,11 @@ public class HabitService {
     private final HabitTargetRepository targets;
     private final HabitAwardRepository awards;
     private final GoalHabitRepository goalHabits;
+    private final GoalRepository goals;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
-                        HabitAwardRepository awards, GoalHabitRepository goalHabits) {
+                        HabitAwardRepository awards, GoalHabitRepository goalHabits, GoalRepository goals) {
         this.habits = habits;
         this.users = users;
         this.currentUser = currentUser;
@@ -38,6 +43,7 @@ public class HabitService {
         this.targets = targets;
         this.awards = awards;
         this.goalHabits = goalHabits;
+        this.goals = goals;
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +92,12 @@ public class HabitService {
 
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
                              LocalDate startDate, LocalDate endDate, Integer completionLimit) {
+        return createHabit(name, targetDays, rewardPoints, description, startDate, endDate, completionLimit, List.of());
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
+                             LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds) {
+        var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
         LocalDate today = calendar.today();
         LocalDate start = startDate == null ? today : startDate;
         validateSchedule(start, endDate, completionLimit);
@@ -95,7 +107,11 @@ public class HabitService {
         habit.changeDescription(description == null ? null : description.strip());
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
                 start.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
-        return toHabit(habit, today, false, List.of(target), 0, false, 0, 0);
+        selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
+        var selected = selectedGoals.stream().map(GoalEntity::toGoal).toList();
+        return toHabit(habit, today, false, List.of(target), 0, false, 0, 0).withGoals(
+                selected.stream().map(goal -> goal.id()).toList(),
+                selected.stream().map(goal -> goal.title()).toList());
     }
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays) {
@@ -113,11 +129,17 @@ public class HabitService {
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit) {
+        return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit, null);
+    }
+
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+            String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds) {
         HabitEntity habit = findForUpdate(id);
         if (habit.getEndedOn() != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Zakończonego nawyku nie można edytować.");
         if (startDate == null && (endDate != null || completionLimit != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Podaj datę rozpoczęcia nawyku.");
+        var selectedGoals = goalIds == null ? null : ownedGoals(goalIds);
         if (startDate != null) {
             validateSchedule(startDate, endDate, completionLimit);
             if (completions.existsByHabitIdAndDateBefore(id, startDate)
@@ -133,6 +155,10 @@ public class HabitService {
         habit.rename(name);
         if (rewardPoints != null) habit.setRewardPoints(rewardPoints);
         if (description != null) habit.changeDescription(description.strip());
+        if (selectedGoals != null) {
+            goalHabits.deleteByHabitId(habit.getId());
+            selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
+        }
         LocalDate today = calendar.today();
         Habit before = snapshot(habit, today);
         boolean targetLowered = targetDays != null && before.target() != null
@@ -269,13 +295,26 @@ public class HabitService {
 
     private List<Habit> withGoalTitles(List<Habit> habitList, long userId) {
         if (habitList.isEmpty()) return List.of();
+        var idsByHabit = new HashMap<Long, List<Long>>();
         var titlesByHabit = new HashMap<Long, List<String>>();
         var habitIds = habitList.stream().map(Habit::id).toList();
         for (var link : goalHabits.findGoalTitles(userId, habitIds)) {
+            idsByHabit.computeIfAbsent(link.getHabitId(), ignored -> new ArrayList<>()).add(link.getGoalId());
             titlesByHabit.computeIfAbsent(link.getHabitId(), ignored -> new ArrayList<>()).add(link.getGoalTitle());
         }
-        return habitList.stream().map(habit -> habit.withGoalTitles(
+        return habitList.stream().map(habit -> habit.withGoals(
+                idsByHabit.getOrDefault(habit.id(), List.of()),
                 titlesByHabit.getOrDefault(habit.id(), List.of()))).toList();
+    }
+
+    private List<GoalEntity> ownedGoals(List<Long> requestedIds) {
+        var ids = new LinkedHashSet<>(requestedIds);
+        if (ids.isEmpty()) return List.of();
+        var selectedGoals = goals.findByUserIdAndIdInOrderByIdAsc(currentUser.getUserId(), ids);
+        if (selectedGoals.size() != ids.size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Co najmniej jeden wybrany cel nie istnieje.");
+        }
+        return selectedGoals;
     }
 
     private HabitAwardEntity grantAward(HabitEntity habit, LocalDate monday,

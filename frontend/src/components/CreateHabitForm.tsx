@@ -4,9 +4,11 @@ import { habitToday } from '../weekDates'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
 import HabitAdditionalSettings from './HabitAdditionalSettings'
+import GoalPicker from './GoalPicker'
 
 export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
-  onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) => Promise<void>
+  onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
+    goalIds: number[]) => Promise<void>
   isFirstHabit?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -15,6 +17,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
   const [rewardPoints, setRewardPoints] = useState('1')
   const [description, setDescription] = useState('')
   const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habitToday(), endDate: null, completionLimit: null })
+  const [goalIds, setGoalIds] = useState<number[]>([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -34,6 +37,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setDescription('')
     setError('')
     setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
+    setGoalIds([])
     setExpanded(false)
   }
 
@@ -46,12 +50,13 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     setSaving(true)
     setError('')
     try {
-      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule)
+      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule, goalIds)
       setRewardPoints('1')
       setTargetDays(7)
       setName('')
       setDescription('')
       setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
+      setGoalIds([])
       setExpanded(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać nawyku.')
@@ -68,6 +73,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
     </label>
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
     <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
       onDescriptionChange={setDescription} onScheduleChange={setSchedule} />
     <div className="task-actions habit-form-actions">

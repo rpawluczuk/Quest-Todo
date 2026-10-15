@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
 import AutoResizeTextarea from './AutoResizeTextarea'
-import TaskGoalPicker from './TaskGoalPicker'
+import GoalPicker from './GoalPicker'
 
 type EditTaskFormProps = {
   readonly task: Task
@@ -84,7 +84,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           required
         />
       </label>
-      <TaskGoalPicker selectedIds={editGoalIds} onChange={setEditGoalIds} disabled={isSaving} />
+      <GoalPicker selectedIds={editGoalIds} onChange={setEditGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
         <div className="task-due-inputs">

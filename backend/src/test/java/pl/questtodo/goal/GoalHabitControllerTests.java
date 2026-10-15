@@ -51,6 +51,8 @@ class GoalHabitControllerTests {
         mvc.perform(get("/api/habits").param("includeInactive", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1001))
+                .andExpect(jsonPath("$[0].goalIds[0]").value(1001))
+                .andExpect(jsonPath("$[0].goalIds[1]").value(1002))
                 .andExpect(jsonPath("$[0].goalTitles.length()").value(2))
                 .andExpect(jsonPath("$[0].goalTitles[0]").value("First"))
                 .andExpect(jsonPath("$[0].goalTitles[1]").value("Second"))
@@ -114,5 +116,47 @@ class GoalHabitControllerTests {
         entityManager.flush();
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goal_habits", Integer.class));
         mvc.perform(get("/api/goals/1002")).andExpect(status().isOk());
+    }
+
+    @Test
+    void createsAndEditsHabitGoalLinksAtomicallyFromHabitForm() throws Exception {
+        String created = mvc.perform(post("/api/habits").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"New habit\",\"targetDays\":3,\"rewardPoints\":10,"
+                                + "\"goalIds\":[1002,1001,1001]}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.goalIds[0]").value(1001))
+                .andExpect(jsonPath("$.goalIds[1]").value(1002))
+                .andExpect(jsonPath("$.goalTitles[0]").value("First"))
+                .andExpect(jsonPath("$.goalTitles[1]").value("Second"))
+                .andReturn().getResponse().getContentAsString();
+        int habitId = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        entityManager.flush();
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_habits WHERE habit_id = ?", Integer.class, habitId));
+
+        mvc.perform(put("/api/habits/{id}/configuration", habitId)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Edited habit\",\"targetDays\":3,\"rewardPoints\":10,\"goalIds\":[1002]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.habit.goalIds.length()").value(1))
+                .andExpect(jsonPath("$.habit.goalIds[0]").value(1002))
+                .andExpect(jsonPath("$.habit.goalTitles[0]").value("Second"));
+        mvc.perform(put("/api/habits/{id}/configuration", habitId)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Keep links\",\"targetDays\":3,\"rewardPoints\":10}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.habit.goalIds[0]").value(1002));
+        mvc.perform(put("/api/habits/{id}/configuration", habitId)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"No goals\",\"targetDays\":3,\"rewardPoints\":10,\"goalIds\":[]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.habit.goalIds.length()").value(0));
+
+        mvc.perform(post("/api/habits").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Must roll back\",\"targetDays\":3,\"rewardPoints\":10,\"goalIds\":[2001]}"))
+                .andExpect(status().isNotFound());
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habits WHERE name = 'Must roll back'", Integer.class));
+        mvc.perform(put("/api/habits/{id}/configuration", habitId)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Must also roll back\",\"targetDays\":3,\"rewardPoints\":10,\"goalIds\":[2001]}"))
+                .andExpect(status().isNotFound());
+        assertEquals("No goals", jdbc.queryForObject("SELECT name FROM habits WHERE id = ?", String.class, habitId));
     }
 }

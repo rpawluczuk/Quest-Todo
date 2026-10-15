@@ -4,10 +4,12 @@ import type { HabitSchedule } from '../types/Habit'
 import HabitTargetField from './HabitTargetField'
 import HabitPointsField from './HabitPointsField'
 import HabitAdditionalSettings from './HabitAdditionalSettings'
+import GoalPicker from './GoalPicker'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
-  onSave: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) => Promise<void>
+  onSave: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
+    goalIds: number[]) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName] = useState(habit.name)
@@ -15,6 +17,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
   const [rewardPoints, setRewardPoints] = useState(String(habit.rewardPoints))
   const [description, setDescription] = useState(habit.description ?? '')
   const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habit.startDate, endDate: habit.endDate, completionLimit: habit.completionLimit })
+  const [goalIds, setGoalIds] = useState<number[]>(habit.goalIds ?? [])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -30,7 +33,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     setSaving(true)
     setError('')
     try {
-      await onSave(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule)
+      await onSave(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule, goalIds)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać nawyku.')
     } finally {
@@ -46,6 +49,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     </label>
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>

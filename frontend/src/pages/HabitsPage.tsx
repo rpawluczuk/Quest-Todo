@@ -132,11 +132,12 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     return () => controller.abort()
   }, [date, today])
 
-  async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) {
+  async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
+    goalIds: number[]) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name, targetDays, rewardPoints, description, schedule)
+      const habit = await createHabit(name, targetDays, rewardPoints, description, schedule, goalIds)
       setAllHabitIds(current => [...current, habit.id])
       setHabits(await getHabits(date))
     } finally {
@@ -144,11 +145,12 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
     }
   }
 
-  async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule) {
+  async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string,
+    schedule: HabitSchedule, goalIds: number[]) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule)
+      const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule, goalIds)
       const loaded = await getHabits(date)
       setHabits(loaded)
       onCompletionSaved(result)
@@ -236,7 +238,8 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
           {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${hasReachedWeeklyTarget(habit) ? ' habit-card-achieved' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays, points, description, schedule) => save(habit.id, name, targetDays, points, description, schedule)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays, points, description, schedule, goalIds) =>
+                save(habit.id, name, targetDays, points, description, schedule, goalIds)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null || !canToggleHabit(habit)}

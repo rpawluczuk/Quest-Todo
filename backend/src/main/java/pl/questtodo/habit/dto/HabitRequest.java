@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
+import java.util.List;
 
 public record HabitRequest(
         @NotBlank(message = "Podaj nazwę nawyku.")
@@ -15,4 +17,6 @@ public record HabitRequest(
         @Min(value = 0, message = "Punkty nie mogą być ujemne.")
         Integer rewardPoints,
         String description, java.time.LocalDate startDate, java.time.LocalDate endDate,
-        @Min(value = 1, message = "Podaj co najmniej jedno wykonanie.") Integer completionLimit) {}
+        @Min(value = 1, message = "Podaj co najmniej jedno wykonanie.") Integer completionLimit,
+        @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
+        List<@Positive Long> goalIds) {}
