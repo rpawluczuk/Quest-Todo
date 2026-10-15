@@ -15,7 +15,9 @@ const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 
 type AwardNotice = HabitAward & { habitId: number; name: string }
 
-export default function HabitsPage({ onPointsChanged }: { onPointsChanged: (balance: number) => void }) {
+export default function HabitsPage({ onPointsChanged, goalLinksRevision }: {
+  onPointsChanged: (balance: number) => void; goalLinksRevision: number
+}) {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
   const [busy, setBusy] = useState(false)
@@ -62,7 +64,7 @@ export default function HabitsPage({ onPointsChanged }: { onPointsChanged: (bala
       <h2 id="habits-heading">Nawyki</h2>
       <p>Regularne czynności, które chcesz rozwijać.</p>
     </div>
-    <HabitDayList key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
+    <HabitDayList key={`${selectedDay}:${today}:${refresh}:${goalLinksRevision}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       onCompletionSaved={completionSaved} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
@@ -264,6 +266,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                       { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
                     ]} />
                 </div>
+                {(habit.goalTitles?.length ?? 0) > 0 && <p className="habit-card-goals">
+                  <span className="task-card-goals-label">{habit.goalTitles.length === 1 ? 'Cel:' : 'Cele:'}</span>{' '}
+                  <span>{habit.goalTitles.join(' · ')}</span>
+                </p>}
                 <div className="habit-meta">
                 <div className="habit-primary-meta">
                   <small className="habit-frequency">

@@ -1,6 +1,8 @@
 package pl.questtodo.habit;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pl.questtodo.user.CurrentUserProvider;
 import pl.questtodo.user.UserService;
+import pl.questtodo.goal.GoalHabitRepository;
 
 @Service
 @Transactional
@@ -22,10 +25,11 @@ public class HabitService {
     private final HabitCalendar calendar;
     private final HabitTargetRepository targets;
     private final HabitAwardRepository awards;
+    private final GoalHabitRepository goalHabits;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
-                        HabitAwardRepository awards) {
+                        HabitAwardRepository awards, GoalHabitRepository goalHabits) {
         this.habits = habits;
         this.users = users;
         this.currentUser = currentUser;
@@ -33,6 +37,7 @@ public class HabitService {
         this.calendar = calendar;
         this.targets = targets;
         this.awards = awards;
+        this.goalHabits = goalHabits;
     }
 
     @Transactional(readOnly = true)
@@ -57,13 +62,14 @@ public class HabitService {
                 HabitCompletionRepository.WeeklyCount::getHabitId, HabitCompletionRepository.WeeklyCount::getCompletedDays));
         var targetHistory = targets.findByHabitUserIdOrderByEffectiveFromAsc(userId).stream()
                 .collect(Collectors.groupingBy(HabitTargetEntity::getHabitId));
-        return habits.findByUserIdOrderByIdAsc(userId).stream()
+        var result = habits.findByUserIdOrderByIdAsc(userId).stream()
                 .filter(habit -> includeInactive || !habit.getStartDate().isAfter(date))
                 .map(habit -> toHabit(habit, date, completedIds.contains(habit.getId()),
                         targetHistory.getOrDefault(habit.getId(), List.of()),
                         weeklyCounts.getOrDefault(habit.getId(), 0L), awardedIds.contains(habit.getId()),
                         totals.getOrDefault(habit.getId(), 0L), throughDate.getOrDefault(habit.getId(), 0L)))
                 .toList();
+        return withGoalTitles(result, userId);
     }
 
     public Habit createHabit(String name, Integer targetDays) {
@@ -147,7 +153,7 @@ public class HabitService {
                 current = snapshot(habit, today);
             }
         }
-        return new HabitCompletionResult(current, balance, award == null ? null : award.toAward());
+        return new HabitCompletionResult(withGoalTitles(current), balance, award == null ? null : award.toAward());
     }
 
     private void changeTarget(HabitEntity habit, int days, LocalDate today) {
@@ -195,7 +201,7 @@ public class HabitService {
         if (habit.getEndedOn() != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten nawyk został już zakończony.");
         habit.end(calendar.today(), reason);
-        return snapshot(habit, calendar.today());
+        return withGoalTitles(snapshot(habit, calendar.today()));
     }
 
     public HabitCompletionResult setCompletion(long id, LocalDate date, boolean completed) {
@@ -226,7 +232,8 @@ public class HabitService {
         } else {
             completions.deleteByHabitIdAndDate(id, date);
         }
-        return new HabitCompletionResult(snapshot(habit, date), balance, award == null ? null : award.toAward());
+        return new HabitCompletionResult(withGoalTitles(snapshot(habit, date)), balance,
+                award == null ? null : award.toAward());
     }
 
     public HabitCompletionResult undoAward(long habitId, java.util.UUID awardId) {
@@ -243,7 +250,8 @@ public class HabitService {
         completion.ifPresent(completions::delete);
         user.addPoints(-(long) award.getPoints());
         awards.delete(award);
-        return new HabitCompletionResult(snapshot(habit, award.getCompletionDate()), user.getPoints(), null);
+        return new HabitCompletionResult(withGoalTitles(snapshot(habit, award.getCompletionDate())),
+                user.getPoints(), null);
     }
 
     private Habit snapshot(HabitEntity habit, LocalDate date) {
@@ -253,6 +261,21 @@ public class HabitService {
                 completions.countByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)),
                 awards.existsByHabit_IdAndWeekStart(habit.getId(), monday), completions.countByHabitId(habit.getId()),
                 completions.countByHabitIdAndDateLessThanEqual(habit.getId(), date));
+    }
+
+    private Habit withGoalTitles(Habit habit) {
+        return withGoalTitles(List.of(habit), currentUser.getUserId()).getFirst();
+    }
+
+    private List<Habit> withGoalTitles(List<Habit> habitList, long userId) {
+        if (habitList.isEmpty()) return List.of();
+        var titlesByHabit = new HashMap<Long, List<String>>();
+        var habitIds = habitList.stream().map(Habit::id).toList();
+        for (var link : goalHabits.findGoalTitles(userId, habitIds)) {
+            titlesByHabit.computeIfAbsent(link.getHabitId(), ignored -> new ArrayList<>()).add(link.getGoalTitle());
+        }
+        return habitList.stream().map(habit -> habit.withGoalTitles(
+                titlesByHabit.getOrDefault(habit.id(), List.of()))).toList();
     }
 
     private HabitAwardEntity grantAward(HabitEntity habit, LocalDate monday,

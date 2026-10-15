@@ -84,7 +84,7 @@ public class HabitEntity {
                          boolean weeklyRewardGranted, long totalCompletions, String status) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status,
-                endedOn, endReason);
+                endedOn, endReason, java.util.List.of());
     }
 
     public long getId() { return id; }

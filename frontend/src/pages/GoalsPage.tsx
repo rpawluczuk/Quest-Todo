@@ -18,7 +18,9 @@ function definitionError(currentState: string, desiredOutcome: string): string {
   return ''
 }
 
-export default function GoalsPage(taskProps: GoalTasksProps) {
+export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: GoalTasksProps & {
+  onHabitGoalLinksChanged: () => void
+}) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,6 +85,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
       const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome)
       setGoals(current => current.map(goal => goal.id === updated.id ? updated : goal))
       taskProps.onGoalLinksChanged()
+      onHabitGoalLinksChanged()
       setEditingId(null)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać celu.')
@@ -98,6 +101,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
       await deleteGoal(id)
       setGoals(current => current.filter(goal => goal.id !== id))
       taskProps.onGoalLinksChanged()
+      onHabitGoalLinksChanged()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się usunąć celu.')
     } finally { sending.current = false; setPendingId(null) }
@@ -190,7 +194,8 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><p>{goal.desiredOutcome}</p></section>}
               </div>}
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
-            {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title} />}
+            {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
+              onGoalLinksChanged={onHabitGoalLinksChanged} />}
           </>}
         </li>)}</ul>}
     </>}

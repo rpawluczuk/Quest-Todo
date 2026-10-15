@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
 import TaskActionsMenu from './TaskActionsMenu'
 
-export default function GoalHabits({ goalId, goalTitle }: { goalId: number; goalTitle: string }) {
+export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
+  goalId: number; goalTitle: string; onGoalLinksChanged: () => void
+}) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -87,6 +89,7 @@ export default function GoalHabits({ goalId, goalTitle }: { goalId: number; goal
     void run(async () => {
       await setGoalHabit(goalId, habit.id, true)
       setAttached(current => current.some(item => item.id === habit.id) ? current : [...current, habit])
+      onGoalLinksChanged()
       setNotice(`Przypięto: ${habit.name}`)
     })
   }
@@ -121,6 +124,7 @@ export default function GoalHabits({ goalId, goalTitle }: { goalId: number; goal
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalHabit(goalId, habit.id, false)
               setAttached(current => current.filter(item => item.id !== habit.id))
+              onGoalLinksChanged()
             }),
           }]} />
         </li>)}

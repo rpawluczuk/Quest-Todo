@@ -32,6 +32,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
   const [taskRevision, setTaskRevision] = useState(0)
+  const [habitGoalRevision, setHabitGoalRevision] = useState(0)
   const [lastCompletedTask, setLastCompletedTask] = useState<Task | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
@@ -377,14 +378,15 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage onPointsChanged={balance => {
+        <HabitsPage goalLinksRevision={habitGoalRevision} onPointsChanged={balance => {
           accountRequest.current++
           setPoints(balance)
         }} />
       </div>
       <div id="goals-page" hidden={activePage !== 'goals'}>
         <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
-          onGoalLinksChanged={refreshTaskGoalLinks} />
+          onGoalLinksChanged={refreshTaskGoalLinks}
+          onHabitGoalLinksChanged={() => setHabitGoalRevision(value => value + 1)} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}

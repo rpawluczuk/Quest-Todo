@@ -47,6 +47,14 @@ class GoalHabitControllerTests {
         }
         entityManager.flush();
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_habits", Integer.class));
+        jdbc.update("INSERT INTO goal_habits(goal_id, habit_id) VALUES (2001, 2001)");
+        mvc.perform(get("/api/habits").param("includeInactive", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1001))
+                .andExpect(jsonPath("$[0].goalTitles.length()").value(2))
+                .andExpect(jsonPath("$[0].goalTitles[0]").value("First"))
+                .andExpect(jsonPath("$[0].goalTitles[1]").value("Second"))
+                .andExpect(jsonPath("$[1].goalTitles.length()").value(0));
         mvc.perform(get("/api/goals/1001/habits")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].name").value("Training"));
         for (int i = 0; i < 2; i++) {
@@ -108,4 +116,3 @@ class GoalHabitControllerTests {
         mvc.perform(get("/api/goals/1002")).andExpect(status().isOk());
     }
 }
-
