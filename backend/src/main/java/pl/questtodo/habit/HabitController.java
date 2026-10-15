@@ -37,20 +37,20 @@ public class HabitController {
     @ResponseStatus(HttpStatus.CREATED)
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
         return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds());
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds()).habit();
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId()).habit();
     }
 
     @PutMapping("/{id}/configuration")
     public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
                                                            @Valid @RequestBody HabitRequest request) {
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds());
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId());
     }
 
     @DeleteMapping("/{id}")

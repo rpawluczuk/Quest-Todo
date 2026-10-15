@@ -21,6 +21,7 @@ export type Habit = HabitSchedule & {
   readonly latestTarget: HabitTarget | null
   readonly endedOn: string | null
   readonly endReason: HabitEndReason | null
+  readonly category: import('./Category').Category | null
   readonly goalIds: number[]
   readonly goalTitles: string[]
 }

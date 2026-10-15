@@ -4,6 +4,7 @@ import CreateHabitForm from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
+import CategoryIcon from '../components/CategoryIcon'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
 import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
@@ -133,11 +134,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   }, [date, today])
 
   async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
-    goalIds: number[]) {
+    categoryId: number | null, goalIds: number[]) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const habit = await createHabit(name, targetDays, rewardPoints, description, schedule, goalIds)
+      const habit = await createHabit(name, targetDays, rewardPoints, description, schedule, categoryId, goalIds)
       setAllHabitIds(current => [...current, habit.id])
       setHabits(await getHabits(date))
     } finally {
@@ -146,11 +147,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
   }
 
   async function save(id: number, name: string, targetDays: number, rewardPoints: number, description: string,
-    schedule: HabitSchedule, goalIds: number[]) {
+    schedule: HabitSchedule, categoryId: number | null, goalIds: number[]) {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule, goalIds)
+      const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule, categoryId, goalIds)
       const loaded = await getHabits(date)
       setHabits(loaded)
       onCompletionSaved(result)
@@ -238,8 +239,8 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
           {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${hasReachedWeeklyTarget(habit) ? ' habit-card-achieved' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
             {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays, points, description, schedule, goalIds) =>
-                save(habit.id, name, targetDays, points, description, schedule, goalIds)} onCancel={() => setEditingId(null)} /> : <>
+              onSave={(name, targetDays, points, description, schedule, categoryId, goalIds) =>
+                save(habit.id, name, targetDays, points, description, schedule, categoryId, goalIds)} onCancel={() => setEditingId(null)} /> : <>
               <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null || !canToggleHabit(habit)}
@@ -249,6 +250,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
               <div className="habit-card-content">
                 <div className="habit-heading-row">
                   <div className="habit-name">
+                    {habit.category && <span className="habit-category-marker"
+                      title={`Kategoria: ${habit.category.name}`} aria-label={`Kategoria: ${habit.category.name}`}>
+                      <CategoryIcon icon={habit.category.icon} color={habit.category.color} />
+                    </span>}
                     {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
                       aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
                       aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}`}

@@ -18,5 +18,6 @@ public record HabitRequest(
         Integer rewardPoints,
         String description, java.time.LocalDate startDate, java.time.LocalDate endDate,
         @Min(value = 1, message = "Podaj co najmniej jedno wykonanie.") Integer completionLimit,
+        @Positive(message = "Identyfikator kategorii musi być dodatni.") Long categoryId,
         @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
         List<@Positive Long> goalIds) {}

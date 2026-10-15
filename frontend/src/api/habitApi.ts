@@ -27,22 +27,22 @@ export async function undoHabitAward(id: number, awardId: string): Promise<Habit
 }
 
 export async function createHabit(name: string, targetDays: number, rewardPoints: number, description: string,
-  schedule: HabitSchedule, goalIds: number[]): Promise<Habit> {
+  schedule: HabitSchedule, categoryId: number | null, goalIds: number[]): Promise<Habit> {
   const response = await apiFetch('/api/habits', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, goalIds }),
+    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, categoryId, goalIds }),
   })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać nawyku'))
   return response.json()
 }
 
 export async function updateHabit(id: number, name: string, targetDays: number, rewardPoints: number, description: string,
-  schedule: HabitSchedule, goalIds: number[]): Promise<HabitCompletionResult> {
+  schedule: HabitSchedule, categoryId: number | null, goalIds: number[]): Promise<HabitCompletionResult> {
   const response = await apiFetch(`/api/habits/${id}/configuration`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, goalIds }),
+    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, categoryId, goalIds }),
   })
   if (!response.ok) {
     if (response.status === 404) throw new Error('Nawyk nie istnieje. Odśwież stronę.')

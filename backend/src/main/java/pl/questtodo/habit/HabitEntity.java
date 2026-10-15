@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import pl.questtodo.user.UserEntity;
+import pl.questtodo.category.CategoryEntity;
 
 @Entity
 @Table(name = "habits")
@@ -37,6 +38,10 @@ public class HabitEntity {
 
     @Column(name = "reward_points", nullable = false)
     private int rewardPoints;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private CategoryEntity category;
 
     public int getRewardPoints() { return rewardPoints; }
     public void setRewardPoints(int points) { this.rewardPoints = points; }
@@ -69,7 +74,12 @@ public class HabitEntity {
     protected HabitEntity() {}
 
     public HabitEntity(String name, UserEntity user, LocalDate createdOn) {
+        this(name, null, user, createdOn);
+    }
+
+    public HabitEntity(String name, CategoryEntity category, UserEntity user, LocalDate createdOn) {
         this.name = name;
+        this.category = category;
         this.user = user;
         this.createdOn = createdOn;
     }
@@ -80,11 +90,14 @@ public class HabitEntity {
 
     public void changeDescription(String description) { this.description = description; }
 
+    public void setCategory(CategoryEntity category) { this.category = category; }
+
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays,
                          boolean weeklyRewardGranted, long totalCompletions, String status) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status,
-                endedOn, endReason, java.util.List.of(), java.util.List.of());
+                endedOn, endReason, category == null ? null : category.toCategory(),
+                java.util.List.of(), java.util.List.of());
     }
 
     public long getId() { return id; }

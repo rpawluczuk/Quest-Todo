@@ -18,6 +18,8 @@ import pl.questtodo.goal.GoalHabitRepository;
 import pl.questtodo.goal.GoalHabitEntity;
 import pl.questtodo.goal.GoalEntity;
 import pl.questtodo.goal.GoalRepository;
+import pl.questtodo.category.CategoryEntity;
+import pl.questtodo.category.CategoryRepository;
 
 @Service
 @Transactional
@@ -31,10 +33,12 @@ public class HabitService {
     private final HabitAwardRepository awards;
     private final GoalHabitRepository goalHabits;
     private final GoalRepository goals;
+    private final CategoryRepository categories;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
-                        HabitAwardRepository awards, GoalHabitRepository goalHabits, GoalRepository goals) {
+                        HabitAwardRepository awards, GoalHabitRepository goalHabits, GoalRepository goals,
+                        CategoryRepository categories) {
         this.habits = habits;
         this.users = users;
         this.currentUser = currentUser;
@@ -44,6 +48,7 @@ public class HabitService {
         this.awards = awards;
         this.goalHabits = goalHabits;
         this.goals = goals;
+        this.categories = categories;
     }
 
     @Transactional(readOnly = true)
@@ -97,11 +102,19 @@ public class HabitService {
 
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
                              LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds) {
+        return createHabit(name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, null);
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
+                             LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+                             Long categoryId) {
         var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
+        var category = ownedCategory(categoryId);
         LocalDate today = calendar.today();
         LocalDate start = startDate == null ? today : startDate;
         validateSchedule(start, endDate, completionLimit);
-        HabitEntity habit = habits.save(new HabitEntity(name, users.currentReference(), today));
+        HabitEntity habit = habits.save(new HabitEntity(name, category, users.currentReference(), today));
         habit.schedule(start, endDate, completionLimit);
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
         habit.changeDescription(description == null ? null : description.strip());
@@ -134,12 +147,27 @@ public class HabitService {
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds) {
+        return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, null, false);
+    }
+
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+            String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+            Long categoryId) {
+        return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, categoryId, true);
+    }
+
+    private HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+            String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+            Long categoryId, boolean updateCategory) {
         HabitEntity habit = findForUpdate(id);
         if (habit.getEndedOn() != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Zakończonego nawyku nie można edytować.");
         if (startDate == null && (endDate != null || completionLimit != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Podaj datę rozpoczęcia nawyku.");
         var selectedGoals = goalIds == null ? null : ownedGoals(goalIds);
+        CategoryEntity category = updateCategory ? ownedCategory(categoryId) : null;
         if (startDate != null) {
             validateSchedule(startDate, endDate, completionLimit);
             if (completions.existsByHabitIdAndDateBefore(id, startDate)
@@ -155,6 +183,7 @@ public class HabitService {
         habit.rename(name);
         if (rewardPoints != null) habit.setRewardPoints(rewardPoints);
         if (description != null) habit.changeDescription(description.strip());
+        if (updateCategory) habit.setCategory(category);
         if (selectedGoals != null) {
             goalHabits.deleteByHabitId(habit.getId());
             selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
@@ -315,6 +344,12 @@ public class HabitService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Co najmniej jeden wybrany cel nie istnieje.");
         }
         return selectedGoals;
+    }
+
+    private CategoryEntity ownedCategory(Long categoryId) {
+        if (categoryId == null) return null;
+        return categories.findByIdAndUserId(categoryId, currentUser.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kategoria nie istnieje."));
     }
 
     private HabitAwardEntity grantAward(HabitEntity habit, LocalDate monday,

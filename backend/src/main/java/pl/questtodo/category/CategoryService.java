@@ -63,6 +63,7 @@ public class CategoryService {
 
     public void deleteCategory(long id) {
         categories.delete(findOwned(id));
+        categories.flush();
     }
 
     private CategoryEntity findOwned(long id) {

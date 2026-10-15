@@ -1169,6 +1169,23 @@
   word-break: normal;
 }
 
+.habit-category-marker {
+  display: inline-flex;
+  margin-right: 6px;
+  vertical-align: -5px;
+}
+
+.habit-category-marker .category-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
+.habit-category-marker .category-mark svg {
+  width: 14px;
+  height: 14px;
+}
+
 .habit-note-toggle {
   display: inline;
   max-width: 100%;
