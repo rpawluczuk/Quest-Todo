@@ -141,6 +141,7 @@ function TaskSection({
             <TaskItem
               key={task.id}
               task={task}
+              goalTitles={task.goalTitles ?? []}
               isEditing={editingTaskId === task.id}
               isAnyTaskEditing={editingTaskId !== null}
               onToggleTask={onToggleTask}

@@ -1966,7 +1966,7 @@
 .task-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 40px;
-  grid-template-areas: 'title primary menu' 'footer primary menu';
+  grid-template-areas: 'title primary menu' 'goals primary menu' 'footer primary menu';
   align-items: center;
   gap: 4px 10px;
   min-width: 0;
@@ -2119,12 +2119,12 @@
 
 .task-card-focus {
   grid-template-columns: 32px minmax(0, 1fr) 40px;
-  grid-template-areas: 'check title menu' 'check footer menu';
+  grid-template-areas: 'check title menu' 'check goals menu' 'check footer menu';
 }
 
 .task-card-backlog {
   grid-template-columns: minmax(0, 1fr) 40px;
-  grid-template-areas: 'title menu' 'footer footer';
+  grid-template-areas: 'title menu' 'goals goals' 'footer footer';
   row-gap: 0;
 }
 
@@ -2149,6 +2149,21 @@
 }
 
 .task-card-title:not(button) { cursor: default; }
+
+.task-card-goals {
+  grid-area: goals;
+  min-width: 0;
+  margin: 0;
+  color: #625b70;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.task-card-goals-label {
+  color: var(--color-primary);
+  font-weight: 600;
+}
 
 .task-card-has-note { cursor: pointer; }
 
@@ -2440,32 +2455,32 @@
 
   .task-card {
     grid-template-columns: minmax(0, 1fr) auto 40px;
-    grid-template-areas: 'title title menu' 'footer footer menu' 'primary primary primary';
+    grid-template-areas: 'title title menu' 'goals goals menu' 'footer footer menu' 'primary primary primary';
     column-gap: 8px;
     row-gap: 2px;
   }
 
   .task-card-focus {
     grid-template-columns: 32px minmax(0, 1fr) 40px;
-    grid-template-areas: 'check title menu' 'check footer menu';
+    grid-template-areas: 'check title menu' 'check goals menu' 'check footer menu';
   }
 
   .task-card-completed {
     grid-template-columns: minmax(0, 1fr) auto 32px;
-    grid-template-areas: 'title title menu' 'footer footer menu' 'primary primary primary';
+    grid-template-areas: 'title title menu' 'goals goals menu' 'footer footer menu' 'primary primary primary';
     column-gap: 6px;
   }
 
   .task-card-backlog {
     grid-template-columns: minmax(0, 1fr) 32px;
-    grid-template-areas: 'title menu' 'footer footer';
+    grid-template-areas: 'title menu' 'goals goals' 'footer footer';
     column-gap: 6px;
     row-gap: 0;
   }
 
   .task-card-focus {
     grid-template-columns: 32px minmax(0, 1fr) 32px;
-    grid-template-areas: 'check title menu' 'check footer menu';
+    grid-template-areas: 'check title menu' 'check goals menu' 'check footer menu';
     column-gap: 6px;
   }
 

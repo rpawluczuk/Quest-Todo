@@ -65,6 +65,8 @@ public class TaskEntity {
         return completed;
     }
 
+    public long getId() { return id; }
+
     public int getPoints() { return points; }
 
     public void updateDetails(String title, int points, String description, boolean updateDescription,
@@ -98,6 +100,7 @@ public class TaskEntity {
     }
 
     public Task toTask() {
-        return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime);
+        return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
+                java.util.List.of());
     }
 }

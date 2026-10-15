@@ -8,6 +8,7 @@ export type GoalTasksProps = {
   taskRevision: number
   tasksDisabled: boolean
   onToggleTask: (id: number) => Promise<void>
+  onGoalLinksChanged: () => void
 }
 
 function mergeTasks(current: Task[], next: Task[]): Task[] {
@@ -15,7 +16,7 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
   return [...current, ...next.filter(task => !known.has(task.id))]
 }
 
-export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask }: GoalTasksProps & { goalId: number; goalTitle: string }) {
+export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask, onGoalLinksChanged }: GoalTasksProps & { goalId: number; goalTitle: string }) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -116,6 +117,7 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
     void run(async () => {
       await setGoalTask(goalId, task.id, true)
       setAttached(current => mergeTasks(current, [task]))
+      onGoalLinksChanged()
       setNotice(`Przypięto: ${task.title}`)
     })
   }
@@ -178,6 +180,7 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalTask(goalId, task.id, false)
               setAttached(current => current.filter(item => item.id !== task.id))
+              onGoalLinksChanged()
             }),
           }]} />
         </li>})}

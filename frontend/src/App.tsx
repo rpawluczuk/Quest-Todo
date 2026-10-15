@@ -47,6 +47,15 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const accountRequest = useRef(0)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const completionRequests = useRef(new Set<number>())
+  function refreshTaskGoalLinks() {
+    void getTaskOverview().then(overview => {
+      setTasks(overview.tasks)
+      setCompletedCount(overview.completedCount)
+      setTaskRevision(value => value + 1)
+    }).catch(() => {
+      // The next navigation or goal mutation retries the task overview.
+    })
+  }
 
   async function refreshAccount(signal?: AbortSignal) {
     const request = ++accountRequest.current
@@ -374,7 +383,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         }} />
       </div>
       <div id="goals-page" hidden={activePage !== 'goals'}>
-        <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask} />
+        <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
+          onGoalLinksChanged={refreshTaskGoalLinks} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>
         {(rewardsLoading || accountLoading) && <p role="status">Ładowanie nagród…</p>}

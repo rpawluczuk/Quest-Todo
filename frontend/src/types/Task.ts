@@ -8,4 +8,5 @@ export type Task = {
   inFocus: boolean
   dueDate: string | null
   dueTime: string | null
+  goalTitles: string[]
 }

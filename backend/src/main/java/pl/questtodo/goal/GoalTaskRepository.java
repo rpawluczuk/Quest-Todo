@@ -16,6 +16,16 @@ public interface GoalTaskRepository extends JpaRepository<GoalTaskEntity, Long> 
             + "and link.goal.user.id = :userId and link.task.user.id = :userId order by link.task.id")
     List<TaskEntity> findTasks(@Param("goalId") long goalId, @Param("userId") long userId);
 
+    interface TaskGoalTitle {
+        long getTaskId();
+        String getGoalTitle();
+    }
+
+    @Query("select link.task.id as taskId, link.goal.title as goalTitle from GoalTaskEntity link "
+            + "where link.goal.user.id = :userId and link.task.user.id = :userId "
+            + "and link.task.id in :taskIds order by link.task.id, link.goal.id")
+    List<TaskGoalTitle> findGoalTitles(@Param("userId") long userId, @Param("taskIds") List<Long> taskIds);
+
     @Query("select task from TaskEntity task where task.user.id = :userId "
             + "and task.completed = :completed "
             + "and (:query = '' or lower(task.title) like concat('%', lower(:query), '%')) "

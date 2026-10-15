@@ -6,6 +6,7 @@ import { getTaskDuePresentation } from '../taskDue'
 
 type TaskItemProps = {
   readonly task: Task
+  readonly goalTitles: readonly string[]
   readonly isEditing: boolean
   readonly isAnyTaskEditing: boolean
   readonly onToggleTask: (taskId: number) => Promise<void>
@@ -18,6 +19,7 @@ type TaskItemProps = {
 
 function TaskItem({
   task,
+  goalTitles,
   isEditing,
   isAnyTaskEditing,
   onToggleTask,
@@ -107,6 +109,10 @@ function TaskItem({
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
           </button> : <span className="task-card-title"><span>{task.title}</span></span>}
+          {goalTitles.length > 0 && <p className="task-card-goals">
+            <span className="task-card-goals-label">{goalTitles.length === 1 ? 'Cel:' : 'Cele:'}</span>{' '}
+            <span>{goalTitles.join(' · ')}</span>
+          </p>}
           <div className={`task-card-footer${variant === 'backlog' ? ' task-card-footer-with-action' : ''}`}>
             <span className="task-card-meta">
               {due && <span className={`task-card-due${due.overdue ? ' task-card-due-overdue' : ''}`}>

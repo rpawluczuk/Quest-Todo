@@ -82,6 +82,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
     try {
       const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome)
       setGoals(current => current.map(goal => goal.id === updated.id ? updated : goal))
+      taskProps.onGoalLinksChanged()
       setEditingId(null)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać celu.')
@@ -96,6 +97,7 @@ export default function GoalsPage(taskProps: GoalTasksProps) {
     try {
       await deleteGoal(id)
       setGoals(current => current.filter(goal => goal.id !== id))
+      taskProps.onGoalLinksChanged()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się usunąć celu.')
     } finally { sending.current = false; setPendingId(null) }

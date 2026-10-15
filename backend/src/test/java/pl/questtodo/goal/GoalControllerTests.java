@@ -123,6 +123,21 @@ class GoalControllerTests {
     }
 
     @Test
+    void taskResponsesContainAllOwnGoalTitlesWithoutLeakingOtherUsersLinks() throws Exception {
+        seedLinks();
+        mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+        mvc.perform(put("/api/goals/1002/tasks/1001")).andExpect(status().isNoContent());
+        jdbc.update("INSERT INTO goal_tasks(goal_id, task_id) VALUES (2001, 2001)");
+
+        mvc.perform(get("/api/tasks/1001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1001))
+                .andExpect(jsonPath("$.goalTitles.length()").value(2))
+                .andExpect(jsonPath("$.goalTitles[0]").value("First"))
+                .andExpect(jsonPath("$.goalTitles[1]").value("Second"));
+    }
+
+    @Test
     void cannotReadOrChangeLinksForAnotherUsersGoalOrTask() throws Exception {
         seedLinks();
         mvc.perform(get("/api/goals/2001/tasks")).andExpect(status().isNotFound());
