@@ -10,5 +10,15 @@ public enum CategoryIcon {
     PEOPLE,
     STAR,
     LEAF,
+    RUNNING,
+    UTENSILS,
+    PLANE,
+    MUSIC,
+    PALETTE,
+    CODE,
+    MOON,
+    SUN,
+    CAR,
+    SHOPPING_CART,
     OTHER
 }

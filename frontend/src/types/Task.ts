@@ -8,6 +8,7 @@ export type Task = {
   inFocus: boolean
   dueDate: string | null
   dueTime: string | null
+  category: import('./Category').Category | null
   goalIds: number[]
   goalTitles: string[]
 }

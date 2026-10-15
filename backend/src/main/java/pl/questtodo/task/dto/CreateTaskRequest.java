@@ -24,6 +24,8 @@ public record CreateTaskRequest(
     String description,
     LocalDate dueDate,
     LocalTime dueTime,
+    @Positive(message = "Identyfikator kategorii musi być dodatni.")
+    Long categoryId,
     @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
     List<@Positive Long> goalIds) {
 }

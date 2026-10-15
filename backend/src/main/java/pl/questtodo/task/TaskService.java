@@ -15,6 +15,8 @@ import pl.questtodo.goal.GoalEntity;
 import pl.questtodo.goal.GoalRepository;
 import pl.questtodo.goal.GoalTaskEntity;
 import pl.questtodo.goal.GoalTaskRepository;
+import pl.questtodo.category.CategoryEntity;
+import pl.questtodo.category.CategoryRepository;
 import pl.questtodo.user.CurrentUserProvider;
 import pl.questtodo.user.UserService;
 
@@ -27,15 +29,18 @@ public class TaskService {
     private final TaskPriorityService priorities;
     private final GoalTaskRepository goalTasks;
     private final GoalRepository goals;
+    private final CategoryRepository categories;
 
     public TaskService(TaskRepository taskRepository, UserService userService, CurrentUserProvider currentUser,
-                       TaskPriorityService priorities, GoalTaskRepository goalTasks, GoalRepository goals) {
+                       TaskPriorityService priorities, GoalTaskRepository goalTasks, GoalRepository goals,
+                       CategoryRepository categories) {
         this.taskRepository = taskRepository;
         this.userService = userService;
         this.currentUser = currentUser;
         this.priorities = priorities;
         this.goalTasks = goalTasks;
         this.goals = goals;
+        this.categories = categories;
     }
 
     public List<Task> getTasks() {
@@ -44,9 +49,11 @@ public class TaskService {
     }
 
     public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
-                           List<Long> goalIds) {
+                           Long categoryId, List<Long> goalIds) {
         var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
-        var task = new TaskEntity(title, points, description, dueDate, dueTime, userService.currentReference());
+        var category = ownedCategory(categoryId);
+        var task = new TaskEntity(title, points, description, dueDate, dueTime, category,
+                userService.currentReference());
         priorities.promote(task);
         taskRepository.save(task);
         selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
@@ -99,14 +106,17 @@ public class TaskService {
     }
 
     public Task updateTask(long id, String title, int points, String description, boolean updateDescription,
-                           LocalDate dueDate, LocalTime dueTime, boolean updateDueDate, List<Long> goalIds) {
+                           LocalDate dueDate, LocalTime dueTime, boolean updateDueDate,
+                           Long categoryId, boolean updateCategory, List<Long> goalIds) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie moÅ¼na edytowaÄ‡ wykonanego zadania.");
         }
+        CategoryEntity category = updateCategory ? ownedCategory(categoryId) : null;
+        var selectedGoals = goalIds == null ? null : ownedGoals(goalIds);
         task.updateDetails(title, points, description, updateDescription, dueDate, dueTime, updateDueDate);
+        if (updateCategory) task.setCategory(category);
         if (goalIds != null) {
-            var selectedGoals = ownedGoals(goalIds);
             goalTasks.deleteByTaskId(task.getId());
             selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
         }
@@ -150,5 +160,11 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Co najmniej jeden wybrany cel nie istnieje.");
         }
         return selectedGoals;
+    }
+
+    private CategoryEntity ownedCategory(Long categoryId) {
+        if (categoryId == null) return null;
+        return categories.findByIdAndUserId(categoryId, currentUser.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kategoria nie istnieje."));
     }
 }

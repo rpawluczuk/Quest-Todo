@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import pl.questtodo.user.UserEntity;
+import pl.questtodo.category.CategoryEntity;
 
 @Entity
 @Table(name = "tasks")
@@ -49,16 +50,22 @@ public class TaskEntity {
     @Column(name = "due_time")
     private LocalTime dueTime;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private CategoryEntity category;
+
     protected TaskEntity() {
     }
 
-    public TaskEntity(String title, int points, String description, LocalDate dueDate, LocalTime dueTime, UserEntity user) {
+    public TaskEntity(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
+                      CategoryEntity category, UserEntity user) {
         this.user = user;
         this.title = title;
         this.points = points;
         this.description = description;
         this.dueDate = dueDate;
         this.dueTime = dueTime;
+        this.category = category;
     }
 
     public boolean isCompleted() {
@@ -91,6 +98,10 @@ public class TaskEntity {
         this.inFocus = inFocus;
     }
 
+    public void setCategory(CategoryEntity category) {
+        this.category = category;
+    }
+
     public boolean requiresPriority(java.time.LocalDate cutoff) {
         return !completed && dueDate != null && !dueDate.isAfter(cutoff);
     }
@@ -101,6 +112,7 @@ public class TaskEntity {
 
     public Task toTask() {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
+                category == null ? null : category.toCategory(),
                 java.util.List.of(), java.util.List.of());
     }
 }

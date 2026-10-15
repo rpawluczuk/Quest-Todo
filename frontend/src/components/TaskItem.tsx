@@ -13,7 +13,7 @@ type TaskItemProps = {
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
 }
@@ -75,8 +75,8 @@ function TaskItem({
   }
 
   async function saveDetails(title: string, points: number, description: string, dueDate: string, dueTime: string,
-    goalIds: number[]) {
-    await onSave(title, points, description, dueDate, dueTime, goalIds)
+    categoryId: number | null, goalIds: number[]) {
+    await onSave(title, points, description, dueDate, dueTime, categoryId, goalIds)
     setDescriptionExpanded(false)
   }
 

@@ -4,9 +4,21 @@ public enum CategoryColor {
     RED,
     ORANGE,
     AMBER,
+    YELLOW,
+    LIME,
     GREEN,
+    EMERALD,
     TEAL,
+    CYAN,
+    SKY,
     BLUE,
+    INDIGO,
     PURPLE,
-    PINK
+    VIOLET,
+    FUCHSIA,
+    PINK,
+    ROSE,
+    BROWN,
+    SLATE,
+    GRAY
 }

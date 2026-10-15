@@ -1648,6 +1648,31 @@
   font-weight: 400;
 }
 
+.category-form-picker .form-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 34px 9px 12px;
+  border: 1px solid #c9c1d6;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .task-form.task-details-form {
   grid-template-columns: minmax(0, 1fr) 90px;
 }
@@ -1682,6 +1707,267 @@
 }
 
 .task-description-field { grid-column: 1 / -1; }
+
+.category-form-picker {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.category-form-picker > legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.category-form-picker > legend span,
+.category-form-status {
+  color: #777181;
+  font-weight: 400;
+}
+
+.category-form-status {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.category-form-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.category-form-selection > .form-field {
+  flex: 1 1 150px;
+}
+
+.category-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid currentColor;
+  border-radius: 9px;
+}
+
+.category-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.category-color-red { color: #b42318; background: #fef3f2; }
+.category-color-orange { color: #b54708; background: #fff4ed; }
+.category-color-amber { color: #8a5a00; background: #fff8df; }
+.category-color-yellow { color: #806000; background: #fffbdc; }
+.category-color-lime { color: #4d7c0f; background: #f7fee7; }
+.category-color-green { color: #207a45; background: #edf9f1; }
+.category-color-emerald { color: #047857; background: #ecfdf5; }
+.category-color-teal { color: #087a78; background: #ecfafa; }
+.category-color-cyan { color: #0e7490; background: #ecfeff; }
+.category-color-sky { color: #0369a1; background: #f0f9ff; }
+.category-color-blue { color: #175cd3; background: #eff6ff; }
+.category-color-indigo { color: #4338ca; background: #eef2ff; }
+.category-color-purple { color: #6941c6; background: #f5f1ff; }
+.category-color-violet { color: #6d28d9; background: #f5f3ff; }
+.category-color-fuchsia { color: #a21caf; background: #fdf4ff; }
+.category-color-pink { color: #c11574; background: #fdf2fa; }
+.category-color-rose { color: #be123c; background: #fff1f2; }
+.category-color-brown { color: #7c4a2d; background: #f8f0eb; }
+.category-color-slate { color: #475569; background: #f1f5f9; }
+.category-color-gray { color: #52525b; background: #f4f4f5; }
+
+.task-form .category-create-toggle {
+  min-height: 42px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.category-creator {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #ddd7e7;
+  border-radius: 10px;
+  background: #fbfaff;
+}
+
+.category-creator-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+}
+
+.task-form .category-icon-trigger,
+.task-form .category-color-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 72px;
+  min-height: 44px;
+  padding: 5px 8px;
+  border: 1px solid #c9c1d6;
+  border-radius: 8px;
+  background: #fff;
+  color: #514a5c;
+}
+
+.task-form .category-icon-trigger:hover:not(:disabled),
+.task-form .category-icon-trigger[aria-expanded="true"],
+.task-form .category-color-trigger:hover:not(:disabled),
+.task-form .category-color-trigger[aria-expanded="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.task-form .category-icon-trigger:focus-visible,
+.task-form .category-icon-option:focus-visible,
+.task-form .category-color-trigger:focus-visible,
+.task-form .category-color-option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.category-icon-trigger > svg,
+.category-color-trigger > svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  transition: transform 160ms ease;
+}
+
+.category-icon-trigger[aria-expanded="true"] > svg,
+.category-color-trigger[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+
+.category-icon-grid,
+.category-color-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin-top: 0;
+  padding: 10px;
+  border: 1px solid #ddd7e7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(45, 31, 70, 0.1);
+}
+
+.task-form .category-icon-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  justify-self: center;
+}
+
+.task-form .category-icon-option:hover:not(:disabled) {
+  border-color: #d6cce8;
+  background: #f8f5fc;
+}
+
+.task-form .category-icon-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.category-icon-option .category-mark {
+  width: 30px;
+  height: 30px;
+}
+
+.task-form .category-color-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  justify-self: center;
+}
+
+.task-form .category-color-option:hover:not(:disabled) {
+  border-color: #d6cce8;
+  background: #f8f5fc;
+}
+
+.task-form .category-color-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.category-color-swatch {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(38, 33, 51, 0.16);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.category-color-swatch-red { background: #d92d20; }
+.category-color-swatch-orange { background: #e66b19; }
+.category-color-swatch-amber { background: #d99a00; }
+.category-color-swatch-yellow { background: #e1c300; }
+.category-color-swatch-lime { background: #84b72a; }
+.category-color-swatch-green { background: #2f9d57; }
+.category-color-swatch-emerald { background: #0f9f76; }
+.category-color-swatch-teal { background: #159b98; }
+.category-color-swatch-cyan { background: #159bb8; }
+.category-color-swatch-sky { background: #2995cf; }
+.category-color-swatch-blue { background: #3478d4; }
+.category-color-swatch-indigo { background: #5755c9; }
+.category-color-swatch-purple { background: #7856c7; }
+.category-color-swatch-violet { background: #8a4fd0; }
+.category-color-swatch-fuchsia { background: #bb3fc0; }
+.category-color-swatch-pink { background: #d54c91; }
+.category-color-swatch-rose { background: #d94c66; }
+.category-color-swatch-brown { background: #956344; }
+.category-color-swatch-slate { background: #64748b; }
+.category-color-swatch-gray { background: #71717a; }
+
+.category-creator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-form .category-creator-actions button,
+.task-form .category-form-error button {
+  min-height: 40px;
+  padding: 7px 11px;
+}
+
+.category-creator .form-error,
+.category-form-error .form-error {
+  margin: 0;
+}
 
 .goal-form-picker {
   grid-column: 1 / -1;
@@ -1831,6 +2117,7 @@
 .login-form button:focus-visible,
 .goal-picker-close:focus-visible,
 .task-form input:focus-visible,
+.task-form select:focus-visible,
 .task-form textarea:focus-visible,
 .task-form button:focus-visible,
 .secondary-button:focus-visible {
@@ -2692,6 +2979,11 @@
   .task-form.task-details-form,
   .task-details-form .task-due-inputs {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .category-icon-grid,
+  .category-color-grid {
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
   }
 }
 

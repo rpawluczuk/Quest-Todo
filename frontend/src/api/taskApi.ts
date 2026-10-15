@@ -61,12 +61,13 @@ export function updateTaskFocus(id: number, inFocus: boolean): Promise<Task> {
 }
 
 export async function updateTask(id: number, title: string, points: number, description: string,
-  dueDate: string, dueTime: string, goalIds: number[]): Promise<Task> {
+  dueDate: string, dueTime: string, categoryId: number | null, goalIds: number[]): Promise<Task> {
   const response = await apiFetch(`/api/tasks/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, points, description, dueDate: dueDate || null,
-      dueTime: dueDate && dueTime ? dueTime : null, clearDueDate: !dueDate, goalIds }),
+      dueTime: dueDate && dueTime ? dueTime : null, clearDueDate: !dueDate,
+      categoryId, clearCategory: categoryId === null, goalIds }),
   })
 
   if (!response.ok) {
@@ -79,12 +80,12 @@ export async function updateTask(id: number, title: string, points: number, desc
 }
 
 export async function createTask(title: string, points: number, description: string,
-  dueDate: string, dueTime: string, goalIds: number[]): Promise<Task> {
+  dueDate: string, dueTime: string, categoryId: number | null, goalIds: number[]): Promise<Task> {
   const response = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, points, description, dueDate: dueDate || null,
-      dueTime: dueDate && dueTime ? dueTime : null, goalIds }),
+      dueTime: dueDate && dueTime ? dueTime : null, categoryId, goalIds }),
   })
 
   if (!response.ok) {

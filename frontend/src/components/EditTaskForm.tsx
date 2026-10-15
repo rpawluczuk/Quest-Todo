@@ -3,11 +3,12 @@ import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
 import AutoResizeTextarea from './AutoResizeTextarea'
 import GoalPicker from './GoalPicker'
+import CategoryPicker from './CategoryPicker'
 
 type EditTaskFormProps = {
   readonly task: Task
   readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
 }
 
@@ -18,6 +19,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editDueDate, setEditDueDate] = useState(task.dueDate ?? '')
   const [editDueTime, setEditDueTime] = useState(task.dueTime?.slice(0, 5) ?? '')
   const [editGoalIds, setEditGoalIds] = useState<number[]>(task.goalIds ?? [])
+  const [editCategoryId, setEditCategoryId] = useState<number | null>(task.category?.id ?? null)
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -50,7 +52,8 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
     setIsSaving(true)
     setEditError('')
     try {
-      await onSave(updatedTitle, taskPoints, editDescription.trim(), editDueDate, editDueTime, editGoalIds)
+      await onSave(updatedTitle, taskPoints, editDescription.trim(), editDueDate, editDueTime,
+        editCategoryId, editGoalIds)
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'Nie udało się zapisać zmian. Spróbuj ponownie.')
     } finally {
@@ -84,6 +87,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           required
         />
       </label>
+      <CategoryPicker selectedId={editCategoryId} onChange={setEditCategoryId} disabled={isSaving} />
       <GoalPicker selectedIds={editGoalIds} onChange={setEditGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>

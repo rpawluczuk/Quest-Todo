@@ -25,6 +25,9 @@ public record UpdateTaskRequest(
     LocalDate dueDate,
     LocalTime dueTime,
     Boolean clearDueDate,
+    @Positive(message = "Identyfikator kategorii musi być dodatni.")
+    Long categoryId,
+    Boolean clearCategory,
     @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
     List<@Positive Long> goalIds) {
 }

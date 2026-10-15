@@ -57,11 +57,11 @@ class CategoryControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Zdrowie"));
         mvc.perform(put("/api/categories/{id}", id).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Sport\",\"icon\":\"DUMBBELL\",\"color\":\"ORANGE\"}"))
+                        .content("{\"name\":\"Sport\",\"icon\":\"RUNNING\",\"color\":\"CYAN\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Sport"))
-                .andExpect(jsonPath("$.icon").value("DUMBBELL"))
-                .andExpect(jsonPath("$.color").value("ORANGE"));
+                .andExpect(jsonPath("$.icon").value("RUNNING"))
+                .andExpect(jsonPath("$.color").value("CYAN"));
         mvc.perform(delete("/api/categories/{id}", id)).andExpect(status().isNoContent());
         mvc.perform(get("/api/categories")).andExpect(jsonPath("$.length()").value(0));
     }
