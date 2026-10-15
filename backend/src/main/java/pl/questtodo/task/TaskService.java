@@ -1,18 +1,22 @@
 package pl.questtodo.task;
 
-import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import pl.questtodo.user.CurrentUserProvider;
-import pl.questtodo.user.UserService;
-import pl.questtodo.goal.GoalTaskRepository;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import pl.questtodo.goal.GoalEntity;
+import pl.questtodo.goal.GoalRepository;
+import pl.questtodo.goal.GoalTaskEntity;
+import pl.questtodo.goal.GoalTaskRepository;
+import pl.questtodo.user.CurrentUserProvider;
+import pl.questtodo.user.UserService;
 
 @Service
 @Transactional
@@ -22,14 +26,16 @@ public class TaskService {
     private final CurrentUserProvider currentUser;
     private final TaskPriorityService priorities;
     private final GoalTaskRepository goalTasks;
+    private final GoalRepository goals;
 
     public TaskService(TaskRepository taskRepository, UserService userService, CurrentUserProvider currentUser,
-                       TaskPriorityService priorities, GoalTaskRepository goalTasks) {
+                       TaskPriorityService priorities, GoalTaskRepository goalTasks, GoalRepository goals) {
         this.taskRepository = taskRepository;
         this.userService = userService;
         this.currentUser = currentUser;
         this.priorities = priorities;
         this.goalTasks = goalTasks;
+        this.goals = goals;
     }
 
     public List<Task> getTasks() {
@@ -37,10 +43,16 @@ public class TaskService {
         return toTasks(taskRepository.findByUserIdOrderByIdAsc(currentUser.getUserId()));
     }
 
-    public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime) {
+    public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
+                           List<Long> goalIds) {
+        var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
         var task = new TaskEntity(title, points, description, dueDate, dueTime, userService.currentReference());
         priorities.promote(task);
-        return taskRepository.save(task).toTask();
+        taskRepository.save(task);
+        selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
+        var selected = selectedGoals.stream().map(GoalEntity::toGoal).toList();
+        return task.toTask().withGoals(selected.stream().map(goal -> goal.id()).toList(),
+                selected.stream().map(goal -> goal.title()).toList());
     }
 
     public record Overview(List<Task> tasks, long completedCount) {}
@@ -87,12 +99,17 @@ public class TaskService {
     }
 
     public Task updateTask(long id, String title, int points, String description, boolean updateDescription,
-                           LocalDate dueDate, LocalTime dueTime, boolean updateDueDate) {
+                           LocalDate dueDate, LocalTime dueTime, boolean updateDueDate, List<Long> goalIds) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie moÅ¼na edytowaÄ‡ wykonanego zadania.");
         }
         task.updateDetails(title, points, description, updateDescription, dueDate, dueTime, updateDueDate);
+        if (goalIds != null) {
+            var selectedGoals = ownedGoals(goalIds);
+            goalTasks.deleteByTaskId(task.getId());
+            selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
+        }
         priorities.promote(task);
         return toTask(task);
     }
@@ -113,12 +130,25 @@ public class TaskService {
     private List<Task> toTasks(List<TaskEntity> entities) {
         if (entities.isEmpty()) return List.of();
         long userId = currentUser.getUserId();
+        var idsByTask = new HashMap<Long, List<Long>>();
         var titlesByTask = new HashMap<Long, List<String>>();
         var taskIds = entities.stream().map(TaskEntity::getId).toList();
         for (var link : goalTasks.findGoalTitles(userId, taskIds)) {
+            idsByTask.computeIfAbsent(link.getTaskId(), ignored -> new ArrayList<>()).add(link.getGoalId());
             titlesByTask.computeIfAbsent(link.getTaskId(), ignored -> new ArrayList<>()).add(link.getGoalTitle());
         }
         return entities.stream().map(entity -> entity.toTask()
-                .withGoalTitles(titlesByTask.getOrDefault(entity.getId(), List.of()))).toList();
+                .withGoals(idsByTask.getOrDefault(entity.getId(), List.of()),
+                        titlesByTask.getOrDefault(entity.getId(), List.of()))).toList();
+    }
+
+    private List<GoalEntity> ownedGoals(List<Long> requestedIds) {
+        var ids = new LinkedHashSet<>(requestedIds);
+        if (ids.isEmpty()) return List.of();
+        var selectedGoals = goals.findByUserIdAndIdInOrderByIdAsc(currentUser.getUserId(), ids);
+        if (selectedGoals.size() != ids.size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Co najmniej jeden wybrany cel nie istnieje.");
+        }
+        return selectedGoals;
     }
 }

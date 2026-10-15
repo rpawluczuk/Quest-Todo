@@ -101,6 +101,6 @@ public class TaskEntity {
 
     public Task toTask() {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
-                java.util.List.of());
+                java.util.List.of(), java.util.List.of());
     }
 }

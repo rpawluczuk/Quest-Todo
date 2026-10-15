@@ -15,10 +15,11 @@ public record Task(
         String description,
         LocalDate dueDate,
         LocalTime dueTime,
+        List<Long> goalIds,
         List<String> goalTitles
 ) {
-    public Task withGoalTitles(List<String> titles) {
+    public Task withGoals(List<Long> ids, List<String> titles) {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
-                List.copyOf(titles));
+                List.copyOf(ids), List.copyOf(titles));
     }
 }

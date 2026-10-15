@@ -41,7 +41,8 @@ public class TaskController {
         validateDueDate(request.dueDate(), request.dueTime());
         String title = request.title().strip();
         int points = request.points().intValueExact();
-        return taskService.createTask(title, points, normalizeDescription(request.description()), request.dueDate(), request.dueTime());
+        return taskService.createTask(title, points, normalizeDescription(request.description()), request.dueDate(),
+                request.dueTime(), request.goalIds());
     }
 
     @PatchMapping("/{id}")
@@ -50,7 +51,8 @@ public class TaskController {
         String title = request.title().strip();
         int points = request.points().intValueExact();
         return taskService.updateTask(id, title, points, normalizeDescription(request.description()), request.description() != null,
-                request.dueDate(), request.dueTime(), Boolean.TRUE.equals(request.clearDueDate()) || request.dueDate() != null || request.dueTime() != null);
+                request.dueDate(), request.dueTime(), Boolean.TRUE.equals(request.clearDueDate()) || request.dueDate() != null || request.dueTime() != null,
+                request.goalIds());
     }
 
     @PatchMapping("/{id}/completion")

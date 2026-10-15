@@ -12,7 +12,8 @@ type TaskItemProps = {
   readonly onToggleTask: (taskId: number) => Promise<void>
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
-  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
+    goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
 }
@@ -73,8 +74,9 @@ function TaskItem({
     if (task.description && !disabled) setDescriptionExpanded(expanded => !expanded)
   }
 
-  async function saveDetails(title: string, points: number, description: string, dueDate: string, dueTime: string) {
-    await onSave(title, points, description, dueDate, dueTime)
+  async function saveDetails(title: string, points: number, description: string, dueDate: string, dueTime: string,
+    goalIds: number[]) {
+    await onSave(title, points, description, dueDate, dueTime, goalIds)
     setDescriptionExpanded(false)
   }
 

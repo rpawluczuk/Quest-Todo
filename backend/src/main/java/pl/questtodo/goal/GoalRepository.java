@@ -1,5 +1,6 @@
 package pl.questtodo.goal;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,7 @@ import jakarta.persistence.LockModeType;
 
 public interface GoalRepository extends JpaRepository<GoalEntity, Long> {
     List<GoalEntity> findByUserIdOrderByIdAsc(long userId);
+    List<GoalEntity> findByUserIdAndIdInOrderByIdAsc(long userId, Collection<Long> ids);
     Optional<GoalEntity> findByIdAndUserId(long id, long userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

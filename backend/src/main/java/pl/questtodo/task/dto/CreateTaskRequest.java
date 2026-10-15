@@ -3,12 +3,15 @@ package pl.questtodo.task.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 public record CreateTaskRequest(
     @NotBlank (message = "Podaj nazwę zadania.")
@@ -20,5 +23,7 @@ public record CreateTaskRequest(
     BigDecimal points,
     String description,
     LocalDate dueDate,
-    LocalTime dueTime) {
+    LocalTime dueTime,
+    @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
+    List<@Positive Long> goalIds) {
 }

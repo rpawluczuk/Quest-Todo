@@ -2,10 +2,12 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
 import AutoResizeTextarea from './AutoResizeTextarea'
+import TaskGoalPicker from './TaskGoalPicker'
 
 type EditTaskFormProps = {
   readonly task: Task
-  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
+    goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
 }
 
@@ -15,6 +17,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editDescription, setEditDescription] = useState(task.description ?? '')
   const [editDueDate, setEditDueDate] = useState(task.dueDate ?? '')
   const [editDueTime, setEditDueTime] = useState(task.dueTime?.slice(0, 5) ?? '')
+  const [editGoalIds, setEditGoalIds] = useState<number[]>(task.goalIds ?? [])
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -47,7 +50,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
     setIsSaving(true)
     setEditError('')
     try {
-      await onSave(updatedTitle, taskPoints, editDescription.trim(), editDueDate, editDueTime)
+      await onSave(updatedTitle, taskPoints, editDescription.trim(), editDueDate, editDueTime, editGoalIds)
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'Nie udało się zapisać zmian. Spróbuj ponownie.')
     } finally {
@@ -81,6 +84,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           required
         />
       </label>
+      <TaskGoalPicker selectedIds={editGoalIds} onChange={setEditGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
         <div className="task-due-inputs">

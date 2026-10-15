@@ -138,6 +138,44 @@ class GoalControllerTests {
     }
 
     @Test
+    void createsAndEditsTaskGoalLinksAtomicallyFromTaskForm() throws Exception {
+        seedLinks();
+        String created = mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"New task\",\"points\":10,\"goalIds\":[1002,1001,1001]}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.goalIds[0]").value(1001))
+                .andExpect(jsonPath("$.goalIds[1]").value(1002))
+                .andExpect(jsonPath("$.goalTitles[0]").value("First"))
+                .andExpect(jsonPath("$.goalTitles[1]").value("Second"))
+                .andReturn().getResponse().getContentAsString();
+        int taskId = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        entityManager.flush();
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_tasks WHERE task_id = ?", Integer.class, taskId));
+
+        mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Edited task\",\"points\":20,\"goalIds\":[1002]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.goalIds.length()").value(1))
+                .andExpect(jsonPath("$.goalIds[0]").value(1002))
+                .andExpect(jsonPath("$.goalTitles[0]").value("Second"));
+        mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Keep links\",\"points\":20}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.goalIds[0]").value(1002));
+        mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"No goals\",\"points\":20,\"goalIds\":[]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.goalIds.length()").value(0));
+
+        mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Must roll back\",\"points\":10,\"goalIds\":[2001]}"))
+                .andExpect(status().isNotFound());
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE title = 'Must roll back'", Integer.class));
+        mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Must also roll back\",\"points\":20,\"goalIds\":[2001]}"))
+                .andExpect(status().isNotFound());
+        assertEquals("No goals", jdbc.queryForObject("SELECT title FROM tasks WHERE id = ?", String.class, taskId));
+    }
+
+    @Test
     void cannotReadOrChangeLinksForAnotherUsersGoalOrTask() throws Exception {
         seedLinks();
         mvc.perform(get("/api/goals/2001/tasks")).andExpect(status().isNotFound());

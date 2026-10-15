@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import AutoResizeTextarea from './AutoResizeTextarea'
+import TaskGoalPicker from './TaskGoalPicker'
 
 type CreateTaskFormProps = {
-  readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
+  readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
+    goalIds: number[]) => Promise<void>
   readonly isFirstTask?: boolean
 }
 
@@ -14,6 +16,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
+  const [goalIds, setGoalIds] = useState<number[]>([])
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
@@ -34,6 +37,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
     setDescription('')
     setDueDate('')
     setDueTime('')
+    setGoalIds([])
     setFormError('')
     setIsExpanded(false)
   }
@@ -63,12 +67,13 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
     setIsSaving(true)
     setFormError('')
     try {
-      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime)
+      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, goalIds)
       setNewTitle('')
       setNewPoints('10')
       setDescription('')
       setDueDate('')
       setDueTime('')
+      setGoalIds([])
       setIsExpanded(false)
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
@@ -104,6 +109,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
           required
         />
       </label>
+      <TaskGoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
         <div className="task-due-inputs">

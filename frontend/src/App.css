@@ -1683,6 +1683,75 @@
 
 .task-description-field { grid-column: 1 / -1; }
 
+.task-goal-picker {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.task-goal-picker legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.task-goal-picker legend span,
+.task-goal-picker-status {
+  color: #777181;
+  font-weight: 400;
+}
+
+.task-goal-picker-status {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.task-goal-options {
+  display: grid;
+  gap: 6px;
+}
+
+.task-goal-option {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #ddd7e7;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.task-goal-option:has(input:checked) {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.task-goal-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.task-goal-option span { overflow-wrap: anywhere; }
+
+.task-goal-picker-error .form-error { margin: 0 0 6px; }
+
+.task-form .task-goal-picker-error button {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
 .task-due-field {
   position: relative;
   grid-column: 1 / -1;

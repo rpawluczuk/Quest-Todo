@@ -11,7 +11,8 @@ type TaskSectionProps = {
   readonly onToggleTask: (taskId: number) => Promise<void>
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
-  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string) => Promise<void>
+  readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
+    goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
   readonly children?: ReactNode
