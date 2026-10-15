@@ -33,16 +33,23 @@ public class RewardService {
     @Transactional
     public PurchaseEntity.Purchase buyReward(long id) {
         var user = users.lockCurrentUser();
-        var reward = findCurrentUsersReward(id).toReward();
+        var entity = findCurrentUsersReward(id);
+        if (!entity.isAvailable()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ta nagroda jednorazowa została już kupiona.");
+        }
+        var reward = entity.toReward();
         if (user.getPoints() < reward.cost()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Za mało punktów.");
         }
         user.addPoints(-reward.cost());
-        return purchases.save(new PurchaseEntity(user, reward)).toPurchase();
+        var purchase = purchases.save(new PurchaseEntity(user, reward)).toPurchase();
+        entity.recordPurchase(purchase.id());
+        return purchase;
     }
 
     public List<Reward> getRewards() {
         return rewardRepository.findByUserIdAndDeletedFalseOrderByIdAsc(currentUser.getUserId()).stream()
+                .filter(RewardEntity::isAvailable)
                 .map(RewardEntity::toReward)
                 .toList();
     }
@@ -60,15 +67,18 @@ public class RewardService {
     }
 
     @Transactional
-    public Reward createReward(String title, int cost) {
-        return rewardRepository.save(new RewardEntity(title, cost, users.currentReference())).toReward();
+    public Reward createReward(String title, int cost, RewardPurchaseType purchaseType) {
+        var reward = new RewardEntity(title, cost, users.currentReference());
+        reward.changePurchaseType(purchaseType);
+        return rewardRepository.save(reward).toReward();
     }
 
     @Transactional
-    public Reward updateReward(long id, String title, int cost) {
+    public Reward updateReward(long id, String title, int cost, RewardPurchaseType purchaseType) {
         users.lockCurrentUser();
         var reward = findCurrentUsersReward(id);
         reward.updateDetails(title, cost);
+        reward.changePurchaseType(purchaseType);
         return reward.toReward();
     }
 

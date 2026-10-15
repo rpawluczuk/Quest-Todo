@@ -1990,6 +1990,20 @@
   font-weight: 500;
   cursor: pointer;
 }
+
+.reward-purchase-type { grid-column: 1 / -1; min-width: 0; }
+.reward-purchase-type select {
+  width: 100%; min-width: 0; padding: 10px 12px;
+  border: 1px solid #c9c1d6; border-radius: 8px;
+  background: #fff; color: inherit; font: inherit;
+}
+.reward-purchase-type select:focus-visible {
+  outline: 2px solid var(--color-primary); outline-offset: 2px;
+}
+.reward-purchase-type small, .reward-one-time-label {
+  color: #625b70; font-size: 0.8rem; font-weight: 400;
+}
+.reward-one-time-label { display: block; margin-top: 4px; }
 .goal-definition-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .field-optional { color: #767080; font-weight: 400; }
 .goal-list { margin-top: 24px; }

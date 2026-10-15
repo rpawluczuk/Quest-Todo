@@ -31,6 +31,28 @@ public class RewardEntity {
     @Column(nullable = false)
     private boolean deleted;
 
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "purchase_type", nullable = false)
+    private RewardPurchaseType purchaseType = RewardPurchaseType.REPEATABLE;
+
+    @Column(name = "consumed_by_purchase_id")
+    private Long consumedByPurchaseId;
+
+    public boolean isAvailable() {
+        return purchaseType == RewardPurchaseType.REPEATABLE || consumedByPurchaseId == null;
+    }
+
+    public void changePurchaseType(RewardPurchaseType type) {
+        if (type != null && type != purchaseType) {
+            purchaseType = type;
+            consumedByPurchaseId = null;
+        }
+    }
+
+    public void recordPurchase(long purchaseId) {
+        if (purchaseType == RewardPurchaseType.ONE_TIME) consumedByPurchaseId = purchaseId;
+    }
+
     public void delete() {
         deleted = true;
     }
@@ -45,7 +67,7 @@ public class RewardEntity {
     }
 
     public Reward toReward() {
-        return new Reward(id, title, cost);
+        return new Reward(id, title, cost, purchaseType);
     }
 
     public void updateDetails(String title, int cost) {

@@ -1,4 +1,4 @@
 package pl.questtodo.reward;
 
-public record Reward(long id, String title, int cost) {
+public record Reward(long id, String title, int cost, RewardPurchaseType purchaseType) {
 }

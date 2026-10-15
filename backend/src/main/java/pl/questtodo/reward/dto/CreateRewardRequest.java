@@ -14,6 +14,7 @@ public record CreateRewardRequest(
         @Min(value = 1, message = "Minimalny koszt nagrody to 1 punkt.")
         @Max(value = Integer.MAX_VALUE, message = "Maksymalny koszt nagrody to 2147483647 punktów.")
         @Digits(integer = 10, fraction = 0, message = "Koszt musi być liczbą całkowitą.")
-        BigDecimal cost
+        BigDecimal cost,
+        pl.questtodo.reward.RewardPurchaseType purchaseType
 ) {
 }

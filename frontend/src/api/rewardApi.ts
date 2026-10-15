@@ -1,12 +1,12 @@
-import type { Reward } from '../types/Reward'
+import type { Reward, RewardPurchaseType } from '../types/Reward'
 import { apiFetch } from './apiFetch'
 
-export async function createReward(title: string, cost: number): Promise<Reward> {
-  return saveReward('/api/rewards', 'POST', title, cost)
+export async function createReward(title: string, cost: number, purchaseType: RewardPurchaseType): Promise<Reward> {
+  return saveReward('/api/rewards', 'POST', title, cost, purchaseType)
 }
 
-export async function updateReward(id: number, title: string, cost: number): Promise<Reward> {
-  return saveReward(`/api/rewards/${id}`, 'PUT', title, cost)
+export async function updateReward(id: number, title: string, cost: number, purchaseType: RewardPurchaseType): Promise<Reward> {
+  return saveReward(`/api/rewards/${id}`, 'PUT', title, cost, purchaseType)
 }
 
 export async function deleteReward(id: number): Promise<void> {
@@ -16,11 +16,11 @@ export async function deleteReward(id: number): Promise<void> {
   }
 }
 
-async function saveReward(url: string, method: 'POST' | 'PUT', title: string, cost: number): Promise<Reward> {
+async function saveReward(url: string, method: 'POST' | 'PUT', title: string, cost: number, purchaseType: RewardPurchaseType): Promise<Reward> {
   const response = await apiFetch(url, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, cost }),
+    body: JSON.stringify({ title, cost, purchaseType }),
   })
   if (!response.ok) {
     let message = `Nie udało się zapisać nagrody (HTTP ${response.status}).`

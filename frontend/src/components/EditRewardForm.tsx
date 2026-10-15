@@ -1,15 +1,17 @@
 import { useRef, useState, type SubmitEvent } from 'react'
-import type { Reward } from '../types/Reward'
+import type { Reward, RewardPurchaseType } from '../types/Reward'
+import RewardPurchaseTypeField from './RewardPurchaseTypeField'
 
 type EditRewardFormProps = {
   readonly reward: Reward
-  readonly onSave: (id: number, title: string, cost: number) => Promise<void>
+  readonly onSave: (id: number, title: string, cost: number, purchaseType: RewardPurchaseType) => Promise<void>
   readonly onCancel: () => void
 }
 
 export default function EditRewardForm({ reward, onSave, onCancel }: EditRewardFormProps) {
   const [title, setTitle] = useState(reward.title)
   const [cost, setCost] = useState(String(reward.cost))
+  const [purchaseType, setPurchaseType] = useState<RewardPurchaseType>(reward.purchaseType)
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const saving = useRef(false)
@@ -32,7 +34,7 @@ export default function EditRewardForm({ reward, onSave, onCancel }: EditRewardF
     saving.current = true
     setIsSaving(true)
     try {
-      await onSave(reward.id, rewardTitle, rewardCost)
+      await onSave(reward.id, rewardTitle, rewardCost, purchaseType)
       onCancel()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Nie udało się zapisać zmian. Spróbuj ponownie.')
@@ -68,6 +70,7 @@ export default function EditRewardForm({ reward, onSave, onCancel }: EditRewardF
           required
         />
       </label>
+      <RewardPurchaseTypeField value={purchaseType} onChange={setPurchaseType} disabled={isSaving} />
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Zapisz'}</button>
         <button type="button" className="secondary-button" onClick={onCancel} disabled={isSaving}>

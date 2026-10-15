@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { Purchase } from '../api/userApi'
-import type { Reward } from '../types/Reward'
+import type { Reward, RewardPurchaseType } from '../types/Reward'
 import CreateRewardForm from '../components/CreateRewardForm'
 import EditRewardForm from '../components/EditRewardForm'
 import RewardInventory from '../components/RewardInventory'
@@ -13,8 +13,8 @@ type RewardsPageProps = {
   readonly points: number | null
   readonly buying: boolean
   readonly onBuyReward: (rewardId: number) => void
-  readonly onAddReward: (title: string, cost: number) => Promise<void>
-  readonly onSaveReward: (id: number, title: string, cost: number) => Promise<void>
+  readonly onAddReward: (title: string, cost: number, purchaseType: RewardPurchaseType) => Promise<void>
+  readonly onSaveReward: (id: number, title: string, cost: number, purchaseType: RewardPurchaseType) => Promise<void>
   readonly onUsePurchase: (id: number) => Promise<void>
   readonly onDeleteReward: (id: number) => Promise<void>
 }
@@ -82,7 +82,9 @@ function RewardsPage({ rewards, purchases, points, buying, onBuyReward, onAddRew
               />
             ) : (
               <>
-                <span className="task-title reward-card-title">{reward.title}</span>
+                <span className="task-title reward-card-title">{reward.title}
+                  {reward.purchaseType === 'ONE_TIME' && <small className="reward-one-time-label">Jednorazowa</small>}
+                </span>
                 <span className="task-points reward-card-points">{reward.cost} pkt</span>
                 <button
                   type="button"

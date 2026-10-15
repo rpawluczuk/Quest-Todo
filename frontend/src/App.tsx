@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createReward, deleteReward, getRewards, updateReward } from './api/rewardApi'
 import { createTask, deleteTask, getTask, getTaskOverview, updateTask, updateTaskCompletion, updateTaskFocus } from './api/taskApi'
 import type { Task } from './types/Task'
-import type { Reward } from './types/Reward'
+import type { Reward, RewardPurchaseType } from './types/Reward'
 import RewardsPage from './pages/RewardsPage'
 import HabitsPage from './pages/HabitsPage'
 import GoalsPage from './pages/GoalsPage'
@@ -192,6 +192,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     let purchaseError = ''
     try {
       await purchaseReward(rewardId)
+      setRewards(current => current.filter(reward => reward.id !== rewardId || reward.purchaseType !== 'ONE_TIME'))
     } catch (error) {
       purchaseError = error instanceof Error ? error.message : 'Nie udało się kupić nagrody.'
     } finally {
@@ -217,8 +218,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     }
   }
 
-  async function addReward(title: string, cost: number) {
-    const reward = await createReward(title, cost)
+  async function addReward(title: string, cost: number, purchaseType: RewardPurchaseType) {
+    const reward = await createReward(title, cost, purchaseType)
     setRewards((currentRewards) => [...currentRewards, reward])
   }
 
@@ -227,8 +228,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     setRewards((current) => current.filter((reward) => reward.id !== id))
   }
 
-  async function saveReward(id: number, title: string, cost: number) {
-    const updatedReward = await updateReward(id, title, cost)
+  async function saveReward(id: number, title: string, cost: number, purchaseType: RewardPurchaseType) {
+    const updatedReward = await updateReward(id, title, cost, purchaseType)
     setRewards((currentRewards) =>
       currentRewards.map((reward) => reward.id === id ? updatedReward : reward),
     )

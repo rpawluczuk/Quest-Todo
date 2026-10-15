@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import type { RewardPurchaseType } from '../types/Reward'
+import RewardPurchaseTypeField from './RewardPurchaseTypeField'
 
 type CreateRewardFormProps = {
-  readonly onAddReward: (title: string, cost: number) => Promise<void>
+  readonly onAddReward: (title: string, cost: number, purchaseType: RewardPurchaseType) => Promise<void>
   readonly emptyStateButtonLabel?: string
 }
 
@@ -9,6 +11,7 @@ export default function CreateRewardForm({ onAddReward, emptyStateButtonLabel }:
   const [isExpanded, setIsExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [cost, setCost] = useState('20')
+  const [purchaseType, setPurchaseType] = useState<RewardPurchaseType>('REPEATABLE')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -24,6 +27,7 @@ export default function CreateRewardForm({ onAddReward, emptyStateButtonLabel }:
   }, [isExpanded])
 
   function cancel() {
+    setPurchaseType('REPEATABLE')
     setTitle('')
     setCost('20')
     setError('')
@@ -49,7 +53,8 @@ export default function CreateRewardForm({ onAddReward, emptyStateButtonLabel }:
     saving.current = true
     setIsSaving(true)
     try {
-      await onAddReward(rewardTitle, rewardCost)
+      await onAddReward(rewardTitle, rewardCost, purchaseType)
+      setPurchaseType('REPEATABLE')
       setTitle('')
       setCost('20')
       setSuccess(`Dodano nagrodę: ${rewardTitle}.`)
@@ -90,6 +95,7 @@ export default function CreateRewardForm({ onAddReward, emptyStateButtonLabel }:
             required
           />
         </label>
+        <RewardPurchaseTypeField value={purchaseType} onChange={setPurchaseType} disabled={isSaving} />
         <div className="task-actions">
           <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj nagrodę'}</button>
           <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>

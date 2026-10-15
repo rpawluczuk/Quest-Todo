@@ -33,12 +33,12 @@ public class RewardController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Reward createReward(@Valid @RequestBody CreateRewardRequest request) {
-        return rewardService.createReward(request.title().strip(), request.cost().intValueExact());
+        return rewardService.createReward(request.title().strip(), request.cost().intValueExact(), request.purchaseType());
     }
 
     @PutMapping("/{id}")
     public Reward updateReward(@PathVariable long id, @Valid @RequestBody UpdateRewardRequest request) {
-        return rewardService.updateReward(id, request.title().strip(), request.cost().intValueExact());
+        return rewardService.updateReward(id, request.title().strip(), request.cost().intValueExact(), request.purchaseType());
     }
 
     @GetMapping("/purchases")
