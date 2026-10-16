@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import pl.questtodo.user.UserEntity;
 import pl.questtodo.category.CategoryEntity;
+import pl.questtodo.goal.GoalEntity;
 
 @Entity
 @Table(name = "tasks")
@@ -58,11 +59,15 @@ public class TaskEntity {
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "goal_id")
+    private GoalEntity goal;
+
     protected TaskEntity() {
     }
 
     public TaskEntity(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
-                      CategoryEntity category, UserEntity user) {
+                      CategoryEntity category, GoalEntity goal, UserEntity user) {
         this.user = user;
         this.title = title;
         this.points = points;
@@ -70,6 +75,7 @@ public class TaskEntity {
         this.dueDate = dueDate;
         this.dueTime = dueTime;
         this.category = category;
+        this.goal = goal;
     }
 
     public boolean isCompleted() {
@@ -110,6 +116,14 @@ public class TaskEntity {
         this.category = category;
     }
 
+    public void setGoal(GoalEntity goal) {
+        this.goal = goal;
+    }
+
+    public boolean belongsToGoal(long goalId) {
+        return goal != null && goal.getId() == goalId;
+    }
+
     public boolean requiresPriority(java.time.LocalDate cutoff) {
         return !completed && dueDate != null && !dueDate.isAfter(cutoff);
     }
@@ -121,6 +135,7 @@ public class TaskEntity {
     public Task toTask() {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
                 category == null ? null : category.toCategory(),
-                java.util.List.of(), java.util.List.of());
+                goal == null ? null : goal.getId(),
+                goal == null ? null : goal.getTitle());
     }
 }

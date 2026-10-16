@@ -2921,7 +2921,15 @@
   padding: 8px 0;
   border-bottom: 1px solid #e9e5ef;
 }
-.goal-available-task-title { flex: 1; min-width: 70px; overflow-wrap: anywhere; }
+.goal-available-task-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 70px;
+  overflow-wrap: anywhere;
+}
+.goal-available-task-title small { color: #625b70; font-size: 0.76rem; }
 .goal-available-task button { min-height: 44px; flex: 0 0 auto; }
 .goal-picker-link {
   justify-self: center;

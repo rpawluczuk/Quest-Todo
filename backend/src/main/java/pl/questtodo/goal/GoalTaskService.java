@@ -16,15 +16,13 @@ import pl.questtodo.user.CurrentUserProvider;
 public class GoalTaskService {
     private final GoalRepository goals;
     private final TaskRepository tasks;
-    private final GoalTaskRepository links;
     private final CurrentUserProvider currentUser;
     private final pl.questtodo.task.TaskPriorityService priorities;
 
-    public GoalTaskService(GoalRepository goals, TaskRepository tasks, GoalTaskRepository links,
+    public GoalTaskService(GoalRepository goals, TaskRepository tasks,
                            CurrentUserProvider currentUser, pl.questtodo.task.TaskPriorityService priorities) {
         this.goals = goals;
         this.tasks = tasks;
-        this.links = links;
         this.currentUser = currentUser;
         this.priorities = priorities;
     }
@@ -33,7 +31,7 @@ public class GoalTaskService {
         long userId = currentUser.getUserId();
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
         priorities.promoteForUser(userId);
-        return links.findTasks(goalId, userId).stream().map(TaskEntity::toTask).toList();
+        return tasks.findByGoalIdAndUserIdOrderByIdAsc(goalId, userId).stream().map(TaskEntity::toTask).toList();
     }
 
     public AvailableGoalTasks getAvailableTasks(long goalId, boolean completed, String query, int page, int size) {
@@ -44,7 +42,7 @@ public class GoalTaskService {
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
         priorities.promoteForUser(userId);
         String normalizedQuery = query == null ? "" : query.strip();
-        var result = links.findAvailableTasks(goalId, userId, completed, normalizedQuery,
+        var result = tasks.findAvailableForGoal(goalId, userId, completed, normalizedQuery,
                 PageRequest.of(page, size));
         return new AvailableGoalTasks(result.getContent().stream().map(TaskEntity::toTask).toList(),
                 result.hasNext());
@@ -52,17 +50,16 @@ public class GoalTaskService {
 
     public void attach(long goalId, long taskId) {
         long userId = currentUser.getUserId();
-        // Serialize changes to a goal, including repeated concurrent attach requests.
         var goal = goals.findForUpdate(goalId, userId).orElseThrow(GoalTaskService::notFound);
         var task = tasks.findForUpdate(taskId, userId).orElseThrow(GoalTaskService::notFound);
-        if (!links.existsByGoalIdAndTaskId(goalId, taskId)) links.save(new GoalTaskEntity(goal, task));
+        task.setGoal(goal);
     }
 
     public void detach(long goalId, long taskId) {
         long userId = currentUser.getUserId();
         goals.findForUpdate(goalId, userId).orElseThrow(GoalTaskService::notFound);
-        tasks.findForUpdate(taskId, userId).orElseThrow(GoalTaskService::notFound);
-        links.deleteByGoalIdAndTaskId(goalId, taskId);
+        var task = tasks.findForUpdate(taskId, userId).orElseThrow(GoalTaskService::notFound);
+        if (task.belongsToGoal(goalId)) task.setGoal(null);
     }
 
     private static ResponseStatusException notFound() {

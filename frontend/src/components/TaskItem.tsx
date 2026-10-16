@@ -7,21 +7,19 @@ import { getTaskDuePresentation } from '../taskDue'
 
 type TaskItemProps = {
   readonly task: Task
-  readonly goalTitles: readonly string[]
   readonly isEditing: boolean
   readonly isAnyTaskEditing: boolean
   readonly onToggleTask: (taskId: number) => Promise<void>
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalId: number | null) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
 }
 
 function TaskItem({
   task,
-  goalTitles,
   isEditing,
   isAnyTaskEditing,
   onToggleTask,
@@ -43,7 +41,7 @@ function TaskItem({
   const disabled = isAnyTaskEditing || isSaving
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
-  const hasGoals = goalTitles.length > 0
+  const hasGoal = task.goalTitle != null
   const categoryMetadata = task.category
     ? <CategoryMarker category={task.category} className="task-category-marker" />
     : null
@@ -90,8 +88,8 @@ function TaskItem({
   }
 
   async function saveDetails(title: string, points: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalIds: number[]) {
-    await onSave(title, points, description, dueDate, dueTime, categoryId, goalIds)
+    categoryId: number | null, goalId: number | null) {
+    await onSave(title, points, description, dueDate, dueTime, categoryId, goalId)
     setDescriptionExpanded(false)
   }
 
@@ -140,8 +138,8 @@ function TaskItem({
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
           </button> : <span className="task-card-title">{title}</span>}
-          <div className={`task-card-footer ${hasGoals && due ? 'task-card-footer-stacked' : 'task-card-footer-inline'}`}>
-            {hasGoals ? <>
+          <div className={`task-card-footer ${hasGoal && due ? 'task-card-footer-stacked' : 'task-card-footer-inline'}`}>
+            {hasGoal ? <>
               <div className="task-card-associations">
                 {categoryMetadata}
                 <p className="task-card-goals">
@@ -151,7 +149,7 @@ function TaskItem({
                     <circle cx="12" cy="12" r="3" />
                     <path d="M12 2v2M22 12h-2M12 22v-2M2 12h2" />
                   </svg>
-                  <span>{goalTitles.join(' · ')}</span>
+                  <span>{task.goalTitle}</span>
                 </p>
               </div>
               {dueMetadata}

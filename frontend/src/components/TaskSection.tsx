@@ -12,7 +12,7 @@ type TaskSectionProps = {
   readonly onToggleFocus: (taskId: number) => Promise<void>
   readonly onStartEditing: (taskId: number) => void
   readonly onSave: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalId: number | null) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
   readonly headerAction?: ReactNode
@@ -153,7 +153,6 @@ function TaskSection({
             <TaskItem
               key={task.id}
               task={task}
-              goalTitles={task.goalTitles ?? []}
               isEditing={editingTaskId === task.id}
               isAnyTaskEditing={editingTaskId !== null}
               onToggleTask={onToggleTask}

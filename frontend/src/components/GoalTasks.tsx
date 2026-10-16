@@ -114,9 +114,13 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   }
 
   function attach(task: Task) {
+    if (task.goalId != null && task.goalId !== goalId &&
+      !window.confirm(`Zadanie „${task.title}” jest przypisane do celu „${task.goalTitle}”. Przenieść je do celu „${goalTitle}”?`)) {
+      return
+    }
     void run(async () => {
       await setGoalTask(goalId, task.id, true)
-      setAttached(current => mergeTasks(current, [task]))
+      setAttached(current => mergeTasks(current, [{ ...task, goalId, goalTitle }]))
       onGoalLinksChanged()
       setNotice(`Przypięto: ${task.title}`)
     })
@@ -151,10 +155,14 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
 
   function availableList(tasks: Task[]) {
     return <ul className="goal-available-list">{tasks.map(task => <li key={task.id} className="goal-available-task">
-      <span className="goal-available-task-title">{task.title}</span>
+      <span className="goal-available-task-title">{task.title}
+        {task.goalTitle && <small>Obecny cel: {task.goalTitle}</small>}
+      </span>
       {attached.some(item => item.id === task.id) ? <span className="goal-picker-attached">✓ Przypięto</span> :
         <button type="button" className="goal-picker-link" disabled={disabled || pickerLoading}
-          aria-label={`Przypnij zadanie: ${task.title}`} onClick={() => attach(task)}>Przypnij</button>}
+          aria-label={`${task.goalId ? 'Przenieś' : 'Przypnij'} zadanie: ${task.title}`} onClick={() => attach(task)}>
+          {task.goalId ? 'Przenieś' : 'Przypnij'}
+        </button>}
     </li>)}</ul>
   }
 

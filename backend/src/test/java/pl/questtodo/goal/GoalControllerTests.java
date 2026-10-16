@@ -98,81 +98,77 @@ class GoalControllerTests {
     }
 
     @Test
-    void attachesOnceAndSharesTaskStateAcrossGoalsWithoutExtraPoints() throws Exception {
+    void movingTaskBetweenGoalsKeepsStateAndDoesNotAddPoints() throws Exception {
         seedLinks();
         long points = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class);
         for (long goalId : new long[]{1001, 1001, 1002}) {
             mvc.perform(put("/api/goals/{id}/tasks/1001", goalId)).andExpect(status().isNoContent());
         }
         entityManager.flush();
-        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        assertEquals(1002L, jdbc.queryForObject("SELECT goal_id FROM tasks WHERE id = 1001", Long.class));
         assertEquals(points, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
         mvc.perform(patch("/api/tasks/1001/completion").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"completed\":true}")).andExpect(status().isOk());
-        for (long goalId : new long[]{1001, 1002}) {
-            mvc.perform(get("/api/goals/{id}/tasks", goalId))
-                    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].completed").value(true));
-        }
+        mvc.perform(get("/api/goals/1001/tasks"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/goals/1002/tasks"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].completed").value(true));
         mvc.perform(delete("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
-        mvc.perform(delete("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
-        mvc.perform(get("/api/goals/1001/tasks")).andExpect(jsonPath("$.length()").value(0));
+        assertEquals(1002L, jdbc.queryForObject("SELECT goal_id FROM tasks WHERE id = 1001", Long.class));
+        mvc.perform(delete("/api/goals/1002/tasks/1001")).andExpect(status().isNoContent());
         entityManager.flush();
         assertEquals(points + 10, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001 AND goal_id IS NOT NULL", Integer.class));
     }
 
     @Test
-    void taskResponsesContainAllOwnGoalTitlesWithoutLeakingOtherUsersLinks() throws Exception {
+    void taskResponseContainsItsSingleGoalWithoutLeakingAnotherUsersData() throws Exception {
         seedLinks();
-        mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
         mvc.perform(put("/api/goals/1002/tasks/1001")).andExpect(status().isNoContent());
-        jdbc.update("INSERT INTO goal_tasks(goal_id, task_id) VALUES (2001, 2001)");
+        jdbc.update("UPDATE tasks SET goal_id = 2001 WHERE id = 2001");
 
         mvc.perform(get("/api/tasks/1001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1001))
-                .andExpect(jsonPath("$.goalTitles.length()").value(2))
-                .andExpect(jsonPath("$.goalTitles[0]").value("First"))
-                .andExpect(jsonPath("$.goalTitles[1]").value("Second"));
+                .andExpect(jsonPath("$.goalId").value(1002))
+                .andExpect(jsonPath("$.goalTitle").value("Second"));
     }
 
     @Test
     void createsAndEditsTaskGoalLinksAtomicallyFromTaskForm() throws Exception {
         seedLinks();
         String created = mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"New task\",\"points\":10,\"goalIds\":[1002,1001,1001]}"))
+                        .content("{\"title\":\"New task\",\"points\":10,\"goalId\":1001}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.goalIds[0]").value(1001))
-                .andExpect(jsonPath("$.goalIds[1]").value(1002))
-                .andExpect(jsonPath("$.goalTitles[0]").value("First"))
-                .andExpect(jsonPath("$.goalTitles[1]").value("Second"))
+                .andExpect(jsonPath("$.goalId").value(1001))
+                .andExpect(jsonPath("$.goalTitle").value("First"))
                 .andReturn().getResponse().getContentAsString();
         int taskId = com.jayway.jsonpath.JsonPath.read(created, "$.id");
         entityManager.flush();
-        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM goal_tasks WHERE task_id = ?", Integer.class, taskId));
+        assertEquals(1001L, jdbc.queryForObject("SELECT goal_id FROM tasks WHERE id = ?", Long.class, taskId));
 
         mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Edited task\",\"points\":20,\"goalIds\":[1002]}"))
+                        .content("{\"title\":\"Edited task\",\"points\":20,\"goalId\":1002}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.goalIds.length()").value(1))
-                .andExpect(jsonPath("$.goalIds[0]").value(1002))
-                .andExpect(jsonPath("$.goalTitles[0]").value("Second"));
+                .andExpect(jsonPath("$.goalId").value(1002))
+                .andExpect(jsonPath("$.goalTitle").value("Second"));
         mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Keep links\",\"points\":20}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.goalIds[0]").value(1002));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.goalId").value(1002));
         mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"No goals\",\"points\":20,\"goalIds\":[]}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.goalIds.length()").value(0));
+                        .content("{\"title\":\"No goal\",\"points\":20,\"clearGoal\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.goalId").doesNotExist());
 
         mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Must roll back\",\"points\":10,\"goalIds\":[2001]}"))
+                        .content("{\"title\":\"Must roll back\",\"points\":10,\"goalId\":2001}"))
                 .andExpect(status().isNotFound());
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE title = 'Must roll back'", Integer.class));
         mvc.perform(patch("/api/tasks/{id}", taskId).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Must also roll back\",\"points\":20,\"goalIds\":[2001]}"))
+                        .content("{\"title\":\"Must also roll back\",\"points\":20,\"goalId\":2001}"))
                 .andExpect(status().isNotFound());
-        assertEquals("No goals", jdbc.queryForObject("SELECT title FROM tasks WHERE id = ?", String.class, taskId));
+        assertEquals("No goal", jdbc.queryForObject("SELECT title FROM tasks WHERE id = ?", String.class, taskId));
     }
 
     @Test
@@ -184,25 +180,21 @@ class GoalControllerTests {
             mvc.perform(put(path)).andExpect(status().isNotFound());
             mvc.perform(delete(path)).andExpect(status().isNotFound());
         }
-        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE goal_id IS NOT NULL", Integer.class));
     }
 
     @Test
-    void deletingGoalPreservesTasksAndDeletingTaskRemovesLinks() throws Exception {
+    void deletingGoalPreservesAndDetachesTask() throws Exception {
         seedLinks();
         mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
-        mvc.perform(put("/api/goals/1002/tasks/1001")).andExpect(status().isNoContent());
-        // Real HTTP requests use separate persistence contexts; do not keep link entities
-        // managed across a later request whose database cascade deletes those links.
         entityManager.flush();
         entityManager.clear();
         mvc.perform(delete("/api/goals/1001")).andExpect(status().isNoContent());
         entityManager.flush();
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001", Integer.class));
-        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001 AND goal_id IS NOT NULL", Integer.class));
         mvc.perform(delete("/api/tasks/1001")).andExpect(status().isNoContent());
         entityManager.flush();
-        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM goal_tasks", Integer.class));
         mvc.perform(get("/api/goals/1002")).andExpect(status().isOk());
     }
 

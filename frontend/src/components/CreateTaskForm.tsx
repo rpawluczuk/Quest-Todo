@@ -1,12 +1,12 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import AutoResizeTextarea from './AutoResizeTextarea'
-import GoalPicker from './GoalPicker'
+import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
 
 type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalId: number | null) => Promise<void>
   readonly isFirstTask?: boolean
   readonly hideTrigger?: boolean
 }
@@ -25,7 +25,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
-  const [goalIds, setGoalIds] = useState<number[]>([])
+  const [goalId, setGoalId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -56,7 +56,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setDescription('')
     setDueDate('')
     setDueTime('')
-    setGoalIds([])
+    setGoalId(null)
     setCategoryId(null)
     setFormError('')
     setIsExpanded(false)
@@ -87,13 +87,13 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setIsSaving(true)
     setFormError('')
     try {
-      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalIds)
+      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalId)
       setNewTitle('')
       setNewPoints('10')
       setDescription('')
       setDueDate('')
       setDueTime('')
-      setGoalIds([])
+      setGoalId(null)
       setCategoryId(null)
       setIsExpanded(false)
     } catch {
@@ -131,7 +131,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         />
       </label>
       <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={isSaving} integratedCreateAction />
-      <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={isSaving} />
+      <SingleGoalPicker selectedId={goalId} onChange={setGoalId} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
         <div className="task-due-inputs">

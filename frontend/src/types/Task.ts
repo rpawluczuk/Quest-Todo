@@ -9,6 +9,6 @@ export type Task = {
   dueDate: string | null
   dueTime: string | null
   category: import('./Category').Category | null
-  goalIds: number[]
-  goalTitles: string[]
+  goalId: number | null
+  goalTitle: string | null
 }

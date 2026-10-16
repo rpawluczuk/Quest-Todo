@@ -46,5 +46,9 @@ public class GoalEntity {
         this.desiredOutcome = desiredOutcome;
     }
 
+    public long getId() { return id; }
+
+    public String getTitle() { return title; }
+
     public Goal toGoal() { return new Goal(id, title, currentState, desiredOutcome); }
 }

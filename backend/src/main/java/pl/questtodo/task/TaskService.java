@@ -2,9 +2,6 @@ package pl.questtodo.task;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -13,8 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pl.questtodo.goal.GoalEntity;
 import pl.questtodo.goal.GoalRepository;
-import pl.questtodo.goal.GoalTaskEntity;
-import pl.questtodo.goal.GoalTaskRepository;
 import pl.questtodo.category.CategoryEntity;
 import pl.questtodo.category.CategoryRepository;
 import pl.questtodo.user.CurrentUserProvider;
@@ -27,18 +22,16 @@ public class TaskService {
     private final UserService userService;
     private final CurrentUserProvider currentUser;
     private final TaskPriorityService priorities;
-    private final GoalTaskRepository goalTasks;
     private final GoalRepository goals;
     private final CategoryRepository categories;
 
     public TaskService(TaskRepository taskRepository, UserService userService, CurrentUserProvider currentUser,
-                       TaskPriorityService priorities, GoalTaskRepository goalTasks, GoalRepository goals,
+                       TaskPriorityService priorities, GoalRepository goals,
                        CategoryRepository categories) {
         this.taskRepository = taskRepository;
         this.userService = userService;
         this.currentUser = currentUser;
         this.priorities = priorities;
-        this.goalTasks = goalTasks;
         this.goals = goals;
         this.categories = categories;
     }
@@ -49,17 +42,14 @@ public class TaskService {
     }
 
     public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
-                           Long categoryId, List<Long> goalIds) {
-        var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
+                           Long categoryId, Long goalId) {
+        var goal = ownedGoal(goalId);
         var category = ownedCategory(categoryId);
-        var task = new TaskEntity(title, points, description, dueDate, dueTime, category,
+        var task = new TaskEntity(title, points, description, dueDate, dueTime, category, goal,
                 userService.currentReference());
         priorities.promote(task);
         taskRepository.save(task);
-        selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
-        var selected = selectedGoals.stream().map(GoalEntity::toGoal).toList();
-        return task.toTask().withGoals(selected.stream().map(goal -> goal.id()).toList(),
-                selected.stream().map(goal -> goal.title()).toList());
+        return task.toTask();
     }
 
     public record Overview(List<Task> tasks, long completedCount) {}
@@ -103,20 +93,18 @@ public class TaskService {
 
     public Task updateTask(long id, String title, int points, String description, boolean updateDescription,
                            LocalDate dueDate, LocalTime dueTime, boolean updateDueDate,
-                           Long categoryId, boolean updateCategory, List<Long> goalIds) {
+                           Long categoryId, boolean updateCategory, Long goalId, boolean updateGoal) {
         TaskEntity task = findForUpdate(id);
         if (task.isCompleted()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie moÅ¼na edytowaÄ‡ wykonanego zadania.");
         }
         CategoryEntity category = updateCategory ? ownedCategory(categoryId) : null;
-        var selectedGoals = goalIds == null ? null : ownedGoals(goalIds);
+        GoalEntity goal = updateGoal ? ownedGoal(goalId) : null;
         task.updateDetails(title, points, description, updateDescription, dueDate, dueTime, updateDueDate);
         if (updateCategory) task.setCategory(category);
-        if (goalIds != null) {
-            goalTasks.deleteByTaskId(task.getId());
-            selectedGoals.forEach(goal -> goalTasks.save(new GoalTaskEntity(goal, task)));
-        }
+        if (updateGoal) task.setGoal(goal);
         priorities.promote(task);
+        taskRepository.flush();
         return toTask(task);
     }
 
@@ -130,32 +118,17 @@ public class TaskService {
     }
 
     private Task toTask(TaskEntity entity) {
-        return toTasks(List.of(entity)).getFirst();
+        return entity.toTask();
     }
 
     private List<Task> toTasks(List<TaskEntity> entities) {
-        if (entities.isEmpty()) return List.of();
-        long userId = currentUser.getUserId();
-        var idsByTask = new HashMap<Long, List<Long>>();
-        var titlesByTask = new HashMap<Long, List<String>>();
-        var taskIds = entities.stream().map(TaskEntity::getId).toList();
-        for (var link : goalTasks.findGoalTitles(userId, taskIds)) {
-            idsByTask.computeIfAbsent(link.getTaskId(), ignored -> new ArrayList<>()).add(link.getGoalId());
-            titlesByTask.computeIfAbsent(link.getTaskId(), ignored -> new ArrayList<>()).add(link.getGoalTitle());
-        }
-        return entities.stream().map(entity -> entity.toTask()
-                .withGoals(idsByTask.getOrDefault(entity.getId(), List.of()),
-                        titlesByTask.getOrDefault(entity.getId(), List.of()))).toList();
+        return entities.stream().map(TaskEntity::toTask).toList();
     }
 
-    private List<GoalEntity> ownedGoals(List<Long> requestedIds) {
-        var ids = new LinkedHashSet<>(requestedIds);
-        if (ids.isEmpty()) return List.of();
-        var selectedGoals = goals.findByUserIdAndIdInOrderByIdAsc(currentUser.getUserId(), ids);
-        if (selectedGoals.size() != ids.size()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Co najmniej jeden wybrany cel nie istnieje.");
-        }
-        return selectedGoals;
+    private GoalEntity ownedGoal(Long goalId) {
+        if (goalId == null) return null;
+        return goals.findByIdAndUserId(goalId, currentUser.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje."));
     }
 
     private CategoryEntity ownedCategory(Long categoryId) {
