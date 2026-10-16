@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
+import CategoryIcon from './CategoryIcon'
 import { getTaskDuePresentation } from '../taskDue'
 
 type TaskItemProps = {
@@ -42,6 +43,13 @@ function TaskItem({
   const disabled = isAnyTaskEditing || isSaving
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
+  const title = <>
+    {task.category && <span className="task-category-marker"
+      title={`Kategoria: ${task.category.name}`} aria-label={`Kategoria: ${task.category.name}`}>
+      <CategoryIcon icon={task.category.icon} color={task.category.color} />
+    </span>}
+    <span className="task-card-title-text">{task.title}</span>
+  </>
 
   useEffect(() => {
     if (wasEditing.current && !isEditing) {
@@ -105,12 +113,12 @@ function TaskItem({
           {task.description ? <button ref={titleButton} type="button" className="task-card-title"
             disabled={disabled} onClick={toggleDescription} aria-expanded={descriptionExpanded}
             aria-controls={descriptionId} aria-label={`${descriptionExpanded ? 'Ukryj' : 'Pokaż'} notatkę: ${task.title}`}>
-            <span>{task.title}</span>
+            {title}
             <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
               stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
-          </button> : <span className="task-card-title"><span>{task.title}</span></span>}
+          </button> : <span className="task-card-title">{title}</span>}
           {goalTitles.length > 0 && <p className="task-card-goals">
             <span className="task-card-goals-label">{goalTitles.length === 1 ? 'Cel:' : 'Cele:'}</span>{' '}
             <span>{goalTitles.join(' · ')}</span>

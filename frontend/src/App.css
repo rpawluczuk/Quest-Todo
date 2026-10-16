@@ -1169,19 +1169,22 @@
   word-break: normal;
 }
 
-.habit-category-marker {
+.habit-category-marker,
+.task-category-marker {
   display: inline-flex;
   margin-right: 6px;
   vertical-align: -5px;
 }
 
-.habit-category-marker .category-mark {
+.habit-category-marker .category-mark,
+.task-category-marker .category-mark {
   width: 24px;
   height: 24px;
   border-radius: 7px;
 }
 
-.habit-category-marker .category-mark svg {
+.habit-category-marker .category-mark svg,
+.task-category-marker .category-mark svg {
   width: 14px;
   height: 14px;
 }
@@ -2557,7 +2560,7 @@
 
 .task-card-description[hidden] { display: none; }
 
-.task-card-completed .task-card-title > span {
+.task-card-completed .task-card-title-text {
   color: #666173;
   text-decoration: line-through;
 }
