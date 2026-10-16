@@ -44,8 +44,6 @@ function TaskItem({
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
   const title = <>
-    {task.category && <CategoryMarker category={task.category} className="task-category-marker"
-      embedded={Boolean(task.description)} />}
     <span className="task-card-title-text">{task.title}</span>
   </>
 
@@ -117,12 +115,20 @@ function TaskItem({
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
           </button> : <span className="task-card-title">{title}</span>}
-          {goalTitles.length > 0 && <p className="task-card-goals">
-            <span className="task-card-goals-label">{goalTitles.length === 1 ? 'Cel:' : 'Cele:'}</span>{' '}
-            <span>{goalTitles.join(' · ')}</span>
-          </p>}
-          <div className={`task-card-footer${variant === 'backlog' ? ' task-card-footer-with-action' : ''}`}>
-            <span className="task-card-meta">
+          <div className="task-card-footer">
+            <div className="task-card-context">
+              {(task.category || goalTitles.length > 0) && <div className="task-card-associations">
+                {task.category && <CategoryMarker category={task.category} className="task-category-marker" />}
+                {goalTitles.length > 0 && <p className="task-card-goals">
+                  <svg className="task-card-goal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v2M22 12h-2M12 22v-2M2 12h2" />
+                  </svg>
+                  <span>{goalTitles.join(' · ')}</span>
+                </p>}
+              </div>}
               {due && <span className={`task-card-due${due.overdue ? ' task-card-due-overdue' : ''}`}>
                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                   <rect x="3" y="4.5" width="14" height="12.5" rx="2" />
@@ -130,8 +136,6 @@ function TaskItem({
                 </svg>
                 <span>{due.label}</span>
               </span>}
-              <span className="task-points task-card-points">{task.points} pkt</span>
-            </span>
             {variant === 'backlog' && (
               <button
                 type="button"
@@ -146,6 +150,8 @@ function TaskItem({
                 </svg>
               </button>
             )}
+            </div>
+            <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
           {task.completed && (
             <button
