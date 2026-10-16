@@ -2535,6 +2535,13 @@
 }
 
 .completed-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2574,6 +2581,25 @@
   font: inherit;
   font-weight: 500;
   cursor: pointer;
+}
+
+.completed-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.completed-toggle-chevron {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: #625b70;
+  transition: transform 150ms ease;
+}
+
+.completed-toggle[aria-expanded='true'] .completed-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .reward-purchase-type { grid-column: 1 / -1; min-width: 0; }
@@ -2702,7 +2728,8 @@
 .goal-linked-task > input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .goal-edit-form { grid-column: 1 / -1; width: 100%; margin-top: 0; }
 
-.task-card-focus {
+.task-card-focus,
+.task-card-completed {
   grid-template-columns: 32px minmax(0, 1fr) 32px;
   grid-template-areas: 'check title menu' '. footer footer' 'primary primary primary';
 }
@@ -2996,14 +3023,6 @@
   cursor: not-allowed;
 }
 
-.task-card-primary {
-  grid-area: primary;
-  justify-self: end;
-  min-height: 36px;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-}
-
 .task-card-editing {
   display: block;
   padding: 12px;
@@ -3156,15 +3175,10 @@
     row-gap: 1px;
   }
 
-  .task-card-focus {
+  .task-card-focus,
+  .task-card-completed {
     grid-template-columns: 32px minmax(0, 1fr) 32px;
     grid-template-areas: 'check title menu' '. footer footer' 'primary primary primary';
-  }
-
-  .task-card-completed {
-    grid-template-columns: minmax(0, 1fr) 32px;
-    grid-template-areas: 'title menu' 'footer footer' 'primary primary';
-    column-gap: 6px;
   }
 
   .task-card-backlog {

@@ -105,12 +105,12 @@ function TaskItem({
     <li ref={card} className={`task-card task-card-${variant}${isEditing ? ' task-card-editing' : ''}${task.description && !disabled ? ' task-card-has-note' : ''}`}
       aria-busy={isSaving} onClick={handleCardClick}>
       {isEditing ? <EditTaskForm task={task} onSave={saveDetails} onCancel={onCancel} /> : <>
-          {variant === 'focus' && (
+          {(variant === 'focus' || variant === 'completed') && (
             <label className="task-card-check" htmlFor={checkboxId}>
               <input
                 id={checkboxId}
                 type="checkbox"
-                aria-label={`Wykonane: ${task.title}`}
+                aria-label={task.completed ? `Cofnij ukończenie: ${task.title}` : `Wykonane: ${task.title}`}
                 checked={task.completed}
                 disabled={disabled}
                 onChange={() => void saveChange(onToggleTask)}
@@ -161,17 +161,6 @@ function TaskItem({
             </div>}
             <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
-          {task.completed && (
-            <button
-              type="button"
-              className="secondary-button task-card-primary"
-              disabled={disabled}
-              onClick={() => void saveChange(onToggleTask)}
-              aria-label={`Cofnij ukończenie: ${task.title}`}
-            >
-              Cofnij ukończenie
-            </button>
-          )}
           <TaskActionsMenu
             itemTitle={task.title}
             disabled={disabled}

@@ -206,7 +206,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     {
       id: 'completed',
       title: 'Ukończone',
-      description: 'Najnowsze ukończenia są na górze. Cofnij ukończenie, aby przywrócić zadanie do poprzedniej listy.',
+      description: 'Ostatnio ukończone zadania.',
       emptyState: { message: 'Nie masz jeszcze ukończonych zadań.' },
       tasks: completedTasks,
     },

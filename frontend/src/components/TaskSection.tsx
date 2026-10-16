@@ -106,7 +106,7 @@ function TaskSection({
   return (
     <section className="tasks-section" aria-labelledby={`${id}-heading`}>
       <div className="section-header">
-        <h2 id={`${id}-heading`} lang="pl" className={isCompletedSection ? undefined : 'task-section-title'}>
+        <h2 id={`${id}-heading`} lang="pl" className="task-section-title">
           {isCompletedSection ? (
             <button
               type="button"
@@ -117,11 +117,20 @@ function TaskSection({
                 setExpanded(!expanded)
               }}
             >
-              <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {title} ({history?.count ?? tasks.length})
+              <span className="completed-toggle-label">
+                <span>{title}</span>
+                <span className="task-section-count" aria-label={`Liczba zadań: ${history?.count ?? tasks.length}`}>
+                  {history?.count ?? tasks.length}
+                </span>
+              </span>
+              <svg className="completed-toggle-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m6 8 4 4 4-4" />
+              </svg>
             </button>
           ) : <><span>{title}</span><span className="task-section-count" aria-label={`Liczba zadań: ${tasks.length}`}>{tasks.length}</span></>}
         </h2>
-        {showTasks && <p>{description}</p>}
+        <p>{description}</p>
       </div>
       <div id={`${id}-content`} hidden={!showTasks}>
         {tasks.length === 0 && emptyState.prominent ? (
