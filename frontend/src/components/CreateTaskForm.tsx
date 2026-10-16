@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import AutoResizeTextarea from './AutoResizeTextarea'
 import GoalPicker from './GoalPicker'
@@ -8,9 +8,17 @@ type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
     categoryId: number | null, goalIds: number[]) => Promise<void>
   readonly isFirstTask?: boolean
+  readonly hideTrigger?: boolean
 }
 
-function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps) {
+export type CreateTaskFormHandle = {
+  readonly open: (trigger?: HTMLButtonElement) => void
+}
+
+const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(function CreateTaskForm(
+  { onAddTask, isFirstTask = false, hideTrigger = false },
+  ref,
+) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
@@ -22,14 +30,23 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef<HTMLButtonElement | null>(null)
   const titleInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
   const dueTimeHintId = useId()
 
+  useImperativeHandle(ref, () => ({
+    open(trigger) {
+      returnFocus.current = trigger ?? null
+      if (isExpanded) titleInput.current?.focus()
+      else setIsExpanded(true)
+    },
+  }), [isExpanded])
+
   useEffect(() => {
     if (isExpanded) titleInput.current?.focus()
-    else if (wasExpanded.current) addButton.current?.focus()
+    else if (wasExpanded.current) (returnFocus.current ?? addButton.current)?.focus()
     wasExpanded.current = isExpanded
   }, [isExpanded])
 
@@ -87,7 +104,7 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
   }
 
   return (
-    isExpanded ? <form className="task-form task-details-form" onSubmit={handleSubmit}>
+    isExpanded ? <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit}>
       <label className="form-field">
         <span>Nazwa zadania</span>
         <input
@@ -147,12 +164,15 @@ function CreateTaskForm({ onAddTask, isFirstTask = false }: CreateTaskFormProps)
         <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
-    </form> : <button ref={addButton} type="button"
+    </form> : hideTrigger ? null : <button ref={addButton} type="button"
       className={`${isFirstTask ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
-      onClick={() => setIsExpanded(true)}>
+      onClick={(event) => {
+        returnFocus.current = event.currentTarget
+        setIsExpanded(true)
+      }}>
       {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}
     </button>
   )
-}
+})
 
 export default CreateTaskForm

@@ -10,7 +10,7 @@ import GoalsPage from './pages/GoalsPage'
 import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
-import CreateTaskForm from './components/CreateTaskForm'
+import CreateTaskForm, { type CreateTaskFormHandle } from './components/CreateTaskForm'
 import CompletionNotice from './components/CompletionNotice'
 import { getTaskEmptyStates } from './taskEmptyState'
 import { sortActiveTasks } from './taskSorting'
@@ -30,6 +30,7 @@ type AppProps = {
 }
 
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
+  const createTaskForm = useRef<CreateTaskFormHandle>(null)
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
@@ -379,9 +380,29 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
             onStartEditing={startEditing}
             onSave={saveTask}
             onCancel={cancelEditing}
+            headerAction={section.id === 'backlog' && !section.emptyState.prominent ? (
+              <button
+                type="button"
+                className="add-task-header-button"
+                aria-label="Dodaj zadanie"
+                title="Dodaj zadanie"
+                aria-controls="create-task-form"
+                onClick={(event) => createTaskForm.current?.open(event.currentTarget)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            ) : undefined}
           >
             {section.id === 'backlog' && (
-              <CreateTaskForm onAddTask={addTask} isFirstTask={Boolean(section.emptyState.prominent)} />
+              <CreateTaskForm
+                ref={createTaskForm}
+                onAddTask={addTask}
+                isFirstTask={Boolean(section.emptyState.prominent)}
+                hideTrigger={!section.emptyState.prominent}
+              />
             )}
           </TaskSection>
         ))}

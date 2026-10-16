@@ -15,6 +15,7 @@ type TaskSectionProps = {
     categoryId: number | null, goalIds: number[]) => Promise<void>
   readonly onCancel: () => void
   readonly onDelete: (taskId: number) => Promise<void>
+  readonly headerAction?: ReactNode
   readonly children?: ReactNode
 }
 
@@ -48,6 +49,7 @@ function TaskSection({
   onSave,
   onCancel,
   onDelete,
+  headerAction,
   children,
   history,
 }: TaskSectionProps) {
@@ -105,7 +107,7 @@ function TaskSection({
 
   return (
     <section className="tasks-section" aria-labelledby={`${id}-heading`}>
-      <div className="section-header">
+      <div className={`section-header${headerAction ? ' section-header-with-action' : ''}`}>
         <h2 id={`${id}-heading`} lang="pl" className="task-section-title">
           {isCompletedSection ? (
             <button
@@ -130,6 +132,7 @@ function TaskSection({
             </button>
           ) : <><span>{title}</span><span className="task-section-count" aria-label={`Liczba zadań: ${tasks.length}`}>{tasks.length}</span></>}
         </h2>
+        {headerAction}
       </div>
       <div id={`${id}-content`} hidden={!showTasks}>
         {tasks.length === 0 && emptyState.prominent ? (
