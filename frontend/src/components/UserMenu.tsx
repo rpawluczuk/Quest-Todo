@@ -2,11 +2,14 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { getEmail } from '../api/emailApi'
 import type { Theme } from '../theme'
 import ThemeDialog from './ThemeDialog'
+import CategoryManagementDialog from './CategoryManagementDialog'
+import type { CategoryMutation } from '../categoryEvents'
 
-type MenuIconName = 'password' | 'email' | 'logout' | 'delete'
+type MenuIconName = 'categories' | 'password' | 'email' | 'logout' | 'delete'
 
 function MenuIcon({ name }: { name: MenuIconName }) {
   const paths: Record<MenuIconName, React.ReactNode> = {
+    categories: <><path d="M3 5.5h6v6H3zM11 5.5h6v6h-6zM3 13.5h6v3H3zM11 13.5h6v3h-6z" /></>,
     password: <><circle cx="8" cy="8" r="3" /><path d="M10.2 10.2 15.5 15.5M13 13l1.4-1.4M15 15l1.4-1.4" /></>,
     email: <><rect x="2.5" y="4" width="15" height="12" rx="2" /><path d="m4 6 6 4.5L16 6" /></>,
     logout: <><path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8" /><path d="M12.5 6.5 16 10l-3.5 3.5M8 10h8" /></>,
@@ -27,11 +30,14 @@ type UserMenuProps = {
   onChangePassword: () => void
   onEmail: () => void
   onDeleteAccount: () => void
+  onCategoriesChanged: (change: CategoryMutation) => void
 }
 
-export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount, theme, onThemeChange }: UserMenuProps) {
+export default function UserMenu({ username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount,
+  onCategoriesChanged, theme, onThemeChange }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const [themeDialogOpen, setThemeDialogOpen] = useState(false)
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
   const [verifiedEmail, setVerifiedEmail] = useState<string | null | undefined>(undefined)
   const [emailError, setEmailError] = useState(false)
   const container = useRef<HTMLDivElement>(null)
@@ -106,6 +112,10 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
         }}><span className={`user-menu-color-dot theme-choice-${theme}`} aria-hidden="true" /><span>Kolor aplikacji</span></button>
         <button type="button" className="user-menu-logout" onClick={() => {
           setOpen(false)
+          setCategoryDialogOpen(true)
+        }}><MenuIcon name="categories" /><span>Kategorie</span></button>
+        <button type="button" className="user-menu-logout" onClick={() => {
+          setOpen(false)
           trigger.current?.focus()
           onChangePassword()
         }}><MenuIcon name="password" /><span>Zmień hasło</span></button>
@@ -131,6 +141,10 @@ export default function UserMenu({ username, onLogout, loggingOut, onChangePassw
     </div>
     {themeDialogOpen && <ThemeDialog theme={theme} onChange={onThemeChange} onClose={() => {
       setThemeDialogOpen(false)
+      requestAnimationFrame(() => trigger.current?.focus())
+    }} />}
+    {categoryDialogOpen && <CategoryManagementDialog onChanged={onCategoriesChanged} onClose={() => {
+      setCategoryDialogOpen(false)
       requestAnimationFrame(() => trigger.current?.focus())
     }} />}
     </>

@@ -1989,6 +1989,178 @@
   margin: 0;
 }
 
+.category-management-dialog {
+  width: min(560px, calc(100vw - 24px));
+  padding: 24px;
+  overflow-x: hidden;
+}
+
+.category-management-dialog h2 {
+  padding-right: 40px;
+  margin-bottom: 6px;
+}
+
+.category-management-intro {
+  margin: 0 0 18px;
+  color: #625b70;
+  line-height: 1.45;
+}
+
+.category-management-add,
+.category-management-load-error button {
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.category-management-add:hover:not(:disabled),
+.category-management-load-error button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.category-management-add:focus-visible,
+.category-management-item-action:focus-visible,
+.category-delete-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.category-management-form.task-form {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid #ddd7e7;
+  border-radius: 10px;
+  background: #fbfaff;
+}
+
+.category-management-form .category-creator-options {
+  max-width: 230px;
+}
+
+.category-management-list {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category-management-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #ddd7e7;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.category-management-item .category-mark {
+  width: 32px;
+  height: 32px;
+}
+
+.category-management-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.category-management-item-action {
+  min-height: 40px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.category-management-item-action:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.category-management-delete { color: #b42318; }
+.category-management-delete:hover:not(:disabled) { background: #fef3f2; }
+
+.category-management-empty {
+  margin: 18px 0 0;
+  padding: 18px;
+  border: 1px dashed #d8d2e2;
+  border-radius: 10px;
+  color: #625b70;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.category-management-load-error {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.category-delete-confirmation {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #f0b4ad;
+  border-radius: 10px;
+  background: #fef6f5;
+}
+
+.category-delete-confirmation h3 { margin: 0 0 8px; font-size: 1rem; }
+.category-delete-confirmation > p { margin: 0 0 14px; color: #625b70; line-height: 1.45; }
+
+.category-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-delete-actions button {
+  min-height: 44px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.category-delete-button {
+  border: 1px solid #b42318;
+  background: #b42318;
+  color: #fff;
+}
+
+.category-management-dialog button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 390px) {
+  .category-management-dialog { padding: 18px 14px; }
+  .category-management-item { grid-template-columns: 34px minmax(0, 1fr) 44px 44px; gap: 4px; padding-inline: 8px; }
+  .category-management-item-action { width: 44px; padding-inline: 2px; overflow: hidden; font-size: 0; }
+  .category-management-item-action::before { font-size: 1rem; }
+  .category-management-item-action:first-of-type::before { content: '✎'; }
+  .category-management-delete::before { content: '×'; }
+  .category-management-form .category-creator-options { max-width: none; }
+}
+
 .goal-form-picker {
   grid-column: 1 / -1;
   min-width: 0;

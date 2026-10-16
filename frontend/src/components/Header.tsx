@@ -1,5 +1,6 @@
 import UserMenu from './UserMenu'
 import type { Theme } from '../theme'
+import type { CategoryMutation } from '../categoryEvents'
 
 type HeaderProps = {
   theme: Theme
@@ -11,9 +12,11 @@ type HeaderProps = {
   onChangePassword: () => void
   onEmail: () => void
   onDeleteAccount: () => void
+  onCategoriesChanged: (change: CategoryMutation) => void
 }
 
-function Header({ points, username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount, theme, onThemeChange }: HeaderProps) {
+function Header({ points, username, onLogout, loggingOut, onChangePassword, onEmail, onDeleteAccount,
+  onCategoriesChanged, theme, onThemeChange }: HeaderProps) {
   return (
     <header className="app-header">
       <h1>Quest Todo</h1>
@@ -22,7 +25,7 @@ function Header({ points, username, onLogout, loggingOut, onChangePassword, onEm
         {points === null ? 'Saldo niedostępne' : <>Saldo <span className="points-balance-value">{points} pkt</span></>}
         </span>
         <UserMenu username={username} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} onDeleteAccount={onDeleteAccount}
-          theme={theme} onThemeChange={onThemeChange} />
+          onCategoriesChanged={onCategoriesChanged} theme={theme} onThemeChange={onThemeChange} />
       </div>
     </header>
   )

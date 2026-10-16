@@ -16,6 +16,7 @@ import { getTaskEmptyStates } from './taskEmptyState'
 import { sortActiveTasks } from './taskSorting'
 import './App.css'
 import type { Theme } from './theme'
+import type { CategoryMutation } from './categoryEvents'
 
 type AppProps = {
   onThemeChange: (theme: Theme) => Promise<void>
@@ -34,6 +35,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const [completedCount, setCompletedCount] = useState(0)
   const [taskRevision, setTaskRevision] = useState(0)
   const [habitGoalRevision, setHabitGoalRevision] = useState(0)
+  const [categoryRevision, setCategoryRevision] = useState(0)
   const [lastCompletedTask, setLastCompletedTask] = useState<Task | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
@@ -57,6 +59,20 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     }).catch(() => {
       // The next navigation or goal mutation retries the task overview.
     })
+  }
+
+  function categoriesChanged(change: CategoryMutation) {
+    setTasks(current => current.map(task => {
+      if (change.type === 'upsert' && task.category?.id === change.category.id) {
+        return { ...task, category: change.category }
+      }
+      if (change.type === 'delete' && task.category?.id === change.id) {
+        return { ...task, category: null }
+      }
+      return task
+    }))
+    setTaskRevision(value => value + 1)
+    setCategoryRevision(value => value + 1)
   }
 
   async function refreshAccount(signal?: AbortSignal) {
@@ -309,7 +325,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   return (
     <main className="quest-app">
       <Header points={points} username={user.login ?? ''} onLogout={onLogout} loggingOut={loggingOut} onChangePassword={onChangePassword} onEmail={onEmail} onDeleteAccount={onDeleteAccount}
-        theme={user.theme === 'PINK' ? 'pink' : 'purple'} onThemeChange={onThemeChange} />
+        onCategoriesChanged={categoriesChanged} theme={user.theme === 'PINK' ? 'pink' : 'purple'} onThemeChange={onThemeChange} />
       {logoutError && <p className="form-error" role="alert">{logoutError}</p>}
       {accountError && <p className="form-error" role="alert">{accountError}</p>}
       <nav className="page-navigation" aria-label="Widoki aplikacji">
@@ -382,7 +398,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage goalLinksRevision={habitGoalRevision} onPointsChanged={balance => {
+        <HabitsPage goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision} onPointsChanged={balance => {
           accountRequest.current++
           setPoints(balance)
         }} />

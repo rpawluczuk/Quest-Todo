@@ -16,8 +16,8 @@ const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 
 type AwardNotice = HabitAward & { habitId: number; name: string }
 
-export default function HabitsPage({ onPointsChanged, goalLinksRevision }: {
-  onPointsChanged: (balance: number) => void; goalLinksRevision: number
+export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision }: {
+  onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number
 }) {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
@@ -65,7 +65,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision }: {
       <h2 id="habits-heading">Nawyki</h2>
       <p>Regularne czynności, które chcesz rozwijać.</p>
     </div>
-    <HabitDayList key={`${selectedDay}:${today}:${refresh}:${goalLinksRevision}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
+    <HabitDayList key={`${selectedDay}:${today}:${refresh}:${goalLinksRevision}:${categoryRevision}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       onCompletionSaved={completionSaved} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
