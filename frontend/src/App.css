@@ -2922,11 +2922,11 @@
   min-width: 0;
 }
 
-.task-card-footer-with-goal .task-card-associations {
+.task-card-footer-stacked .task-card-associations {
   grid-column: 1 / -1;
 }
 
-.task-card-footer-with-goal > .task-card-due {
+.task-card-footer-stacked > .task-card-due {
   grid-column: 1;
 }
 

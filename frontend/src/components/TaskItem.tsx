@@ -140,7 +140,7 @@ function TaskItem({
               <path d="M5 2.5h7l3 3V17H5zM12 2.5v3h3M7.5 9h5M7.5 12h5" />
             </svg>
           </button> : <span className="task-card-title">{title}</span>}
-          <div className={`task-card-footer ${hasGoals ? 'task-card-footer-with-goal' : 'task-card-footer-inline'}`}>
+          <div className={`task-card-footer ${hasGoals && due ? 'task-card-footer-stacked' : 'task-card-footer-inline'}`}>
             {hasGoals ? <>
               <div className="task-card-associations">
                 {categoryMetadata}
