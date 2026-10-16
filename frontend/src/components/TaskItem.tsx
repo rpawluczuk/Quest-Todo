@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
-import CategoryIcon from './CategoryIcon'
+import CategoryMarker, { CategoryCardDetail } from './CategoryMarker'
 import { getTaskDuePresentation } from '../taskDue'
 
 type TaskItemProps = {
@@ -44,10 +44,8 @@ function TaskItem({
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
   const title = <>
-    {task.category && <span className="task-category-marker"
-      title={`Kategoria: ${task.category.name}`} aria-label={`Kategoria: ${task.category.name}`}>
-      <CategoryIcon icon={task.category.icon} color={task.category.color} />
-    </span>}
+    {task.category && <CategoryMarker category={task.category} className="task-category-marker"
+      embedded={Boolean(task.description)} />}
     <span className="task-card-title-text">{task.title}</span>
   </>
 
@@ -112,7 +110,7 @@ function TaskItem({
           )}
           {task.description ? <button ref={titleButton} type="button" className="task-card-title"
             disabled={disabled} onClick={toggleDescription} aria-expanded={descriptionExpanded}
-            aria-controls={descriptionId} aria-label={`${descriptionExpanded ? 'Ukryj' : 'Pokaż'} notatkę: ${task.title}`}>
+            aria-controls={descriptionId} aria-label={`${descriptionExpanded ? 'Ukryj' : 'Pokaż'} notatkę: ${task.title}${task.category ? `. Kategoria: ${task.category.name}` : ''}`}>
             {title}
             <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
               stroke="currentColor" strokeWidth="1.5" aria-label="Zawiera notatkę" role="img">
@@ -173,7 +171,10 @@ function TaskItem({
               },
             ]}
           />
-          {task.description && <p id={descriptionId} className="task-card-description" hidden={!descriptionExpanded}>{task.description}</p>}
+          {task.description && <>
+            {descriptionExpanded && task.category && <CategoryCardDetail category={task.category} />}
+            <p id={descriptionId} className="task-card-description" hidden={!descriptionExpanded}>{task.description}</p>
+          </>}
       </>}
       {isSaving && <span className="task-card-status" role="status">Zapisywanie…</span>}
       {error && <p className="form-error" role="alert">{error}</p>}

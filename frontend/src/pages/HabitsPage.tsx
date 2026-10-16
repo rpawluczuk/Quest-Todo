@@ -4,7 +4,7 @@ import CreateHabitForm from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
-import CategoryIcon from '../components/CategoryIcon'
+import CategoryMarker, { CategoryCardDetail } from '../components/CategoryMarker'
 import WeekBar from '../components/WeekBar'
 import { targetLabel } from '../habitTarget'
 import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
@@ -250,13 +250,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
               <div className="habit-card-content">
                 <div className="habit-heading-row">
                   <div className="habit-name">
-                    {habit.category && <span className="habit-category-marker"
-                      title={`Kategoria: ${habit.category.name}`} aria-label={`Kategoria: ${habit.category.name}`}>
-                      <CategoryIcon icon={habit.category.icon} color={habit.category.color} />
-                    </span>}
+                    {habit.category && <CategoryMarker category={habit.category} className="habit-category-marker"
+                      embedded={Boolean(habit.description)} />}
                     {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
                       aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
-                      aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}`}
+                      aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}${habit.category ? `. Kategoria: ${habit.category.name}` : ''}`}
                       onClick={() => toggleDescription(habit.id)}>
                       <span className="task-title">{habit.name}</span>
                       <svg className="task-note-icon" viewBox="0 0 20 20" fill="none"
@@ -312,8 +310,11 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
                 </div>}
                 </div>
               </div>
-              {habit.description && <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
-                hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>}
+              {habit.description && <>
+                {expandedDescriptions.has(habit.id) && habit.category && <CategoryCardDetail category={habit.category} />}
+                <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
+                  hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>
+              </>}
             </>}
           </li>)}
           </ul>
