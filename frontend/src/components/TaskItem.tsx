@@ -165,10 +165,11 @@ function TaskItem({
             itemTitle={task.title}
             disabled={disabled}
             actions={[
-              ...(!task.completed ? [{ label: 'Edytuj', onSelect: () => onStartEditing(task.id) }] : []),
-              ...(variant === 'focus' ? [{ label: 'Przenieś do pozostałych zadań', onSelect: () => void saveChange(onToggleFocus) }] : []),
+              ...(!task.completed ? [{ label: 'Edytuj', icon: 'pencil' as const, onSelect: () => onStartEditing(task.id) }] : []),
+              ...(variant === 'focus' ? [{ label: 'Do pozostałych', icon: 'arrow-down' as const, onSelect: () => void saveChange(onToggleFocus) }] : []),
               {
                 label: 'Usuń',
+                icon: 'trash-2' as const,
                 destructive: true,
                 onSelect: () => void saveChange(onDelete, 'Nie udało się usunąć zadania. Sprawdź połączenie z backendem i spróbuj ponownie.'),
               },

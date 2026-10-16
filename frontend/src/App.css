@@ -3092,7 +3092,9 @@
   z-index: 3;
   top: calc(100% + 4px);
   right: 0;
-  width: min(220px, calc(100vw - 48px));
+  width: max-content;
+  min-width: 148px;
+  max-width: calc(100vw - 32px);
   padding: 4px;
   border: 1px solid #e5e1eb;
   border-radius: 10px;
@@ -3106,9 +3108,11 @@
 }
 
 .task-menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  min-height: 40px;
+  min-height: 42px;
   padding: 8px 10px;
   border: 0;
   border-radius: 6px;
@@ -3117,7 +3121,14 @@
   font: inherit;
   font-size: 0.9rem;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.task-menu-item-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
 }
 
 .task-menu-item:hover,

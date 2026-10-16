@@ -1,9 +1,12 @@
-import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+
+type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2'
 
 type TaskMenuAction = {
   readonly label: string
   readonly onSelect: () => void
   readonly destructive?: boolean
+  readonly icon?: TaskMenuIconName
 }
 
 type TaskActionsMenuProps = {
@@ -12,6 +15,51 @@ type TaskActionsMenuProps = {
   readonly disabled: boolean
   readonly actions: readonly TaskMenuAction[]
 }
+
+const taskMenuIconPaths: Record<TaskMenuIconName, ReactNode> = {
+  pencil: (
+    <>
+      <path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.36a.5.5 0 0 0 .62.62L7 20.66a2 2 0 0 0 .83-.5Z" />
+      <path d="m15 5 4 4" />
+    </>
+  ),
+  'arrow-down': (
+    <>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </>
+  ),
+  'arrow-up': (
+    <>
+      <path d="m5 12 7-7 7 7" />
+      <path d="M12 19V5" />
+    </>
+  ),
+  'trash-2': (
+    <>
+      <path d="M3 6h18" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <path d="m19 6-1 14c0 1-1 2-2 2H8c-1 0-2-1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </>
+  ),
+}
+
+const TaskMenuIcon = ({ name }: { readonly name: TaskMenuIconName }) => (
+  <svg
+    aria-hidden="true"
+    className="task-menu-item-icon"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="1.8"
+  >
+    {taskMenuIconPaths[name]}
+  </svg>
+)
 
 export default function TaskActionsMenu({ itemTitle, itemType = 'zadania', disabled, actions }: TaskActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -118,7 +166,8 @@ export default function TaskActionsMenu({ itemTitle, itemType = 'zadania', disab
                   action.onSelect()
                 }}
               >
-                {action.label}
+                {action.icon ? <TaskMenuIcon name={action.icon} /> : null}
+                <span>{action.label}</span>
               </button>
             </Fragment>
           ))}
