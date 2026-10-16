@@ -97,11 +97,7 @@ public class TaskService {
 
     public Task updateFocus(long id, boolean inFocus) {
         TaskEntity task = findForUpdate(id);
-        if (!inFocus && task.requiresPriority(priorities.today().plusDays(7))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Zadanie z terminem w ciągu 7 dni lub po terminie pozostaje w priorytetach. Aby je przenieść, zmień lub usuń termin.");
-        }
-        task.setInFocus(inFocus);
+        task.setManualFocus(inFocus, priorities.today().plusDays(7));
         return toTask(task);
     }
 

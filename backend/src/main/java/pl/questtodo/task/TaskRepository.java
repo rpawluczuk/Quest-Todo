@@ -11,12 +11,13 @@ import org.springframework.data.repository.query.Param;
 public interface TaskRepository extends JpaRepository<TaskEntity, Long> {
     @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update TaskEntity task set task.inFocus = true where task.user.id = :userId "
-            + "and task.completed = false and task.inFocus = false and task.dueDate <= :cutoff")
+            + "and task.completed = false and task.inFocus = false and task.automaticPriorityDismissed = false "
+            + "and task.dueDate <= :cutoff")
     int promoteDueTasks(@Param("userId") long userId, @Param("cutoff") java.time.LocalDate cutoff);
 
     @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update TaskEntity task set task.inFocus = true where task.completed = false "
-            + "and task.inFocus = false and task.dueDate <= :cutoff")
+            + "and task.inFocus = false and task.automaticPriorityDismissed = false and task.dueDate <= :cutoff")
     int promoteAllDueTasks(@Param("cutoff") java.time.LocalDate cutoff);
 
     java.util.List<TaskEntity> findByUserIdAndCompletedFalseOrderByIdAsc(long userId);

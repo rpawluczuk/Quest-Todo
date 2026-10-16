@@ -92,20 +92,25 @@ class TaskPriorityTests {
     }
 
     @Test
-    void userReadDoesNotPromoteOtherUsersTasksAndUrgentTasksCannotBeDemoted() throws Exception {
+    void userReadDoesNotPromoteOtherUsersTasksAndManualDemotionOverridesCurrentDeadline() throws Exception {
         jdbc.update("INSERT INTO users(id,name,points) VALUES (9876,'Other',0)");
         jdbc.update("INSERT INTO tasks(id,user_id,title,points,due_date) VALUES (401,9876,'Private',10,?)", today);
         task(402, today, false, true);
         mvc.perform(get("/api/tasks/overview")).andExpect(status().isOk());
         assertEquals(false, focus(401));
         mvc.perform(patch("/api/tasks/402/focus").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"inFocus\":false}")).andExpect(status().isConflict());
-        mvc.perform(patch("/api/tasks/402").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"title\":\"Task\",\"points\":10,\"clearDueDate\":true}"))
-                .andExpect(status().isOk());
-        mvc.perform(patch("/api/tasks/402/focus").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"inFocus\":false}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.inFocus").value(false));
+        mvc.perform(get("/api/tasks/overview")).andExpect(status().isOk());
+        assertEquals(false, focus(402));
+        priorities.promoteDueTasks();
+        assertEquals(false, focus(402));
+        mvc.perform(patch("/api/tasks/402").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Renamed\",\"points\":10,\"dueDate\":\"2026-10-13\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.inFocus").value(false));
+        mvc.perform(patch("/api/tasks/402").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Renamed\",\"points\":10,\"dueDate\":\"2026-10-14\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.inFocus").value(true));
     }
 
     private boolean focus(long id) {

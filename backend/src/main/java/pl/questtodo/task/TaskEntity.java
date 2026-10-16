@@ -3,6 +3,7 @@ package pl.questtodo.task;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,6 +45,9 @@ public class TaskEntity {
     @Column(name = "in_focus", nullable = false)
     private boolean inFocus;
 
+    @Column(name = "automatic_priority_dismissed", nullable = false)
+    private boolean automaticPriorityDismissed;
+
     @Column(name = "due_date")
     private LocalDate dueDate;
 
@@ -82,6 +86,9 @@ public class TaskEntity {
         this.points = points;
         if (updateDescription) this.description = description;
         if (updateDueDate) {
+            if (!Objects.equals(this.dueDate, dueDate) || !Objects.equals(this.dueTime, dueTime)) {
+                this.automaticPriorityDismissed = false;
+            }
             this.dueDate = dueDate;
             this.dueTime = dueTime;
         }
@@ -94,8 +101,9 @@ public class TaskEntity {
         this.completed = completed;
     }
 
-    public void setInFocus(boolean inFocus) {
+    public void setManualFocus(boolean inFocus, LocalDate cutoff) {
         this.inFocus = inFocus;
+        this.automaticPriorityDismissed = !inFocus && requiresPriority(cutoff);
     }
 
     public void setCategory(CategoryEntity category) {
@@ -107,7 +115,7 @@ public class TaskEntity {
     }
 
     public void promoteIfDue(java.time.LocalDate cutoff) {
-        if (requiresPriority(cutoff)) inFocus = true;
+        if (!automaticPriorityDismissed && requiresPriority(cutoff)) inFocus = true;
     }
 
     public Task toTask() {
