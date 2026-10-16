@@ -130,7 +130,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
           required
         />
       </label>
-      <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={isSaving} />
+      <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={isSaving} integratedCreateAction />
       <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>

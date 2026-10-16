@@ -87,7 +87,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           required
         />
       </label>
-      <CategoryPicker selectedId={editCategoryId} onChange={setEditCategoryId} disabled={isSaving} />
+      <CategoryPicker selectedId={editCategoryId} onChange={setEditCategoryId} disabled={isSaving} integratedCreateAction />
       <GoalPicker selectedIds={editGoalIds} onChange={setEditGoalIds} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend>Termin (opcjonalnie)</legend>
