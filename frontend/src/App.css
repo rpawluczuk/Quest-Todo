@@ -2837,7 +2837,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 32px;
+  min-height: 24px;
   cursor: pointer;
 }
 
