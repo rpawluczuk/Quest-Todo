@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import * as Select from '@radix-ui/react-select'
 import { getGoals } from '../api/goalApi'
 import type { Goal } from '../types/Goal'
 
@@ -8,11 +9,18 @@ type SingleGoalPickerProps = {
   readonly disabled: boolean
 }
 
+const noGoalValue = 'none'
+
 export default function SingleGoalPicker({ selectedId, onChange, disabled }: SingleGoalPickerProps) {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+
+  const selected = useMemo(
+    () => goals.find(goal => goal.id === selectedId) ?? null,
+    [goals, selectedId],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -37,18 +45,39 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
         setRetry(value => value + 1)
       }}>Spróbuj ponownie</button>
     </div>}
-    {!loading && !error && goals.length === 0 &&
-      <p className="goal-form-picker-status">Nie masz jeszcze celów do przypięcia.</p>}
-    {!loading && !error && goals.length > 0 && <div className="goal-form-options">
-      <label className="goal-form-option">
-        <input type="radio" name="task-goal" checked={selectedId === null} onChange={() => onChange(null)} />
-        <span>Bez celu</span>
-      </label>
-      {goals.map(goal => <label key={goal.id} className="goal-form-option">
-        <input type="radio" name="task-goal" checked={selectedId === goal.id}
-          onChange={() => onChange(goal.id)} />
-        <span>{goal.title}</span>
-      </label>)}
-    </div>}
+    {!loading && !error && <Select.Root
+      value={selectedId === null ? noGoalValue : String(selectedId)}
+      disabled={disabled}
+      onValueChange={value => onChange(value === noGoalValue ? null : Number(value))}
+    >
+      <Select.Trigger className="category-select-trigger goal-select-trigger" aria-label="Wybierz cel">
+        <span className="category-select-trigger-value">
+          <Select.Value>{selected?.title ?? 'Bez celu'}</Select.Value>
+        </span>
+        <Select.Icon className="category-select-chevron">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Content className="category-select-content goal-select-content" position="popper" sideOffset={4}
+          collisionPadding={12}>
+          <Select.Viewport className="category-select-viewport">
+            <Select.Item className="category-select-item goal-select-item" value={noGoalValue}>
+              <Select.ItemText>Bez celu</Select.ItemText>
+              <Select.ItemIndicator className="category-select-indicator" aria-hidden="true">
+                <svg viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-8" /></svg>
+              </Select.ItemIndicator>
+            </Select.Item>
+            {goals.map(goal => <Select.Item className="category-select-item goal-select-item" key={goal.id}
+              value={String(goal.id)}>
+              <Select.ItemText>{goal.title}</Select.ItemText>
+              <Select.ItemIndicator className="category-select-indicator" aria-hidden="true">
+                <svg viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-8" /></svg>
+              </Select.ItemIndicator>
+            </Select.Item>)}
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>}
   </fieldset>
 }

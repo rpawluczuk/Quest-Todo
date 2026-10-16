@@ -1986,6 +1986,20 @@
   background: var(--color-primary-soft);
 }
 
+.goal-select-item {
+  grid-template-columns: minmax(0, 1fr) 18px;
+  padding-inline: 12px 10px;
+}
+
+.goal-select-item > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.goal-select-item[data-state='checked'] {
+  background: var(--color-primary-soft);
+}
+
 .category-select-item[data-disabled] {
   opacity: 0.55;
   pointer-events: none;
