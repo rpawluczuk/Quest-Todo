@@ -13,6 +13,7 @@ import Header from './components/Header'
 import CreateTaskForm from './components/CreateTaskForm'
 import CompletionNotice from './components/CompletionNotice'
 import { getTaskEmptyStates } from './taskEmptyState'
+import { sortActiveTasks } from './taskSorting'
 import './App.css'
 import type { Theme } from './theme'
 
@@ -164,8 +165,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     }
   }, [])
 
-  const focusTasks = tasks.filter((task) => !task.completed && task.inFocus)
-  const backlogTasks = tasks.filter((task) => !task.completed && !task.inFocus)
+  const focusTasks = sortActiveTasks(tasks.filter((task) => !task.completed && task.inFocus))
+  const backlogTasks = sortActiveTasks(tasks.filter((task) => !task.completed && !task.inFocus))
   const completedTasks = tasks.filter((task) => task.completed).sort((a, b) =>
     (b.completedAt ? Date.parse(b.completedAt) : 0) - (a.completedAt ? Date.parse(a.completedAt) : 0)
     || b.id - a.id,
