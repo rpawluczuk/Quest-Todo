@@ -1725,6 +1725,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+.tasks-section .task-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 23px;
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .task-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 100px auto;
