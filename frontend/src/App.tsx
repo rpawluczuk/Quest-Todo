@@ -192,21 +192,18 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     {
       id: 'focus',
       title: 'Moje priorytety',
-      description: 'Zadania, na których chcesz się teraz skupić.',
       emptyState: taskEmptyStates.focus,
       tasks: focusTasks,
     },
     {
       id: 'backlog',
       title: 'Pozostałe zadania',
-      description: 'Zadania, które czekają na swoją kolej.',
       emptyState: taskEmptyStates.backlog,
       tasks: backlogTasks,
     },
     {
       id: 'completed',
       title: 'Ukończone',
-      description: 'Ostatnio ukończone zadania.',
       emptyState: { message: 'Nie masz jeszcze ukończonych zadań.' },
       tasks: completedTasks,
     },

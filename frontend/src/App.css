@@ -2555,6 +2555,14 @@
   gap: 8px;
 }
 
+#tasks-page .section-header h2 {
+  margin-bottom: 0;
+}
+
+#tasks-page .task-list-has-items {
+  margin-top: 16px;
+}
+
 .task-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 32px;

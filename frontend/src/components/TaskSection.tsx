@@ -51,7 +51,7 @@ function TaskSection({
   children,
   history,
 }: TaskSectionProps) {
-  const { id, title, description, emptyState, tasks } = section
+  const { id, title, emptyState, tasks } = section
   const isCompletedSection = id === 'completed'
   const [expanded, setExpanded] = useState(false)
   const [historyTasks, setHistoryTasks] = useState<Task[]>([])
@@ -130,7 +130,6 @@ function TaskSection({
             </button>
           ) : <><span>{title}</span><span className="task-section-count" aria-label={`Liczba zadań: ${tasks.length}`}>{tasks.length}</span></>}
         </h2>
-        <p>{description}</p>
       </div>
       <div id={`${id}-content`} hidden={!showTasks}>
         {tasks.length === 0 && emptyState.prominent ? (
@@ -146,7 +145,7 @@ function TaskSection({
             <p className="empty-state">{emptyState.message}</p>
           </div>}
         </>}
-        <ul className="task-list">
+        <ul className={`task-list${visibleTasks.length > 0 ? ' task-list-has-items' : ''}`}>
           {visibleTasks.map((task) => (
             <TaskItem
               key={task.id}
