@@ -43,6 +43,7 @@ function TaskItem({
   const disabled = isAnyTaskEditing || isSaving
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
+  const hasContext = Boolean(task.category || goalTitles.length > 0 || due)
   const title = <>
     <span className="task-card-title-text">{task.title}</span>
   </>
@@ -106,6 +107,20 @@ function TaskItem({
               />
             </label>
           )}
+          {variant === 'backlog' && (
+            <button
+              type="button"
+              className="task-card-priority-action"
+              disabled={disabled}
+              onClick={() => void saveChange(onToggleFocus)}
+              aria-label={`Przenieś do priorytetów: ${task.title}`}
+              data-tooltip="Przenieś do priorytetów"
+            >
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                <path d="M10 15V5M6 9l4-4 4 4" />
+              </svg>
+            </button>
+          )}
           {task.description ? <button ref={titleButton} type="button" className="task-card-title"
             disabled={disabled} onClick={toggleDescription} aria-expanded={descriptionExpanded}
             aria-controls={descriptionId} aria-label={`${descriptionExpanded ? 'Ukryj' : 'Pokaż'} notatkę: ${task.title}${task.category ? `. Kategoria: ${task.category.name}` : ''}`}>
@@ -116,7 +131,7 @@ function TaskItem({
             </svg>
           </button> : <span className="task-card-title">{title}</span>}
           <div className="task-card-footer">
-            <div className="task-card-context">
+            {(variant !== 'backlog' || hasContext) && <div className="task-card-context">
               {(task.category || goalTitles.length > 0) && <div className="task-card-associations">
                 {task.category && <CategoryMarker category={task.category} className="task-category-marker" />}
                 {goalTitles.length > 0 && <p className="task-card-goals">
@@ -136,21 +151,7 @@ function TaskItem({
                 </svg>
                 <span>{due.label}</span>
               </span>}
-            {variant === 'backlog' && (
-              <button
-                type="button"
-                className="task-card-priority-action"
-                disabled={disabled}
-                onClick={() => void saveChange(onToggleFocus)}
-                aria-label={`Przenieś do priorytetów: ${task.title}`}
-              >
-                <span>Do priorytetów</span>
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-                  <path d="M10 15V5M6 9l4-4 4 4" />
-                </svg>
-              </button>
-            )}
-            </div>
+            </div>}
             <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
           {task.completed && (
