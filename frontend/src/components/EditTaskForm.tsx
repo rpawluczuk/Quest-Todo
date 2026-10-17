@@ -26,7 +26,6 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const titleInput = useRef<HTMLInputElement>(null)
   const pointsInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
-  const dueTimeHintId = useId()
   const titleErrorId = useId()
   const pointsErrorId = useId()
 
@@ -108,19 +107,17 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
         integratedCreateAction showOptionalLabel={false} />
       <SingleGoalPicker selectedId={editGoalId} onChange={setEditGoalId} disabled={isSaving} />
       <fieldset className="task-due-field">
-        <legend>Termin</legend>
+        <legend className="visually-hidden">Termin zadania</legend>
         <div className="task-due-inputs">
           <label className="form-field">
-            <span>Data</span>
+            <span>Termin</span>
             <input ref={dueDateInput} type="date" value={editDueDate} disabled={isSaving}
               onChange={event => { setEditDueDate(event.target.value); if (!event.target.value) setEditDueTime('') }} />
           </label>
           <label className="form-field">
             <span>Godzina</span>
             <input type="time" value={editDueTime} disabled={isSaving || !editDueDate}
-              aria-describedby={!editDueDate ? dueTimeHintId : undefined}
               onChange={event => setEditDueTime(event.target.value)} />
-            {!editDueDate && <small id={dueTimeHintId} className="task-due-hint">Najpierw wybierz datę.</small>}
           </label>
         </div>
         {editDueDate && <button type="button" className="task-due-clear" disabled={isSaving}

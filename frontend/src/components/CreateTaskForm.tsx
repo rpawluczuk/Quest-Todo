@@ -36,7 +36,6 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const pointsInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
-  const dueTimeHintId = useId()
   const titleErrorId = useId()
   const pointsErrorId = useId()
 
@@ -153,19 +152,17 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         integratedCreateAction showOptionalLabel={false} />
       <SingleGoalPicker selectedId={goalId} onChange={setGoalId} disabled={isSaving} />
       <fieldset className="task-due-field">
-        <legend>Termin</legend>
+        <legend className="visually-hidden">Termin zadania</legend>
         <div className="task-due-inputs">
           <label className="form-field">
-            <span>Data</span>
+            <span>Termin</span>
             <input ref={dueDateInput} type="date" value={dueDate} disabled={isSaving}
               onChange={event => { setDueDate(event.target.value); if (!event.target.value) setDueTime('') }} />
           </label>
           <label className="form-field">
             <span>Godzina</span>
             <input type="time" value={dueTime} disabled={isSaving || !dueDate}
-              aria-describedby={!dueDate ? dueTimeHintId : undefined}
               onChange={event => setDueTime(event.target.value)} />
-            {!dueDate && <small id={dueTimeHintId} className="task-due-hint">Najpierw wybierz datę.</small>}
           </label>
         </div>
         {dueDate && <button type="button" className="task-due-clear" disabled={isSaving}
