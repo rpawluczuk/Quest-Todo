@@ -2273,6 +2273,50 @@
   margin: 0;
 }
 
+.category-create-dialog {
+  width: min(440px, calc(100vw - 24px));
+  overflow-x: hidden;
+}
+
+.category-create-dialog h2 {
+  margin-bottom: 11px;
+  padding-right: 40px;
+}
+
+.task-form .category-create-dialog .password-dialog-close {
+  width: 34px;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #625b70;
+}
+
+.task-form .category-create-dialog .password-dialog-close:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.task-form .category-create-dialog .password-dialog-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.category-create-dialog-form {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.category-create-dialog-form .category-creator-options {
+  max-width: 230px;
+}
+
 .category-management-dialog {
   width: min(560px, calc(100vw - 24px));
   padding: 24px;
@@ -2436,6 +2480,8 @@
 }
 
 @media (max-width: 390px) {
+  .category-create-dialog { padding: 18px 14px; }
+  .category-create-dialog-form .category-creator-options { max-width: none; }
   .category-management-dialog { padding: 18px 14px; }
   .category-management-item { grid-template-columns: 34px minmax(0, 1fr) 44px 44px; gap: 4px; padding-inline: 8px; }
   .category-management-item-action { width: 44px; padding-inline: 2px; overflow: hidden; font-size: 0; }

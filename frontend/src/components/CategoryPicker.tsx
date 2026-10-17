@@ -26,8 +26,10 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
   const [createError, setCreateError] = useState('')
   const nameInput = useRef<HTMLInputElement>(null)
   const dropdownTrigger = useRef<HTMLButtonElement>(null)
+  const creatorDialog = useRef<HTMLDialogElement>(null)
   const focusCreatorAfterClose = useRef(false)
   const selectId = useId()
+  const creatorTitleId = useId()
 
   const loadCategories = useCallback((signal?: AbortSignal) => {
     setLoading(true)
@@ -56,7 +58,11 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
   }, [loadCategories])
 
   useEffect(() => {
-    if (creating) nameInput.current?.focus()
+    if (!creating) return
+    const element = creatorDialog.current
+    element?.showModal()
+    requestAnimationFrame(() => nameInput.current?.focus())
+    return () => element?.close()
   }, [creating])
 
   const selected = useMemo(
@@ -96,7 +102,7 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
     }
   }
 
-  return <fieldset className="category-form-picker" disabled={disabled}>
+  return <><fieldset className="category-form-picker" disabled={disabled}>
     <legend>Kategoria <span>(opcjonalnie)</span></legend>
     {loading && <p className="category-form-status" role="status">Ładowanie kategorii…</p>}
     {!loading && loadError && <div className="category-form-error">
@@ -174,7 +180,7 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
             onClick={() => setCreating(true)}>+ Nowa kategoria</button>}
         </>}
       </div>
-      {creating && <div className="category-creator">
+      {creating && !integratedCreateAction && <div className="category-creator">
         <label className="form-field category-name-field">
           <span>Nazwa kategorii</span>
           <input ref={nameInput} value={name} maxLength={60} disabled={saving}
@@ -196,4 +202,36 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
       </div>}
     </>}
   </fieldset>
+  {creating && integratedCreateAction && <dialog ref={creatorDialog}
+    className="password-dialog change-password-dialog category-create-dialog"
+    aria-labelledby={creatorTitleId}
+    onCancel={event => { event.preventDefault(); if (!saving) closeCreator() }}>
+    <button type="button" className="password-dialog-close" aria-label="Zamknij" title="Zamknij"
+      disabled={saving} onClick={closeCreator}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    </button>
+    <h2 id={creatorTitleId}>Nowa kategoria</h2>
+    <div className="task-form category-creator category-create-dialog-form">
+      <label className="form-field category-name-field">
+        <span>Nazwa kategorii</span>
+        <input ref={nameInput} value={name} maxLength={60} disabled={saving}
+          onChange={event => setName(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter') { event.preventDefault(); void saveCategory() }
+          }} placeholder="Np. Zdrowie" />
+      </label>
+      <CategoryAppearancePicker icon={icon} color={color} disabled={saving}
+        onIconChange={setIcon} onColorChange={setColor} />
+      <div className="category-creator-actions">
+        <button type="button" onClick={() => void saveCategory()} disabled={saving}>
+          {saving ? 'Tworzenie…' : 'Utwórz kategorię'}
+        </button>
+        <button type="button" className="secondary-button" onClick={closeCreator} disabled={saving}>Anuluj</button>
+      </div>
+      {createError && <p className="form-error" role="alert">{createError}</p>}
+    </div>
+  </dialog>}
+  </>
 }
