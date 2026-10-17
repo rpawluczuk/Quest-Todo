@@ -3,20 +3,23 @@ import type { SubmitEvent } from 'react'
 import TaskNoteField from './TaskNoteField'
 import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
+import DiscardTaskChangesDialog from './DiscardTaskChangesDialog'
 
 type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
     categoryId: number | null, goalId: number | null) => Promise<void>
   readonly isFirstTask?: boolean
   readonly hideTrigger?: boolean
+  readonly onOpenChange?: (open: boolean) => void
 }
 
 export type CreateTaskFormHandle = {
   readonly open: (trigger?: HTMLButtonElement) => void
+  readonly requestClose: () => void
 }
 
 const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(function CreateTaskForm(
-  { onAddTask, isFirstTask = false, hideTrigger = false },
+  { onAddTask, isFirstTask = false, hideTrigger = false, onOpenChange },
   ref,
 ) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -30,6 +33,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; points?: string }>({})
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
   const returnFocus = useRef<HTMLButtonElement | null>(null)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -39,21 +43,10 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const titleErrorId = useId()
   const pointsErrorId = useId()
 
-  useImperativeHandle(ref, () => ({
-    open(trigger) {
-      returnFocus.current = trigger ?? null
-      if (isExpanded) titleInput.current?.focus()
-      else setIsExpanded(true)
-    },
-  }), [isExpanded])
+  const hasUnsavedChanges = newTitle !== '' || newPoints !== '10' || description !== '' || dueDate !== '' ||
+    dueTime !== '' || goalId !== null || categoryId !== null
 
-  useEffect(() => {
-    if (isExpanded) titleInput.current?.focus()
-    else if (wasExpanded.current) (returnFocus.current ?? addButton.current)?.focus()
-    wasExpanded.current = isExpanded
-  }, [isExpanded])
-
-  function cancel() {
+  function resetForm() {
     setNewTitle('')
     setNewPoints('10')
     setDescription('')
@@ -63,8 +56,36 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setCategoryId(null)
     setFieldErrors({})
     setFormError('')
+  }
+
+  function closeForm() {
+    resetForm()
+    setDiscardDialogOpen(false)
     setIsExpanded(false)
   }
+
+  function requestClose() {
+    if (isSaving) return
+    if (hasUnsavedChanges) setDiscardDialogOpen(true)
+    else closeForm()
+  }
+
+  useImperativeHandle(ref, () => ({
+    open(trigger) {
+      returnFocus.current = trigger ?? null
+      if (isExpanded) titleInput.current?.focus()
+      else setIsExpanded(true)
+    },
+    requestClose,
+  }))
+
+  useEffect(() => {
+    if (isExpanded) titleInput.current?.focus()
+    else if (wasExpanded.current) (returnFocus.current ?? addButton.current)?.focus()
+    wasExpanded.current = isExpanded
+  }, [isExpanded])
+
+  useEffect(() => { onOpenChange?.(isExpanded) }, [isExpanded, onOpenChange])
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -92,15 +113,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setFormError('')
     try {
       await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalId)
-      setNewTitle('')
-      setNewPoints('10')
-      setDescription('')
-      setDueDate('')
-      setDueTime('')
-      setGoalId(null)
-      setCategoryId(null)
-      setFieldErrors({})
-      setIsExpanded(false)
+      closeForm()
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
     } finally {
@@ -108,8 +121,8 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     }
   }
 
-  return (
-    isExpanded ? <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit} noValidate>
+  return <>
+    {isExpanded ? <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit} noValidate>
       <label className="form-field">
         <span>Nazwa zadania <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input
@@ -176,7 +189,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         onChange={event => setDescription(event.target.value)} />
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
-        <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>
+        <button type="button" className="secondary-button" disabled={isSaving} onClick={requestClose}>Anuluj</button>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </form> : hideTrigger ? null : <button ref={addButton} type="button"
@@ -186,8 +199,10 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         setIsExpanded(true)
       }}>
       {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}
-    </button>
-  )
+    </button>}
+    {discardDialogOpen && <DiscardTaskChangesDialog onContinue={() => setDiscardDialogOpen(false)}
+      onDiscard={closeForm} />}
+  </>
 })
 
 export default CreateTaskForm

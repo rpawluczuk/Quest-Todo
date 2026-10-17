@@ -1702,6 +1702,55 @@
   outline-offset: 3px;
 }
 
+.add-task-header-button-close {
+  border-color: #ddd7e7;
+  background: #f4f2f7;
+  color: #625b70;
+}
+
+.add-task-header-button-close:hover {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: #443f4c;
+}
+
+.discard-task-dialog {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.discard-task-dialog h2 {
+  margin-bottom: 8px;
+}
+
+.discard-task-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.discard-task-button {
+  padding: 10px 16px;
+  border: 1px solid #b42318;
+  border-radius: 8px;
+  background: #b42318;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.discard-task-button:hover {
+  background: #912018;
+}
+
+.discard-task-button:focus-visible {
+  outline: 2px solid #b42318;
+  outline-offset: 3px;
+}
+
 .task-section-title {
   display: flex;
   align-items: center;

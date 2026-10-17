@@ -31,6 +31,7 @@ type AppProps = {
 
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
   const createTaskForm = useRef<CreateTaskFormHandle>(null)
+  const [createTaskFormOpen, setCreateTaskFormOpen] = useState(false)
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
@@ -383,15 +384,21 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
             headerAction={section.id === 'backlog' && !section.emptyState.prominent ? (
               <button
                 type="button"
-                className="add-task-header-button"
-                aria-label="Dodaj zadanie"
-                title="Dodaj zadanie"
+                className={`add-task-header-button${createTaskFormOpen ? ' add-task-header-button-close' : ''}`}
+                aria-label={createTaskFormOpen ? 'Zamknij formularz' : 'Dodaj zadanie'}
+                title={createTaskFormOpen ? 'Zamknij formularz' : 'Dodaj zadanie'}
+                aria-expanded={createTaskFormOpen}
                 aria-controls="create-task-form"
-                onClick={(event) => createTaskForm.current?.open(event.currentTarget)}
+                onClick={(event) => {
+                  if (createTaskFormOpen) createTaskForm.current?.requestClose()
+                  else createTaskForm.current?.open(event.currentTarget)
+                }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
+                  {createTaskFormOpen
+                    ? <path d="m6 6 12 12M18 6 6 18" />
+                    : <path d="M12 5v14M5 12h14" />}
                 </svg>
               </button>
             ) : undefined}
@@ -402,6 +409,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
                 onAddTask={addTask}
                 isFirstTask={Boolean(section.emptyState.prominent)}
                 hideTrigger={!section.emptyState.prominent}
+                onOpenChange={setCreateTaskFormOpen}
               />
             )}
           </TaskSection>
