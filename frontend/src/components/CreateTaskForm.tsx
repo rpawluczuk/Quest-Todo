@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
-import AutoResizeTextarea from './AutoResizeTextarea'
+import TaskNoteField from './TaskNoteField'
 import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
 
@@ -172,10 +172,8 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
             requestAnimationFrame(() => dueDateInput.current?.focus())
           }}>Usuń termin</button>}
       </fieldset>
-      <label className="form-field task-description-field">
-        <span>Opis / notatki</span>
-        <AutoResizeTextarea value={description} disabled={isSaving} onChange={event => setDescription(event.target.value)} />
-      </label>
+      <TaskNoteField value={description} disabled={isSaving}
+        onChange={event => setDescription(event.target.value)} />
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
         <button type="button" className="secondary-button" disabled={isSaving} onClick={cancel}>Anuluj</button>

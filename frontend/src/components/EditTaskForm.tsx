@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { Task } from '../types/Task'
-import AutoResizeTextarea from './AutoResizeTextarea'
+import TaskNoteField from './TaskNoteField'
 import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
 
@@ -127,11 +127,9 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
             requestAnimationFrame(() => dueDateInput.current?.focus())
           }}>Usuń termin</button>}
       </fieldset>
-      <label className="form-field task-description-field">
-        <span>Opis / notatki</span>
-        <AutoResizeTextarea value={editDescription} disabled={isSaving}
-          onChange={event => setEditDescription(event.target.value)} />
-      </label>
+      <TaskNoteField value={editDescription} disabled={isSaving}
+        initiallyExpanded={Boolean(task.description?.trim())}
+        onChange={event => setEditDescription(event.target.value)} />
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Zapisz'}</button>
         <button type="button" className="secondary-button" onClick={onCancel} disabled={isSaving}>
