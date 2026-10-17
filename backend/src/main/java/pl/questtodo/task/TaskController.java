@@ -42,7 +42,7 @@ public class TaskController {
         String title = request.title().strip();
         int points = request.points().intValueExact();
         return taskService.createTask(title, points, normalizeDescription(request.description()), request.dueDate(),
-                request.dueTime(), request.categoryId(), request.goalId());
+                request.dueTime(), request.categoryId(), request.goalId(), request.inFocus());
     }
 
     @PatchMapping("/{id}")

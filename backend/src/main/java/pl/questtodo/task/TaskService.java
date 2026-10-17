@@ -42,12 +42,13 @@ public class TaskService {
     }
 
     public Task createTask(String title, int points, String description, LocalDate dueDate, LocalTime dueTime,
-                           Long categoryId, Long goalId) {
+                           Long categoryId, Long goalId, Boolean inFocus) {
         var goal = ownedGoal(goalId);
         var category = ownedCategory(categoryId);
         var task = new TaskEntity(title, points, description, dueDate, dueTime, category, goal,
                 userService.currentReference());
-        priorities.promote(task);
+        if (inFocus == null) priorities.promote(task);
+        else task.setManualFocus(inFocus, priorities.today().plusDays(7));
         taskRepository.save(task);
         return task.toTask();
     }

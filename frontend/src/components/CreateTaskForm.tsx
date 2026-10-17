@@ -9,13 +9,13 @@ import type { Category } from '../types/Category'
 
 type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalId: number | null) => Promise<void>
+    categoryId: number | null, goalId: number | null, inFocus: boolean) => Promise<void>
   readonly isFirstTask?: boolean
   readonly hideTrigger?: boolean
 }
 
 export type CreateTaskFormHandle = {
-  readonly open: (trigger?: HTMLButtonElement) => void
+  readonly open: (trigger?: HTMLButtonElement, targetList?: 'focus' | 'backlog') => void
 }
 
 const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(function CreateTaskForm(
@@ -23,6 +23,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   ref,
 ) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [targetList, setTargetList] = useState<'focus' | 'backlog'>('backlog')
   const [newTitle, setNewTitle] = useState('')
   const [newPoints, setNewPoints] = useState('10')
   const [description, setDescription] = useState('')
@@ -76,7 +77,8 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   }
 
   useImperativeHandle(ref, () => ({
-    open(trigger) {
+    open(trigger, target = 'backlog') {
+      setTargetList(target)
       returnFocus.current = trigger ?? null
       setActiveView('task')
       setIsExpanded(true)
@@ -126,7 +128,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setIsSaving(true)
     setFormError('')
     try {
-      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalId)
+      await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalId, targetList === 'focus')
       closeForm()
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
@@ -150,7 +152,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
             <path d="m6 6 12 12M18 6 6 18" />
           </svg>
         </button>
-        <h2 id={dialogTitleId}>Nowe zadanie</h2>
+        <h2 id={dialogTitleId}>{targetList === 'focus' ? 'Nowy priorytet' : 'Nowe zadanie'}</h2>
       <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit}
         noValidate>
       <label className="form-field">
@@ -218,7 +220,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
       <TaskNoteField value={description} disabled={isSaving} initiallyExpanded={Boolean(description.trim())}
         onChange={event => setDescription(event.target.value)} />
       <div className="task-actions">
-        <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
+        <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : targetList === 'focus' ? 'Dodaj do priorytetów' : 'Dodaj zadanie'}</button>
         <button type="button" className="secondary-button" disabled={isSaving} onClick={requestClose}>Anuluj</button>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
@@ -242,6 +244,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
       className={`${isFirstTask ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
       onClick={(event) => {
         returnFocus.current = event.currentTarget
+        setTargetList('backlog')
         setActiveView('task')
         setIsExpanded(true)
       }}>

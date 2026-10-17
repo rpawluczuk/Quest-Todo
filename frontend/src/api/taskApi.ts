@@ -80,12 +80,12 @@ export async function updateTask(id: number, title: string, points: number, desc
 }
 
 export async function createTask(title: string, points: number, description: string,
-  dueDate: string, dueTime: string, categoryId: number | null, goalId: number | null): Promise<Task> {
+  dueDate: string, dueTime: string, categoryId: number | null, goalId: number | null, inFocus: boolean): Promise<Task> {
   const response = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, points, description, dueDate: dueDate || null,
-      dueTime: dueDate && dueTime ? dueTime : null, categoryId, goalId }),
+      dueTime: dueDate && dueTime ? dueTime : null, categoryId, goalId, inFocus }),
   })
 
   if (!response.ok) {

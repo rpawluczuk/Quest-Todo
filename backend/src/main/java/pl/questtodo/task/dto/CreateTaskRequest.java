@@ -25,5 +25,6 @@ public record CreateTaskRequest(
     @Positive(message = "Identyfikator kategorii musi być dodatni.")
     Long categoryId,
     @Positive(message = "Identyfikator celu musi być dodatni.")
-    Long goalId) {
+    Long goalId,
+    Boolean inFocus) {
 }

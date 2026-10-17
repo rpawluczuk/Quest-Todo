@@ -40,6 +40,21 @@ class TaskPriorityTests {
     }
 
     @Test
+    void creationRespectsExplicitTargetListAndPersistsItOnRefresh() throws Exception {
+        mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Priority\",\"points\":10,\"inFocus\":true}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.inFocus").value(true));
+        mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Backlog\",\"points\":10,\"inFocus\":false,\"dueDate\":\"2026-10-14\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.inFocus").value(false));
+        em.flush();
+        em.clear();
+        mvc.perform(get("/api/tasks/overview")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[?(@.inFocus == true)]").value(org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.tasks[?(@.inFocus == false)]").value(org.hamcrest.Matchers.hasSize(1)));
+    }
+
+    @Test
     void overviewPromotesWithinSevenCalendarDaysAndOverdueButNotUndatedOrCompleted() throws Exception {
         task(101, today.plusDays(7), false, false);
         task(102, today.plusDays(8), false, false);

@@ -229,8 +229,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   }
 
   async function addTask(title: string, taskPoints: number, description: string, dueDate: string, dueTime: string,
-    categoryId: number | null, goalId: number | null) {
-    const task = await createTask(title, taskPoints, description, dueDate, dueTime, categoryId, goalId)
+    categoryId: number | null, goalId: number | null, inFocus: boolean) {
+    const task = await createTask(title, taskPoints, description, dueDate, dueTime, categoryId, goalId, inFocus)
     setTasks((currentTasks) => [...currentTasks, task])
   }
 
@@ -380,14 +380,14 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
             onStartEditing={startEditing}
             onSave={saveTask}
             onCancel={cancelEditing}
-            headerAction={section.id === 'backlog' && !section.emptyState.prominent ? (
+            headerAction={section.id === 'focus' || section.id === 'backlog' ? (
               <button
                 type="button"
                 className="add-task-header-button"
-                aria-label="Dodaj zadanie"
-                title="Dodaj zadanie"
+                aria-label={section.id === 'focus' ? 'Dodaj priorytet' : 'Dodaj zadanie'}
+                title={section.id === 'focus' ? 'Dodaj priorytet' : 'Dodaj zadanie'}
                 aria-controls="create-task-form"
-                onClick={(event) => createTaskForm.current?.open(event.currentTarget)}
+                onClick={(event) => createTaskForm.current?.open(event.currentTarget, section.id === 'focus' ? 'focus' : 'backlog')}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
