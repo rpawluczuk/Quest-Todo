@@ -35,7 +35,7 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
   }, [retry])
 
   return <fieldset className="goal-form-picker" disabled={disabled}>
-    <legend>Cel <span>(opcjonalnie)</span></legend>
+    <legend>Cel</legend>
     {loading && <p className="goal-form-picker-status" role="status">Ładowanie celów…</p>}
     {!loading && error && <div className="goal-form-picker-error">
       <p className="form-error" role="alert">{error}</p>

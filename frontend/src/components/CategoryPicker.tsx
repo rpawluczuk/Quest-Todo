@@ -9,11 +9,13 @@ import CategoryIcon from './CategoryIcon'
 const noCategoryValue = 'none'
 const createCategoryValue = 'create'
 
-export default function CategoryPicker({ selectedId, onChange, disabled, integratedCreateAction = false }: {
+export default function CategoryPicker({ selectedId, onChange, disabled, integratedCreateAction = false,
+  showOptionalLabel = true }: {
   readonly selectedId: number | null
   readonly onChange: (id: number | null) => void
   readonly disabled: boolean
   readonly integratedCreateAction?: boolean
+  readonly showOptionalLabel?: boolean
 }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,7 +105,7 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
   }
 
   return <><fieldset className="category-form-picker" disabled={disabled}>
-    <legend>Kategoria <span>(opcjonalnie)</span></legend>
+    <legend>Kategoria{showOptionalLabel && <> <span>(opcjonalnie)</span></>}</legend>
     {loading && <p className="category-form-status" role="status">Ładowanie kategorii…</p>}
     {!loading && loadError && <div className="category-form-error">
       <p className="form-error" role="alert">{loadError}</p>

@@ -20,11 +20,15 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   const [editDueTime, setEditDueTime] = useState(task.dueTime?.slice(0, 5) ?? '')
   const [editGoalId, setEditGoalId] = useState<number | null>(task.goalId ?? null)
   const [editCategoryId, setEditCategoryId] = useState<number | null>(task.category?.id ?? null)
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; points?: string }>({})
   const [editError, setEditError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const titleInput = useRef<HTMLInputElement>(null)
+  const pointsInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
   const dueTimeHintId = useId()
+  const titleErrorId = useId()
+  const pointsErrorId = useId()
 
   useEffect(() => { titleInput.current?.focus() }, [])
 
@@ -34,19 +38,19 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
 
     const updatedTitle = editTitle.trim()
     const taskPoints = Number(editPoints)
+    const errors: { title?: string; points?: string } = {}
 
-    if (!updatedTitle) {
-      setEditError('Wpisz nazwę zadania — same spacje nie wystarczą.')
-      return
-    }
+    if (!updatedTitle) errors.title = 'Podaj nazwę zadania.'
+    if (!editPoints.trim()) errors.points = 'Podaj liczbę punktów.'
+    else if (!Number.isSafeInteger(taskPoints) || taskPoints <= 0) {
+      errors.points = 'Punkty muszą być dodatnią liczbą całkowitą.'
+    } else if (taskPoints > 1000) errors.points = 'Maksymalna liczba punktów za zadanie to 1000.'
 
-    if (!Number.isSafeInteger(taskPoints) || taskPoints <= 0) {
-      setEditError('Punkty muszą być dodatnią liczbą całkowitą.')
-      return
-    }
-
-    if (taskPoints > 1000) {
-      setEditError('Maksymalna liczba punktów za zadanie to 1000.')
+    setFieldErrors(errors)
+    setEditError('')
+    if (errors.title || errors.points) {
+      if (errors.title) titleInput.current?.focus()
+      else pointsInput.current?.focus()
       return
     }
     setIsSaving(true)
@@ -62,35 +66,49 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
   }
 
   return (
-    <form className="task-form task-details-form edit-form" onSubmit={handleSubmit}>
+    <form className="task-form task-details-form edit-form" onSubmit={handleSubmit} noValidate>
       <label className="form-field">
-        <span>Nazwa zadania</span>
+        <span>Nazwa zadania <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input
           ref={titleInput}
           type="text"
           disabled={isSaving}
           value={editTitle}
-          onChange={(event) => setEditTitle(event.target.value)}
+          onChange={(event) => {
+            setEditTitle(event.target.value)
+            if (fieldErrors.title) setFieldErrors(current => ({ ...current, title: undefined }))
+          }}
+          aria-invalid={Boolean(fieldErrors.title)}
+          aria-describedby={fieldErrors.title ? titleErrorId : undefined}
           required
         />
+        {fieldErrors.title && <span id={titleErrorId} className="field-error" role="alert">{fieldErrors.title}</span>}
       </label>
       <label className="form-field">
-        <span>Punkty</span>
+        <span>Punkty <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input
+          ref={pointsInput}
           type="number"
           disabled={isSaving}
           value={editPoints}
-          onChange={(event) => setEditPoints(event.target.value)}
+          onChange={(event) => {
+            setEditPoints(event.target.value)
+            if (fieldErrors.points) setFieldErrors(current => ({ ...current, points: undefined }))
+          }}
+          aria-invalid={Boolean(fieldErrors.points)}
+          aria-describedby={fieldErrors.points ? pointsErrorId : undefined}
           min="1"
           max={1000}
           step="1"
           required
         />
+        {fieldErrors.points && <span id={pointsErrorId} className="field-error" role="alert">{fieldErrors.points}</span>}
       </label>
-      <CategoryPicker selectedId={editCategoryId} onChange={setEditCategoryId} disabled={isSaving} integratedCreateAction />
+      <CategoryPicker selectedId={editCategoryId} onChange={setEditCategoryId} disabled={isSaving}
+        integratedCreateAction showOptionalLabel={false} />
       <SingleGoalPicker selectedId={editGoalId} onChange={setEditGoalId} disabled={isSaving} />
       <fieldset className="task-due-field">
-        <legend>Termin (opcjonalnie)</legend>
+        <legend>Termin</legend>
         <div className="task-due-inputs">
           <label className="form-field">
             <span>Data</span>
@@ -98,7 +116,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
               onChange={event => { setEditDueDate(event.target.value); if (!event.target.value) setEditDueTime('') }} />
           </label>
           <label className="form-field">
-            <span>Godzina (opcjonalnie)</span>
+            <span>Godzina</span>
             <input type="time" value={editDueTime} disabled={isSaving || !editDueDate}
               aria-describedby={!editDueDate ? dueTimeHintId : undefined}
               onChange={event => setEditDueTime(event.target.value)} />
@@ -113,7 +131,7 @@ function EditTaskForm({ task, onSave, onCancel }: EditTaskFormProps) {
           }}>Usuń termin</button>}
       </fieldset>
       <label className="form-field task-description-field">
-        <span>Opis / notatki (opcjonalnie)</span>
+        <span>Opis / notatki</span>
         <AutoResizeTextarea value={editDescription} disabled={isSaving}
           onChange={event => setEditDescription(event.target.value)} />
       </label>

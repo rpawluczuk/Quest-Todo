@@ -1845,6 +1845,19 @@
   font-weight: 600;
 }
 
+.required-field-marker {
+  color: var(--color-primary-muted);
+}
+
+.task-form .form-field .field-error {
+  margin: 0;
+  font-weight: 400;
+}
+
+.task-form .form-field input[aria-invalid='true'] {
+  border-color: #a12626;
+}
+
 .category-form-picker > legend span,
 .category-form-status {
   color: #777181;
