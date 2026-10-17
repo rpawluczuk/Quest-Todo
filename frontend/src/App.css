@@ -1702,18 +1702,6 @@
   outline-offset: 3px;
 }
 
-.add-task-header-button-close {
-  border-color: #ddd7e7;
-  background: #f4f2f7;
-  color: #625b70;
-}
-
-.add-task-header-button-close:hover {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
-  color: #443f4c;
-}
-
 .discard-task-dialog {
   width: min(420px, calc(100vw - 32px));
 }
@@ -1749,6 +1737,71 @@
 .discard-task-button:focus-visible {
   outline: 2px solid #b42318;
   outline-offset: 3px;
+}
+
+.create-task-dialog {
+  width: min(620px, calc(100vw - 24px));
+  overflow-x: hidden;
+}
+
+.create-task-dialog > h2 {
+  margin-bottom: 0;
+  padding-right: 40px;
+}
+
+.create-task-dialog .task-details-form,
+.create-task-dialog .category-create-dialog-form {
+  margin-top: 18px;
+}
+
+.create-task-dialog-category-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.create-task-dialog-category-header h2 {
+  margin: 0;
+}
+
+.create-task-dialog-back {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #625b70;
+  cursor: pointer;
+}
+
+.create-task-dialog-back svg {
+  width: 21px;
+  height: 21px;
+}
+
+.create-task-dialog-back:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.create-task-dialog-back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.create-task-dialog-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-form.category-inline-create-form {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .task-section-title {
@@ -2613,6 +2666,12 @@
 }
 
 @media (max-width: 390px) {
+  .create-task-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    padding: 18px 14px;
+  }
+
   .category-create-dialog { padding: 18px 14px; }
   .category-create-dialog-form .category-creator-options { max-width: none; }
   .category-management-dialog { padding: 18px 14px; }

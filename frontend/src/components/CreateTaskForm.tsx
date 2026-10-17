@@ -4,22 +4,22 @@ import TaskNoteField from './TaskNoteField'
 import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
 import DiscardTaskChangesDialog from './DiscardTaskChangesDialog'
+import CategoryCreateForm from './CategoryCreateForm'
+import type { Category } from '../types/Category'
 
 type CreateTaskFormProps = {
   readonly onAddTask: (title: string, points: number, description: string, dueDate: string, dueTime: string,
     categoryId: number | null, goalId: number | null) => Promise<void>
   readonly isFirstTask?: boolean
   readonly hideTrigger?: boolean
-  readonly onOpenChange?: (open: boolean) => void
 }
 
 export type CreateTaskFormHandle = {
   readonly open: (trigger?: HTMLButtonElement) => void
-  readonly requestClose: () => void
 }
 
 const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(function CreateTaskForm(
-  { onAddTask, isFirstTask = false, hideTrigger = false, onOpenChange },
+  { onAddTask, isFirstTask = false, hideTrigger = false },
   ref,
 ) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -34,14 +34,18 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const [formError, setFormError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
+  const [activeView, setActiveView] = useState<'task' | 'category'>('task')
+  const [categorySaving, setCategorySaving] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
   const returnFocus = useRef<HTMLButtonElement | null>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
   const titleInput = useRef<HTMLInputElement>(null)
   const pointsInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
   const titleErrorId = useId()
   const pointsErrorId = useId()
+  const dialogTitleId = useId()
 
   const hasUnsavedChanges = newTitle !== '' || newPoints !== '10' || description !== '' || dueDate !== '' ||
     dueTime !== '' || goalId !== null || categoryId !== null
@@ -56,6 +60,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setCategoryId(null)
     setFieldErrors({})
     setFormError('')
+    setActiveView('task')
   }
 
   function closeForm() {
@@ -73,19 +78,28 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   useImperativeHandle(ref, () => ({
     open(trigger) {
       returnFocus.current = trigger ?? null
-      if (isExpanded) titleInput.current?.focus()
-      else setIsExpanded(true)
+      setActiveView('task')
+      setIsExpanded(true)
     },
-    requestClose,
-  }))
+  }), [])
 
   useEffect(() => {
-    if (isExpanded) titleInput.current?.focus()
-    else if (wasExpanded.current) (returnFocus.current ?? addButton.current)?.focus()
-    wasExpanded.current = isExpanded
+    if (!isExpanded) return
+    const element = dialog.current
+    element?.showModal()
+    return () => element?.close()
   }, [isExpanded])
 
-  useEffect(() => { onOpenChange?.(isExpanded) }, [isExpanded, onOpenChange])
+  useEffect(() => {
+    if (isExpanded && activeView === 'task') requestAnimationFrame(() => titleInput.current?.focus())
+    else if (!isExpanded && wasExpanded.current) (returnFocus.current ?? addButton.current)?.focus()
+    wasExpanded.current = isExpanded
+  }, [isExpanded, activeView])
+
+  function categoryCreated(category: Category) {
+    setCategoryId(category.id)
+    setActiveView('task')
+  }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -122,7 +136,23 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   }
 
   return <>
-    {isExpanded ? <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit} noValidate>
+    {isExpanded && <dialog ref={dialog} className="password-dialog change-password-dialog create-task-dialog"
+      aria-labelledby={dialogTitleId} onCancel={event => {
+        event.preventDefault()
+        if (activeView === 'category') {
+          if (!categorySaving) setActiveView('task')
+        } else requestClose()
+      }}>
+      {activeView === 'task' ? <>
+        <button type="button" className="password-dialog-close" aria-label="Zamknij formularz"
+          title="Zamknij formularz" disabled={isSaving} onClick={requestClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <h2 id={dialogTitleId}>Nowe zadanie</h2>
+      <form id="create-task-form" className="task-form task-details-form" onSubmit={handleSubmit}
+        noValidate>
       <label className="form-field">
         <span>Nazwa zadania <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input
@@ -162,7 +192,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         {fieldErrors.points && <span id={pointsErrorId} className="field-error" role="alert">{fieldErrors.points}</span>}
       </label>
       <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={isSaving}
-        integratedCreateAction showOptionalLabel={false} />
+        integratedCreateAction showOptionalLabel={false} onCreateRequest={() => setActiveView('category')} />
       <SingleGoalPicker selectedId={goalId} onChange={setGoalId} disabled={isSaving} />
       <fieldset className="task-due-field">
         <legend className="visually-hidden">Termin zadania</legend>
@@ -185,17 +215,34 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
             requestAnimationFrame(() => dueDateInput.current?.focus())
           }}>Usuń termin</button>}
       </fieldset>
-      <TaskNoteField value={description} disabled={isSaving}
+      <TaskNoteField value={description} disabled={isSaving} initiallyExpanded={Boolean(description.trim())}
         onChange={event => setDescription(event.target.value)} />
       <div className="task-actions">
         <button type="submit" disabled={isSaving}>{isSaving ? 'Zapisywanie…' : 'Dodaj zadanie'}</button>
         <button type="button" className="secondary-button" disabled={isSaving} onClick={requestClose}>Anuluj</button>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
-    </form> : hideTrigger ? null : <button ref={addButton} type="button"
+      </form>
+      </> : <>
+        <div className="create-task-dialog-category-header">
+          <button type="button" className="create-task-dialog-back" aria-label="Wróć do nowego zadania"
+            title="Wróć" disabled={categorySaving} onClick={() => setActiveView('task')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6M9 12h10" />
+            </svg>
+          </button>
+          <h2 id={dialogTitleId}>Nowa kategoria</h2>
+        </div>
+        <CategoryCreateForm className="category-create-dialog-form" onCreated={categoryCreated}
+          onCancel={() => setActiveView('task')} onBusyChange={setCategorySaving} popoverAppearance />
+      </>}
+    </dialog>}
+    {!isExpanded && !hideTrigger && <button ref={addButton} type="button"
       className={`${isFirstTask ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
       onClick={(event) => {
         returnFocus.current = event.currentTarget
+        setActiveView('task')
         setIsExpanded(true)
       }}>
       {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}

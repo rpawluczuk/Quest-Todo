@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Select from '@radix-ui/react-select'
 import { getGoals } from '../api/goalApi'
 import type { Goal } from '../types/Goal'
@@ -16,6 +16,8 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(undefined)
+  const dropdownTrigger = useRef<HTMLButtonElement>(null)
 
   const selected = useMemo(
     () => goals.find(goal => goal.id === selectedId) ?? null,
@@ -46,11 +48,14 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
       }}>Spróbuj ponownie</button>
     </div>}
     {!loading && !error && <Select.Root
+      onOpenChange={open => {
+        if (open) setPortalContainer(dropdownTrigger.current?.closest('dialog') ?? undefined)
+      }}
       value={selectedId === null ? noGoalValue : String(selectedId)}
       disabled={disabled}
       onValueChange={value => onChange(value === noGoalValue ? null : Number(value))}
     >
-      <Select.Trigger className="category-select-trigger goal-select-trigger" aria-label="Wybierz cel">
+      <Select.Trigger ref={dropdownTrigger} className="category-select-trigger goal-select-trigger" aria-label="Wybierz cel">
         <span className="category-select-trigger-value">
           <Select.Value>{selected?.title ?? 'Bez celu'}</Select.Value>
         </span>
@@ -58,7 +63,7 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal>
+      <Select.Portal container={portalContainer}>
         <Select.Content className="category-select-content goal-select-content" position="popper" sideOffset={4}
           collisionPadding={12}>
           <Select.Viewport className="category-select-viewport">
