@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { CategoryColor, CategoryIcon as CategoryIconName } from '../types/Category'
 import CategoryIcon from './CategoryIcon'
 
@@ -20,10 +20,12 @@ const colorOptions: readonly [CategoryColor, string][] = [
   ['BROWN', 'Brązowy'], ['SLATE', 'Grafitowy'], ['GRAY', 'Szary'],
 ]
 
-export default function CategoryAppearancePicker({ icon, color, disabled, onIconChange, onColorChange }: {
+export default function CategoryAppearancePicker({ icon, color, disabled, popover = false,
+  onIconChange, onColorChange }: {
   readonly icon: CategoryIconName
   readonly color: CategoryColor
   readonly disabled: boolean
+  readonly popover?: boolean
   readonly onIconChange: (icon: CategoryIconName) => void
   readonly onColorChange: (color: CategoryColor) => void
 }) {
@@ -32,6 +34,8 @@ export default function CategoryAppearancePicker({ icon, color, disabled, onIcon
   const container = useRef<HTMLDivElement>(null)
   const iconTrigger = useRef<HTMLButtonElement>(null)
   const colorTrigger = useRef<HTMLButtonElement>(null)
+  const iconGrid = useRef<HTMLDivElement>(null)
+  const colorGrid = useRef<HTMLDivElement>(null)
   const iconGridId = useId()
   const colorGridId = useId()
 
@@ -47,7 +51,48 @@ export default function CategoryAppearancePicker({ icon, color, disabled, onIcon
     return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
   }, [iconPickerOpen, colorPickerOpen])
 
-  return <div className="category-creator-options" ref={container}>
+  useLayoutEffect(() => {
+    if (!popover || (!iconPickerOpen && !colorPickerOpen)) return
+    const grid = iconPickerOpen ? iconGrid.current : colorGrid.current
+    const trigger = iconPickerOpen ? iconTrigger.current : colorTrigger.current
+    if (!grid || !trigger) return
+
+    function positionPopover() {
+      if (!grid || !trigger) return
+      const viewportMargin = 12
+      const triggerGap = 6
+      const width = Math.min(272, window.innerWidth - viewportMargin * 2)
+      const maxHeight = Math.min(230, window.innerHeight - viewportMargin * 2)
+      grid.style.width = `${width}px`
+      grid.style.maxHeight = `${maxHeight}px`
+
+      const triggerRect = trigger.getBoundingClientRect()
+      const popoverHeight = grid.getBoundingClientRect().height
+      const spaceBelow = window.innerHeight - triggerRect.bottom - viewportMargin
+      const spaceAbove = triggerRect.top - viewportMargin
+      const opensAbove = spaceBelow < popoverHeight + triggerGap && spaceAbove > spaceBelow
+      const preferredTop = opensAbove
+        ? triggerRect.top - popoverHeight - triggerGap
+        : triggerRect.bottom + triggerGap
+      const preferredLeft = iconPickerOpen ? triggerRect.left : triggerRect.right - width
+
+      grid.style.top = `${Math.max(viewportMargin,
+        Math.min(preferredTop, window.innerHeight - popoverHeight - viewportMargin))}px`
+      grid.style.left = `${Math.max(viewportMargin,
+        Math.min(preferredLeft, window.innerWidth - width - viewportMargin))}px`
+      grid.style.visibility = 'visible'
+    }
+
+    positionPopover()
+    window.addEventListener('resize', positionPopover)
+    window.addEventListener('scroll', positionPopover, true)
+    return () => {
+      window.removeEventListener('resize', positionPopover)
+      window.removeEventListener('scroll', positionPopover, true)
+    }
+  }, [popover, iconPickerOpen, colorPickerOpen])
+
+  return <div className={`category-creator-options${popover ? ' category-creator-options-popover' : ''}`} ref={container}>
     <div className="form-field category-icon-field">
       <span>Symbol</span>
       <button ref={iconTrigger} type="button" className="category-icon-trigger" disabled={disabled}
@@ -74,7 +119,9 @@ export default function CategoryAppearancePicker({ icon, color, disabled, onIcon
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
       </button>
     </div>
-    {iconPickerOpen && <div id={iconGridId} className="category-icon-grid" role="group" aria-label="Dostępne symbole"
+    {iconPickerOpen && <div ref={iconGrid} id={iconGridId}
+      className={`category-icon-grid${popover ? ' category-appearance-popover' : ''}`}
+      role="group" aria-label="Dostępne symbole"
       onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); setIconPickerOpen(false); iconTrigger.current?.focus() }
       }}>
@@ -85,7 +132,9 @@ export default function CategoryAppearancePicker({ icon, color, disabled, onIcon
         <CategoryIcon icon={value} color={color} />
       </button>)}
     </div>}
-    {colorPickerOpen && <div id={colorGridId} className="category-color-grid" role="group" aria-label="Dostępne kolory"
+    {colorPickerOpen && <div ref={colorGrid} id={colorGridId}
+      className={`category-color-grid${popover ? ' category-appearance-popover' : ''}`}
+      role="group" aria-label="Dostępne kolory"
       onKeyDown={event => {
         if (event.key === 'Escape') { event.preventDefault(); setColorPickerOpen(false); colorTrigger.current?.focus() }
       }}>

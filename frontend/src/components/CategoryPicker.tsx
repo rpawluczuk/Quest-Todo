@@ -222,7 +222,7 @@ export default function CategoryPicker({ selectedId, onChange, disabled, integra
             if (event.key === 'Enter') { event.preventDefault(); void saveCategory() }
           }} placeholder="Np. Zdrowie" />
       </label>
-      <CategoryAppearancePicker icon={icon} color={color} disabled={saving}
+      <CategoryAppearancePicker icon={icon} color={color} disabled={saving} popover
         onIconChange={setIcon} onColorChange={setColor} />
       <div className="category-creator-actions">
         <button type="button" onClick={() => void saveCategory()} disabled={saving}>

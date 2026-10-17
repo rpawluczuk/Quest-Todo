@@ -2170,6 +2170,18 @@
   box-shadow: 0 8px 24px rgba(45, 31, 70, 0.1);
 }
 
+.category-appearance-popover {
+  position: fixed;
+  z-index: 4;
+  grid-template-columns: repeat(5, 44px);
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  visibility: hidden;
+}
+
 .task-form .category-icon-option {
   display: inline-flex;
   align-items: center;
