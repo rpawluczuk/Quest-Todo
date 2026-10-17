@@ -2993,13 +2993,20 @@
 
 .task-card-focus,
 .task-card-completed {
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 32px;
   grid-template-areas: 'check title menu' '. footer footer' 'primary primary primary';
 }
 
 .task-card-backlog {
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 32px;
   grid-template-areas: 'priority title menu' '. footer footer' 'primary primary primary';
+}
+
+.task-card-focus,
+.task-card-completed,
+.task-card-backlog {
+  padding-left: 8px;
+  column-gap: 11px;
 }
 
 .task-card-title {
@@ -3122,12 +3129,19 @@
   color: var(--color-primary-muted);
 }
 
-.task-card-check {
-  grid-area: check;
+.task-card-leading-control {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 24px;
+  align-self: start;
+  justify-self: start;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.task-card-check {
+  grid-area: check;
   cursor: pointer;
 }
 
@@ -3144,11 +3158,29 @@
 
 .task-card-check input {
   position: relative;
-  width: 24px;
-  height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
   margin: 0;
-  accent-color: var(--color-primary);
+  border: 1px solid #8d8796;
+  border-radius: 6px;
+  background-color: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
   cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.task-card-check input:checked {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4.5 10 3.5 3.5 7.5-8' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.task-card-check:hover input:not(:disabled) {
+  border-color: var(--color-primary);
 }
 
 .task-card-check input:focus-visible,
@@ -3210,15 +3242,8 @@
 
 .task-card-priority-action {
   grid-area: priority;
-  position: relative;
-  display: grid;
-  place-items: center;
-  align-self: start;
-  width: 24px;
-  height: 24px;
   padding: 0;
   border: 1px solid var(--color-primary-border);
-  border-radius: 7px;
   background: var(--color-primary-soft);
   color: var(--color-primary);
   cursor: pointer;
@@ -3257,8 +3282,8 @@
 
 .task-card-priority-action svg {
   position: relative;
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
 .task-card-priority-action:hover:not(:disabled) {
@@ -3451,14 +3476,15 @@
 
   .task-card-focus,
   .task-card-completed {
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    grid-template-columns: 26px minmax(0, 1fr) 32px;
     grid-template-areas: 'check title menu' '. footer footer' 'primary primary primary';
+    column-gap: 11px;
   }
 
   .task-card-backlog {
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    grid-template-columns: 26px minmax(0, 1fr) 32px;
     grid-template-areas: 'priority title menu' '. footer footer' 'primary primary primary';
-    column-gap: 6px;
+    column-gap: 11px;
   }
 
   .task-card-backlog > .task-menu,

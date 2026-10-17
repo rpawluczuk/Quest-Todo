@@ -104,7 +104,7 @@ function TaskItem({
       aria-busy={isSaving} onClick={handleCardClick}>
       {isEditing ? <EditTaskForm task={task} onSave={saveDetails} onCancel={onCancel} /> : <>
           {(variant === 'focus' || variant === 'completed') && (
-            <label className="task-card-check" htmlFor={checkboxId}>
+            <label className="task-card-leading-control task-card-check" htmlFor={checkboxId}>
               <input
                 id={checkboxId}
                 type="checkbox"
@@ -118,13 +118,13 @@ function TaskItem({
           {variant === 'backlog' && (
             <button
               type="button"
-              className="task-card-priority-action"
+              className="task-card-leading-control task-card-priority-action"
               disabled={disabled}
               onClick={() => void saveChange(onToggleFocus)}
               aria-label={`Przenieś do priorytetów: ${task.title}`}
               data-tooltip="Przenieś do priorytetów"
             >
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M10 15V5M6 9l4-4 4 4" />
               </svg>
             </button>
