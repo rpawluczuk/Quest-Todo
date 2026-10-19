@@ -6,7 +6,7 @@ import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import CategoryMarker, { CategoryCardDetail } from '../components/CategoryMarker'
 import WeekBar from '../components/WeekBar'
-import { targetLabel } from '../habitTarget'
+import { formatHabitProgress } from '../habitTarget'
 import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
 import { canToggleHabit, habitEndDateLabel, habitEndReasonLabel } from '../habitSchedule'
 import type { Habit, HabitAward, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
@@ -292,20 +292,8 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                 </div>}
                 <div className="habit-meta">
                 <div className="habit-primary-meta">
-                  <small className="habit-frequency">
-                    {habit.target ? targetLabel(habit.target.targetDays) : 'Brak ustalonego celu na ten dzień'}
-                  </small>
-                  <span className="habit-card-result">
-                    <span className={`habit-progress${hasReachedWeeklyTarget(habit) ? ' habit-progress-achieved' : ''}`}
-                      aria-label={habit.target
-                        ? `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, cel: ${habit.target.targetDays}${hasReachedWeeklyTarget(habit) ? ', cel osiągnięty' : ''}`
-                        : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`}>
-                      {habit.weeklyCompletedDays}/{habit.target?.targetDays ?? '—'}
-                      {hasReachedWeeklyTarget(habit) && <HabitSuccessIcon />}
-                      {!hasReachedWeeklyTarget(habit) && habit.weeklyRewardGranted && <HabitAwardStatus />}
-                    </span>
-                    <span className="task-points task-card-points">{habit.rewardPoints} pkt</span>
-                  </span>
+                  <HabitProgressPresentation habit={habit} />
+                  <span className="task-points task-card-points">{habit.rewardPoints} pkt</span>
                 </div>
                 {(habit.completionLimit !== null || habit.status === 'UPCOMING' || habit.endDate !== null
                   || (habit.status === 'FINISHED' && habit.endedOn && habit.endReason)) && <div className="habit-extra-meta">
@@ -352,6 +340,26 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
       </>}
     </>
   )
+}
+
+function HabitProgressPresentation({ habit }: { readonly habit: Habit }) {
+  const target = habit.target?.targetDays ?? null
+  const progress = formatHabitProgress(habit.weeklyCompletedDays, target)
+  const achieved = hasReachedWeeklyTarget(habit)
+
+  return <span className="habit-progress-summary"
+    aria-label={target === null
+      ? `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, brak ustalonego celu`
+      : `Wykonane dni w tygodniu: ${habit.weeklyCompletedDays}, cel: ${target}${achieved ? ', cel osiągnięty' : ''}`}>
+    {target === null
+      ? <span className="habit-progress-unset">Brak ustalonego celu na ten dzień</span>
+      : <>
+        <span className={`habit-progress${achieved ? ' habit-progress-achieved' : ''}`}>{progress.count}</span>
+        <span className="habit-progress-period">{progress.period}</span>
+      </>}
+    {achieved && <HabitSuccessIcon />}
+    {!achieved && habit.weeklyRewardGranted && <HabitAwardStatus />}
+  </span>
 }
 
 function HabitSuccessIcon() {

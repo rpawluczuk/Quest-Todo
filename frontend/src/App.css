@@ -1291,11 +1291,27 @@
   min-width: 0;
 }
 
-.habit-card-result {
-  display: inline-flex;
+.habit-primary-meta > .task-card-points {
+  align-self: end;
+  justify-self: end;
+}
+
+.habit-progress-summary {
+  display: flex;
   align-items: center;
-  gap: 7px;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  min-width: 0;
+  color: #625b70;
+  font-size: 0.875rem;
+}
+
+.habit-progress-period {
   white-space: nowrap;
+}
+
+.habit-progress-unset {
+  overflow-wrap: anywhere;
 }
 
 .habit-extra-meta {
@@ -1311,14 +1327,8 @@
   font-size: 0.875rem;
 }
 
-.habit-frequency,
 .habit-total-progress,
 .habit-schedule-meta {
-  white-space: nowrap;
-}
-
-.habit-frequency {
-  min-width: 0;
   white-space: nowrap;
 }
 
@@ -1402,7 +1412,7 @@
   color: #247044;
 }
 
-.habit-progress svg,
+.habit-progress-summary svg,
 .habit-toast svg {
   width: 18px;
   height: 18px;
