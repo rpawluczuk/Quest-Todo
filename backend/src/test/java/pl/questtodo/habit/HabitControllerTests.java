@@ -43,6 +43,88 @@ class HabitControllerTests {
     }
 
     @Test
+    void storesCompletionBonusForLimitedAndDatedHabitsWithoutAwardingPoints() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        int initialBalance = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class);
+
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Limited\",\"completionLimit\":20,\"completionBonusPoints\":50}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.completionBonusPoints").value(50))
+                .andExpect(jsonPath("$.requiredSuccessPercent").value(org.hamcrest.Matchers.nullValue()));
+        long id = jdbc.queryForObject("SELECT id FROM habits WHERE name = 'Limited'", Long.class);
+        entityManager.flush();
+        assertEquals(50, jdbc.queryForObject("SELECT completion_bonus_points FROM habits WHERE id = ?", Integer.class, id));
+
+        mvc.perform(put("/api/habits/{id}/configuration", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Dated\",\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\",\"completionBonusPoints\":80,\"requiredSuccessPercent\":75}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.habit.completionBonusPoints").value(80))
+                .andExpect(jsonPath("$.habit.requiredSuccessPercent").value(75));
+        mvc.perform(get("/api/habits"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].completionBonusPoints").value(80))
+                .andExpect(jsonPath("$[0].requiredSuccessPercent").value(75));
+
+        // The existing frontend omits these fields; an ordinary edit must preserve them.
+        mvc.perform(put("/api/habits/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Dated again\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completionBonusPoints").value(80));
+        mvc.perform(put("/api/habits/{id}/configuration", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"No bonus\",\"replaceCompletionBonus\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.habit.completionBonusPoints").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.habit.requiredSuccessPercent").value(org.hamcrest.Matchers.nullValue()));
+        assertEquals(initialBalance, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Integer.class));
+    }
+
+    @Test
+    void validatesCompletionBonusCombinationsOnCreateAndEdit() throws Exception {
+        when(currentUser.getUserId()).thenReturn(1L);
+        String[] invalid = {
+                "\"completionBonusPoints\":10",
+                "\"requiredSuccessPercent\":75",
+                "\"completionLimit\":2,\"requiredSuccessPercent\":75",
+                "\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\",\"completionBonusPoints\":10",
+                "\"completionLimit\":2,\"completionBonusPoints\":0",
+                "\"completionLimit\":2,\"completionBonusPoints\":-1",
+                "\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\",\"requiredSuccessPercent\":0",
+                "\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\",\"requiredSuccessPercent\":101",
+        };
+        for (String fields : invalid) {
+            mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Invalid\"," + fields + "}"))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"No bonus\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.completionBonusPoints").value(org.hamcrest.Matchers.nullValue()));
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Date without bonus\",\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\"}"))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Threshold only\",\"startDate\":\"2026-10-09\",\"endDate\":\"2026-11-09\",\"requiredSuccessPercent\":1}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.completionBonusPoints").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.requiredSuccessPercent").value(1));
+        long id = jdbc.queryForObject("SELECT id FROM habits WHERE name = 'Date without bonus'", Long.class);
+        mvc.perform(put("/api/habits/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Still dated\",\"completionBonusPoints\":5}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/habits/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Dated with bonus\",\"completionBonusPoints\":5,\"requiredSuccessPercent\":100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiredSuccessPercent").value(100));
+        mvc.perform(put("/api/habits/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"No ending\",\"startDate\":\"2026-10-09\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completionBonusPoints").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.requiredSuccessPercent").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
     void createsReadsUpdatesAndDeletesHabit() throws Exception {
         when(currentUser.getUserId()).thenReturn(1L);
         mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON)

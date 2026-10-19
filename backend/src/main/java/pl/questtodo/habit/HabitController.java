@@ -37,20 +37,23 @@ public class HabitController {
     @ResponseStatus(HttpStatus.CREATED)
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
         return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId());
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
+                request.completionBonusPoints(), request.requiredSuccessPercent());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId()).habit();
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
+                request.completionBonusPoints(), request.requiredSuccessPercent(), Boolean.TRUE.equals(request.replaceCompletionBonus())).habit();
     }
 
     @PutMapping("/{id}/configuration")
     public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
                                                            @Valid @RequestBody HabitRequest request) {
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
-                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId());
+                request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
+                request.completionBonusPoints(), request.requiredSuccessPercent(), Boolean.TRUE.equals(request.replaceCompletionBonus()));
     }
 
     @DeleteMapping("/{id}")

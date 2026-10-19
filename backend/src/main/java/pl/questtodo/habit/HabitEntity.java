@@ -52,6 +52,10 @@ public class HabitEntity {
     private LocalDate endDate;
     @Column(name = "completion_limit")
     private Integer completionLimit;
+    @Column(name = "completion_bonus_points")
+    private Integer completionBonusPoints;
+    @Column(name = "required_success_percent")
+    private Integer requiredSuccessPercent;
     @Column(name = "ended_on")
     private LocalDate endedOn;
     @Enumerated(EnumType.STRING)
@@ -61,6 +65,12 @@ public class HabitEntity {
     public LocalDate getStartDate() { return startDate == null ? createdOn : startDate; }
     public LocalDate getEndDate() { return endDate; }
     public Integer getCompletionLimit() { return completionLimit; }
+    public Integer getCompletionBonusPoints() { return completionBonusPoints; }
+    public Integer getRequiredSuccessPercent() { return requiredSuccessPercent; }
+    public void setCompletionBonus(Integer points, Integer percent) {
+        completionBonusPoints = points;
+        requiredSuccessPercent = percent;
+    }
     public LocalDate getEndedOn() { return endedOn; }
     public HabitEndReason getEndReason() { return endReason; }
     public void schedule(LocalDate start, LocalDate end, Integer limit) {
@@ -95,7 +105,8 @@ public class HabitEntity {
     public Habit toHabit(boolean completed, HabitTarget target, HabitTarget latestTarget, long weeklyCompletedDays,
                          boolean weeklyRewardGranted, long totalCompletions, String status) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
-                weeklyRewardGranted, description, getStartDate(), endDate, completionLimit, totalCompletions, status,
+                weeklyRewardGranted, description, getStartDate(), endDate, completionLimit,
+                completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category == null ? null : category.toCategory(),
                 java.util.List.of(), java.util.List.of());
     }

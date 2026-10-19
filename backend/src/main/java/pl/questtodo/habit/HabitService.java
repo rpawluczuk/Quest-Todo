@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
@@ -109,13 +110,22 @@ public class HabitService {
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
                              LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
                              Long categoryId) {
+        return createHabit(name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, categoryId, null, null);
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
+                             LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+                             Long categoryId, Integer completionBonusPoints, Integer requiredSuccessPercent) {
         var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
         var category = ownedCategory(categoryId);
         LocalDate today = calendar.today();
         LocalDate start = startDate == null ? today : startDate;
         validateSchedule(start, endDate, completionLimit);
+        validateCompletionBonus(endDate, completionLimit, completionBonusPoints, requiredSuccessPercent);
         HabitEntity habit = habits.save(new HabitEntity(name, category, users.currentReference(), today));
         habit.schedule(start, endDate, completionLimit);
+        habit.setCompletionBonus(completionBonusPoints, requiredSuccessPercent);
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
         habit.changeDescription(description == null ? null : description.strip());
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
@@ -148,24 +158,46 @@ public class HabitService {
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds) {
         return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
-                goalIds, null, false);
+                goalIds, null, false, null, null, false);
     }
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
             Long categoryId) {
         return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
-                goalIds, categoryId, true);
+                goalIds, categoryId, true, null, null, false);
+    }
+
+    public HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
+            String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+            Long categoryId, Integer completionBonusPoints, Integer requiredSuccessPercent, boolean replaceCompletionBonus) {
+        return updateHabit(id, name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, categoryId, true, completionBonusPoints, requiredSuccessPercent, replaceCompletionBonus);
     }
 
     private HabitCompletionResult updateHabit(long id, String name, Integer targetDays, Integer rewardPoints,
             String description, LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
-            Long categoryId, boolean updateCategory) {
+            Long categoryId, boolean updateCategory, Integer completionBonusPoints, Integer requiredSuccessPercent,
+            boolean replaceCompletionBonus) {
         HabitEntity habit = findForUpdate(id);
         if (habit.getEndedOn() != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Zakończonego nawyku nie można edytować.");
         if (startDate == null && (endDate != null || completionLimit != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Podaj datę rozpoczęcia nawyku.");
+        boolean updateBonus = replaceCompletionBonus || completionBonusPoints != null || requiredSuccessPercent != null;
+        Integer effectiveBonus = updateBonus ? completionBonusPoints : habit.getCompletionBonusPoints();
+        Integer effectivePercent = updateBonus ? requiredSuccessPercent : habit.getRequiredSuccessPercent();
+        if (!updateBonus && startDate != null) {
+            // Older clients send the schedule without bonus fields. Keep compatible settings
+            // and drop only those that no longer apply to the selected ending mode.
+            if (endDate == null) effectivePercent = null;
+            if (endDate == null && completionLimit == null) effectiveBonus = null;
+            if (endDate != null && effectiveBonus != null && effectivePercent == null) effectiveBonus = null;
+        }
+        validateCompletionBonus(startDate == null ? habit.getEndDate() : endDate,
+                startDate == null ? habit.getCompletionLimit() : completionLimit, effectiveBonus, effectivePercent);
+        boolean bonusChanged = !Objects.equals(effectiveBonus, habit.getCompletionBonusPoints())
+                || !Objects.equals(effectivePercent, habit.getRequiredSuccessPercent());
         var selectedGoals = goalIds == null ? null : ownedGoals(goalIds);
         CategoryEntity category = updateCategory ? ownedCategory(categoryId) : null;
         if (startDate != null) {
@@ -188,6 +220,7 @@ public class HabitService {
             goalHabits.deleteByHabitId(habit.getId());
             selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
         }
+        if (bonusChanged) habit.setCompletionBonus(effectiveBonus, effectivePercent);
         LocalDate today = calendar.today();
         Habit before = snapshot(habit, today);
         boolean targetLowered = targetDays != null && before.target() != null
@@ -365,6 +398,18 @@ public class HabitService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data zakończenia nie może być wcześniejsza niż początek.");
         if (limit != null && (limit < 1 || end != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybierz datę zakończenia albo dodatnią liczbę wykonań.");
+    }
+
+    private void validateCompletionBonus(LocalDate end, Integer limit, Integer bonus, Integer percent) {
+        if (bonus != null && bonus <= 0)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Premia za zakończenie musi być dodatnia.");
+        if (percent != null && (percent < 1 || percent > 100))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wymagany procent musi wynosić od 1 do 100.");
+        if (percent != null && end == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Próg regularności wymaga daty zakończenia.");
+        if (bonus != null && limit == null && (end == null || percent == null))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Premia wymaga limitu wykonań albo daty zakończenia i progu regularności.");
     }
 
     private void validateDate(LocalDate date) {

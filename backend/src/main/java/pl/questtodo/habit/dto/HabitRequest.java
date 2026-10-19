@@ -18,6 +18,11 @@ public record HabitRequest(
         Integer rewardPoints,
         String description, java.time.LocalDate startDate, java.time.LocalDate endDate,
         @Min(value = 1, message = "Podaj co najmniej jedno wykonanie.") Integer completionLimit,
+        @Positive(message = "Premia za zakończenie musi być dodatnia.") Integer completionBonusPoints,
+        @Min(value = 1, message = "Wymagany procent musi wynosić od 1 do 100.")
+        @Max(value = 100, message = "Wymagany procent musi wynosić od 1 do 100.") Integer requiredSuccessPercent,
+        // In PUT requests, true replaces both bonus fields, including with null to clear them.
+        Boolean replaceCompletionBonus,
         @Positive(message = "Identyfikator kategorii musi być dodatni.") Long categoryId,
         @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
         List<@Positive Long> goalIds) {}
