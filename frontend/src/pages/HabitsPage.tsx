@@ -258,8 +258,6 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
               <div className="habit-card-content">
                 <div className="habit-heading-row">
                   <div className="habit-name">
-                    {habit.category && <CategoryMarker category={habit.category} className="habit-category-marker"
-                      embedded={Boolean(habit.description)} />}
                     {habit.description ? <button type="button" className="habit-note-toggle" disabled={busy}
                       aria-expanded={expandedDescriptions.has(habit.id)} aria-controls={`habit-note-${habit.id}`}
                       aria-label={`${expandedDescriptions.has(habit.id) ? 'Ukryj' : 'Pokaż'} notatkę: ${habit.name}${habit.category ? `. Kategoria: ${habit.category.name}` : ''}`}
@@ -280,10 +278,18 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                       { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
                     ]} />
                 </div>
-                {(habit.goalTitles?.length ?? 0) > 0 && <p className="habit-card-goals">
-                  <span className="task-card-goals-label">{habit.goalTitles.length === 1 ? 'Cel:' : 'Cele:'}</span>{' '}
-                  <span>{habit.goalTitles.join(' · ')}</span>
-                </p>}
+                {(habit.category || (habit.goalTitles?.length ?? 0) > 0) && <div className="habit-card-associations">
+                  {habit.category && <CategoryMarker category={habit.category} className="habit-category-marker" />}
+                  {(habit.goalTitles?.length ?? 0) > 0 && <p className="task-card-goals">
+                    <svg className="task-card-goal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="8" />
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M12 2v2M22 12h-2M12 22v-2M2 12h2" />
+                    </svg>
+                    <span>{habit.goalTitles.join(' · ')}</span>
+                  </p>}
+                </div>}
                 <div className="habit-meta">
                 <div className="habit-primary-meta">
                   <small className="habit-frequency">

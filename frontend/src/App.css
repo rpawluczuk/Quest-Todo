@@ -1169,6 +1169,24 @@
   word-break: normal;
 }
 
+.habit-card-associations {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.habit-card-associations .habit-category-marker {
+  flex: 0 0 auto;
+  margin-right: 0;
+  vertical-align: initial;
+}
+
+.habit-card-associations .task-card-goals > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .habit-category-marker,
 .task-category-marker {
   position: relative;
@@ -3263,8 +3281,7 @@
 
 .task-card-title:not(button) { cursor: default; }
 
-.task-card-goals,
-.habit-card-goals {
+.task-card-goals {
   min-width: 0;
   margin: 0;
   color: #625b70;
