@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
 import { createHabit, deleteHabit, endHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
-import CreateHabitForm from '../components/CreateHabitForm'
+import CreateHabitForm, { type CreateHabitFormHandle } from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
 import TaskActionsMenu from '../components/TaskActionsMenu'
@@ -25,6 +25,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   const [notices, setNotices] = useState<AwardNotice[]>([])
   const [refresh, setRefresh] = useState(0)
   const undoing = useRef(false)
+  const createHabitForm = useRef<CreateHabitFormHandle>(null)
 
   function completionSaved(result: HabitCompletionResult) {
     if (result.balance !== null) onPointsChanged(result.balance)
@@ -61,12 +62,18 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
   return <section className="tasks-section" aria-labelledby="habits-heading">
     <WeekBar selectedDay={selectedDay} today={today} onSelect={setSelectedDay} disabled={busy} />
-    <div className="section-header">
+    <div className="section-header section-header-with-action">
       <h2 id="habits-heading">Nawyki</h2>
-      <p>Regularne czynności, które chcesz rozwijać.</p>
+      <button type="button" className="add-task-header-button" aria-label="Dodaj nawyk" title="Dodaj nawyk"
+        onClick={event => createHabitForm.current?.open(event.currentTarget)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
     </div>
     <HabitDayList key={`${selectedDay}:${today}:${refresh}:${goalLinksRevision}:${categoryRevision}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
-      onCompletionSaved={completionSaved} />
+      onCompletionSaved={completionSaved} createHabitForm={createHabitForm} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
         onUndo={() => undo(notice)} onDismiss={() => setNotices(current => current.filter(item => item.id !== notice.id))} />)}
@@ -75,9 +82,10 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
+function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm }: {
   date: string; today: string; busy: boolean; onBusy: (busy: boolean) => void
   onCompletionSaved: (result: HabitCompletionResult) => void
+  createHabitForm: RefObject<CreateHabitFormHandle | null>
 }) {
   const savingCompletion = useRef(false)
   const [habits, setHabits] = useState<Habit[]>([])
@@ -219,7 +227,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
       {loading && <p role="status">Ładowanie nawyków…</p>}
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
       {!loading && !loadError && <>
-        <div className={allHabitIds.length === 0 ? 'task-empty-state task-empty-state-prominent' : undefined}>
+        <div className={allHabitIds.length === 0 ? 'habit-create-container task-empty-state task-empty-state-prominent' : 'habit-create-container'}>
           {allHabitIds.length === 0 && <>
             <span className="task-empty-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -228,7 +236,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved }: {
             </span>
             <p className="empty-state">Nie masz jeszcze nawyków. Dodaj pierwszy i zacznij budować regularność!</p>
           </>}
-          <CreateHabitForm onAdd={add} isFirstHabit={allHabitIds.length === 0} />
+          <CreateHabitForm ref={createHabitForm} onAdd={add} />
         </div>
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {groups.map(group => {

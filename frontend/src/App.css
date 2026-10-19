@@ -1667,6 +1667,15 @@
   margin-bottom: 0;
 }
 
+#habits-page .habit-create-container {
+  margin-top: 16px;
+}
+
+#habits-page .habit-create-container:not(.task-empty-state-prominent) .habit-form {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
 .add-task-header-button {
   display: grid;
   place-items: center;

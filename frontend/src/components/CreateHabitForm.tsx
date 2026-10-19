@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type SubmitEvent } from 'react'
 import type { HabitSchedule } from '../types/Habit'
 import { habitToday } from '../weekDates'
 import HabitTargetField from './HabitTargetField'
@@ -7,11 +7,14 @@ import HabitAdditionalSettings from './HabitAdditionalSettings'
 import GoalPicker from './GoalPicker'
 import CategoryPicker from './CategoryPicker'
 
-export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
+export type CreateHabitFormHandle = {
+  open: (trigger?: HTMLButtonElement) => void
+}
+
+const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
     categoryId: number | null, goalIds: number[]) => Promise<void>
-  isFirstHabit?: boolean
-}) {
+}>(function CreateHabitForm({ onAdd }, ref) {
   const [expanded, setExpanded] = useState(false)
   const [name, setName] = useState('')
   const [targetDays, setTargetDays] = useState(7)
@@ -22,15 +25,22 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const trigger = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef<HTMLButtonElement | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
 
   useEffect(() => {
     if (expanded) input.current?.focus()
-    else if (wasExpanded.current) trigger.current?.focus()
+    else if (wasExpanded.current) returnFocus.current?.focus()
     wasExpanded.current = expanded
   }, [expanded])
+
+  useImperativeHandle(ref, () => ({
+    open(button) {
+      returnFocus.current = button ?? null
+      setExpanded(true)
+    },
+  }), [])
 
   function cancel() {
     setRewardPoints('1')
@@ -86,6 +96,7 @@ export default function CreateHabitForm({ onAdd, isFirstHabit = false }: {
       <button type="button" className="secondary-button" disabled={saving} onClick={cancel}>Anuluj</button>
     </div>
     {error && <p className="form-error" role="alert">{error}</p>}
-  </form> : <button ref={trigger} type="button" className={`${isFirstHabit ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
-    onClick={() => setExpanded(true)}>{isFirstHabit ? '+ Dodaj pierwszy nawyk' : '+ Dodaj nawyk'}</button>
-}
+  </form> : null
+})
+
+export default CreateHabitForm
