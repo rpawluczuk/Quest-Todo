@@ -32,13 +32,15 @@ public class HabitService {
     private final HabitCalendar calendar;
     private final HabitTargetRepository targets;
     private final HabitAwardRepository awards;
+    private final HabitCompletionBonusAwardRepository completionBonusAwards;
     private final GoalHabitRepository goalHabits;
     private final GoalRepository goals;
     private final CategoryRepository categories;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
-                        HabitAwardRepository awards, GoalHabitRepository goalHabits, GoalRepository goals,
+                        HabitAwardRepository awards, HabitCompletionBonusAwardRepository completionBonusAwards,
+                        GoalHabitRepository goalHabits, GoalRepository goals,
                         CategoryRepository categories) {
         this.habits = habits;
         this.users = users;
@@ -47,6 +49,7 @@ public class HabitService {
         this.calendar = calendar;
         this.targets = targets;
         this.awards = awards;
+        this.completionBonusAwards = completionBonusAwards;
         this.goalHabits = goalHabits;
         this.goals = goals;
         this.categories = categories;
@@ -277,6 +280,7 @@ public class HabitService {
     public void deleteHabit(long id) {
         HabitEntity habit = findForUpdate(id);
         awards.deleteByHabit_Id(id);
+        completionBonusAwards.deleteById(id);
         completions.deleteByHabitId(id);
         targets.deleteByHabit_Id(id);
         habits.delete(habit);
@@ -303,12 +307,14 @@ public class HabitService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten dzień jest poza okresem obowiązywania nawyku.");
         HabitAwardEntity award = null;
         Long balance = null;
+        boolean completionChanged = false;
         // Locking the habit serializes repeated or simultaneous changes to its completions.
         if (completed) {
             if (!existingCompletion) {
                 if (habit.getCompletionLimit() != null && completions.countByHabitId(id) >= habit.getCompletionLimit())
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Osiągnięto liczbę wykonań kończącą ten nawyk.");
                 var completion = completions.save(new HabitCompletionEntity(habit, date));
+                completionChanged = true;
                 var snapshot = snapshot(habit, date);
                 LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                 if (snapshot.target() != null && snapshot.weeklyCompletedDays() >= snapshot.target().targetDays()
@@ -318,8 +324,13 @@ public class HabitService {
                 }
             }
         } else {
-            completions.deleteByHabitIdAndDate(id, date);
+            if (existingCompletion) {
+                completions.deleteByHabitIdAndDate(id, date);
+                completionChanged = true;
+            }
         }
+        if (completionChanged && reconcileCompletionBonus(habit))
+            balance = users.lockCurrentUser().getPoints();
         return new HabitCompletionResult(withGoalTitles(snapshot(habit, date)), balance,
                 award == null ? null : award.toAward());
     }
@@ -338,6 +349,7 @@ public class HabitService {
         completion.ifPresent(completions::delete);
         user.addPoints(-(long) award.getPoints());
         awards.delete(award);
+        if (completion.isPresent()) reconcileCompletionBonus(habit);
         return new HabitCompletionResult(withGoalTitles(snapshot(habit, award.getCompletionDate())),
                 user.getPoints(), null);
     }
@@ -398,6 +410,28 @@ public class HabitService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data zakończenia nie może być wcześniejsza niż początek.");
         if (limit != null && (limit < 1 || end != null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybierz datę zakończenia albo dodatnią liczbę wykonań.");
+    }
+
+    private boolean reconcileCompletionBonus(HabitEntity habit) {
+        Integer limit = habit.getCompletionLimit();
+        if (limit == null) return false;
+        // This is separate from weekly awards: only an active limit bonus follows the completion count.
+        boolean reached = completions.countByHabitId(habit.getId()) >= limit;
+        var existing = completionBonusAwards.findById(habit.getId());
+        if (existing.isPresent()) {
+            var recorded = existing.get();
+            if (recorded.isActive() == reached) return false;
+            var user = users.lockCurrentUser();
+            user.addPoints(reached ? recorded.getPoints() : -(long) recorded.getPoints());
+            if (reached) recorded.activate();
+            else recorded.deactivate();
+            return true;
+        }
+        if (!reached || habit.getCompletionBonusPoints() == null) return false;
+        var user = users.lockCurrentUser();
+        user.addPoints(habit.getCompletionBonusPoints());
+        completionBonusAwards.save(new HabitCompletionBonusAwardEntity(habit.getId(), habit.getCompletionBonusPoints()));
+        return true;
     }
 
     private void validateCompletionBonus(LocalDate end, Integer limit, Integer bonus, Integer percent) {
