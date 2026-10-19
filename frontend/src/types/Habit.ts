@@ -3,7 +3,13 @@ export type HabitTarget = {
   readonly effectiveFrom: string
 }
 
-export type HabitSchedule = { startDate: string; endDate: string | null; completionLimit: number | null }
+export type HabitSchedule = {
+  startDate: string
+  endDate: string | null
+  completionLimit: number | null
+  completionBonusPoints: number | null
+  requiredSuccessPercent: number | null
+}
 export type HabitEndReason = 'ACHIEVED' | 'ESTABLISHED' | 'STOPPED'
 
 export type Habit = HabitSchedule & {

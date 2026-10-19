@@ -42,7 +42,7 @@ export async function updateHabit(id: number, name: string, targetDays: number, 
   const response = await apiFetch(`/api/habits/${id}/configuration`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, categoryId, goalIds }),
+    body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, replaceCompletionBonus: true, categoryId, goalIds }),
   })
   if (!response.ok) {
     if (response.status === 404) throw new Error('Nawyk nie istnieje. Odśwież stronę.')

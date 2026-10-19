@@ -20,7 +20,8 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   const [targetDays, setTargetDays] = useState(7)
   const [rewardPoints, setRewardPoints] = useState('1')
   const [description, setDescription] = useState('')
-  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habitToday(), endDate: null, completionLimit: null })
+  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habitToday(), endDate: null, completionLimit: null,
+    completionBonusPoints: null, requiredSuccessPercent: null })
   const [goalIds, setGoalIds] = useState<number[]>([])
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -48,7 +49,8 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
     setName('')
     setDescription('')
     setError('')
-    setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
+    setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null,
+      completionBonusPoints: null, requiredSuccessPercent: null })
     setGoalIds([])
     setCategoryId(null)
     setExpanded(false)
@@ -68,7 +70,8 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
       setTargetDays(7)
       setName('')
       setDescription('')
-      setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null })
+      setSchedule({ startDate: habitToday(), endDate: null, completionLimit: null,
+        completionBonusPoints: null, requiredSuccessPercent: null })
       setGoalIds([])
       setCategoryId(null)
       setExpanded(false)

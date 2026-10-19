@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
+import { Trophy } from 'lucide-react'
 import { createHabit, deleteHabit, endHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm, { type CreateHabitFormHandle } from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
@@ -7,7 +8,7 @@ import TaskActionsMenu from '../components/TaskActionsMenu'
 import CategoryMarker, { CategoryCardDetail } from '../components/CategoryMarker'
 import WeekBar from '../components/WeekBar'
 import { formatHabitProgress } from '../habitTarget'
-import { habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
+import { earnedCompletionBonus, habitDayGroup, hasReachedWeeklyTarget, sortHabitsForDay, withOptimisticCompletion, type HabitDayGroup } from '../habitProgress'
 import { canToggleHabit, habitEndDateLabel, habitEndReasonLabel } from '../habitSchedule'
 import type { Habit, HabitAward, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
 import { dateFromKey, habitToday } from '../weekDates'
@@ -15,6 +16,7 @@ import { dateFromKey, habitToday } from '../weekDates'
 const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 
 type AwardNotice = HabitAward & { habitId: number; name: string }
+type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
 export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision }: {
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number
@@ -23,12 +25,22 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   const [selectedDay, setSelectedDay] = useState(today)
   const [busy, setBusy] = useState(false)
   const [notices, setNotices] = useState<AwardNotice[]>([])
+  const [bonusNotices, setBonusNotices] = useState<CompletionBonusNotice[]>([])
+  const nextBonusNoticeId = useRef(0)
   const [refresh, setRefresh] = useState(0)
   const undoing = useRef(false)
   const createHabitForm = useRef<CreateHabitFormHandle>(null)
 
-  function completionSaved(result: HabitCompletionResult) {
+  function completionSaved(result: HabitCompletionResult, previous?: Habit) {
     if (result.balance !== null) onPointsChanged(result.balance)
+    const bonus = previous && result.balance !== null ? earnedCompletionBonus(previous, result.habit) : null
+    if (bonus !== null && bonus !== undefined) {
+      setBonusNotices(current => [...current, { id: ++nextBonusNoticeId.current, habitId: result.habit.id,
+        name: result.habit.name, points: bonus }])
+    } else if (previous?.completionLimit !== null && previous?.completionLimit !== undefined
+      && result.habit.totalCompletions < previous.completionLimit) {
+      setBonusNotices(current => current.filter(notice => notice.habitId !== result.habit.id))
+    }
     if (result.award) {
       const notice = { ...result.award, habitId: result.habit.id, name: result.habit.name }
       setNotices(current => [...current.filter(item => item.id !== notice.id), notice])
@@ -44,6 +56,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
       if (result.balance !== null) onPointsChanged(result.balance)
       setRefresh(current => current + 1)
       setNotices(current => current.filter(item => item.id !== notice.id))
+      if (result.habit.completionLimit !== null && result.habit.totalCompletions < result.habit.completionLimit)
+        setBonusNotices(current => current.filter(item => item.habitId !== notice.habitId))
     } finally {
       undoing.current = false
       setBusy(false)
@@ -77,6 +91,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
         onUndo={() => undo(notice)} onDismiss={() => setNotices(current => current.filter(item => item.id !== notice.id))} />)}
+      {bonusNotices.map(notice => <HabitBonusToast key={notice.id} notice={notice}
+        onDismiss={() => setBonusNotices(current => current.filter(item => item.id !== notice.id))} />)}
     </div>
   </section>
 }
@@ -84,7 +100,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm }: {
   date: string; today: string; busy: boolean; onBusy: (busy: boolean) => void
-  onCompletionSaved: (result: HabitCompletionResult) => void
+  onCompletionSaved: (result: HabitCompletionResult, previous?: Habit) => void
   createHabitForm: RefObject<CreateHabitFormHandle | null>
 }) {
   const savingCompletion = useRef(false)
@@ -181,7 +197,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
     try {
       const result = await setHabitCompletion(habit.id, date, completed)
       setHabits(current => current.map(item => item.id === habit.id ? result.habit : item))
-      onCompletionSaved(result)
+      onCompletionSaved(result, habit)
     } catch (failure) {
       setHabits(current => current.map(item => item.id === habit.id ? habit : item))
       setCompletionError(failure instanceof Error ? failure.message : 'Nie udało się zapisać wykonania nawyku.')
@@ -295,9 +311,21 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                   <HabitProgressPresentation habit={habit} />
                   <span className="task-points task-card-points">{habit.rewardPoints} pkt</span>
                 </div>
-                {(habit.completionLimit !== null || habit.status === 'UPCOMING' || habit.endDate !== null
+                {habit.completionLimit !== null && habit.completionBonusPoints !== null &&
+                  <div className="habit-completion-bonus-row">
+                    <div className="habit-completion-bonus-details">
+                      <Trophy className="habit-completion-bonus-icon" size={16} strokeWidth={2} aria-hidden="true" />
+                      <div className="habit-completion-bonus-copy">
+                        <span>{habit.totalCompletions}/{habit.completionLimit} wykonań</span>
+                        <small>Premia za ukończenie</small>
+                      </div>
+                    </div>
+                    <span className="task-points task-card-points">+{habit.completionBonusPoints} pkt</span>
+                  </div>}
+                {((habit.completionLimit !== null && habit.completionBonusPoints === null)
+                  || habit.status === 'UPCOMING' || habit.endDate !== null
                   || (habit.status === 'FINISHED' && habit.endedOn && habit.endReason)) && <div className="habit-extra-meta">
-                  {habit.completionLimit !== null && <small className="habit-total-progress">
+                  {habit.completionLimit !== null && habit.completionBonusPoints === null && <small className="habit-total-progress">
                     Wykonania: {habit.totalCompletions}/{habit.completionLimit}
                   </small>}
                   {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
@@ -376,6 +404,14 @@ function HabitCalendarIcon() {
   </svg>
 }
 
+function HabitTrophyIcon() {
+  return <svg className="habit-completion-bonus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
+    <path d="M8 6H5v2a4 4 0 0 0 4 4m7-6h3v2a4 4 0 0 1-4 4M12 13v5m-4 2h8m-7-2h6" />
+  </svg>
+}
+
 function HabitAwardStatus() {
   const message = 'Nagroda za ten tydzień została już przyznana'
   return <button type="button" className="habit-award-status" aria-label={message}
@@ -416,5 +452,20 @@ function HabitAwardToast({ notice, disabled, onUndo, onDismiss }: {
     </div>
     <button type="button" className="secondary-button" disabled={disabled || saving}
       onClick={() => void undo()}>{saving ? 'Cofanie…' : 'Cofnij'}</button>
+  </div>
+}
+
+function HabitBonusToast({ notice, onDismiss }: { notice: CompletionBonusNotice; onDismiss: () => void }) {
+  const dismiss = useRef(onDismiss)
+  useEffect(() => {
+    const timer = window.setTimeout(() => dismiss.current(), 5000)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  return <div className="habit-toast">
+    <HabitTrophyIcon />
+    <div className="habit-toast-message">
+      <span role="status">Premia za ukończenie! {notice.name} · +{notice.points} pkt</span>
+    </div>
   </div>
 }

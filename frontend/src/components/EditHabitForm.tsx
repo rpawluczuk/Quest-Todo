@@ -17,7 +17,9 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
   const [targetDays, setTargetDays] = useState(habit.latestTarget?.targetDays ?? 7)
   const [rewardPoints, setRewardPoints] = useState(String(habit.rewardPoints))
   const [description, setDescription] = useState(habit.description ?? '')
-  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habit.startDate, endDate: habit.endDate, completionLimit: habit.completionLimit })
+  const [schedule, setSchedule] = useState<HabitSchedule>({ startDate: habit.startDate, endDate: habit.endDate,
+    completionLimit: habit.completionLimit, completionBonusPoints: habit.completionBonusPoints,
+    requiredSuccessPercent: habit.requiredSuccessPercent })
   const [goalIds, setGoalIds] = useState<number[]>(habit.goalIds ?? [])
   const [categoryId, setCategoryId] = useState<number | null>(habit.category?.id ?? null)
   const [error, setError] = useState('')

@@ -1296,6 +1296,68 @@
   justify-self: end;
 }
 
+.task.habit-card:has(.habit-completion-bonus-row) {
+  padding-bottom: 13px;
+}
+
+.habit-meta:has(> .habit-completion-bonus-row) {
+  row-gap: 2px;
+}
+
+.habit-completion-bonus-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.habit-completion-bonus-details {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+
+.habit-completion-bonus-details > .habit-completion-bonus-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  flex: 0 0 16px;
+  color: var(--color-primary);
+}
+
+.habit-completion-bonus-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.habit-completion-bonus-copy > span {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 19px;
+  color: #625b70;
+  font-variant-numeric: tabular-nums;
+}
+
+.habit-meta .habit-completion-bonus-copy > small {
+  color: #767080;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.habit-completion-bonus-row > .task-card-points {
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  /* Optical adjustment within the centered two-line bonus group. */
+  transform: translateY(1px);
+}
+
 .habit-progress-summary {
   display: flex;
   align-items: center;

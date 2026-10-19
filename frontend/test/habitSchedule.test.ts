@@ -5,7 +5,8 @@ import type { Habit } from '../src/types/Habit.ts'
 
 const habit: Habit = {
   id: 1, name: 'Test', description: null, createdOn: '2026-10-14', startDate: '2026-10-01',
-  endDate: null, completionLimit: 3, totalCompletions: 2, status: 'ACTIVE', completed: false,
+  endDate: null, completionLimit: 3, completionBonusPoints: null, requiredSuccessPercent: null,
+  totalCompletions: 2, status: 'ACTIVE', completed: false,
   weeklyCompletedDays: 2, rewardPoints: 1, weeklyRewardGranted: false, target: null, latestTarget: null,
   endedOn: null, endReason: null,
 }

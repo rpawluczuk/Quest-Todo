@@ -35,7 +35,8 @@ export default function HabitScheduleFields({ value, onChange, disabled }: {
           const next = event.target.value
           setMode(next)
           onChange({ ...value, endDate: next === 'date' ? value.startDate : null,
-            completionLimit: next === 'count' ? 30 : null })
+            completionLimit: next === 'count' ? 30 : null,
+            completionBonusPoints: null, requiredSuccessPercent: null })
         }}>
           <option value="none">Bez daty końcowej</option>
           <option value="date">W wybranym dniu</option>
@@ -52,6 +53,12 @@ export default function HabitScheduleFields({ value, onChange, disabled }: {
         <input type="number" required min="1" max="2147483647" step="1" value={value.completionLimit ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
+      </label>}
+      {mode === 'count' && <label className="form-field habit-completion-bonus-field">
+        <span>Premia za ukończenie (pkt)</span>
+        <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
+          disabled={disabled} onChange={event => onChange({ ...value,
+            completionBonusPoints: event.target.value === '' ? null : Number(event.target.value) })} />
       </label>}
     </div>
   </fieldset>
