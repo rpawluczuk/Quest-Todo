@@ -11,11 +11,19 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                     long totalCompletions, String status, LocalDate endedOn, HabitEndReason endReason,
                     Category category,
                     List<Long> goalIds,
-                    List<String> goalTitles) {
+                    List<String> goalTitles, HabitRegularity regularity,
+                    boolean completionBonusGranted, LocalDate completionBonusSettledOn) {
     public Habit withGoals(List<Long> ids, List<String> titles) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
-                endedOn, endReason, category, List.copyOf(ids), List.copyOf(titles));
+                endedOn, endReason, category, List.copyOf(ids), List.copyOf(titles),
+                regularity, completionBonusGranted, completionBonusSettledOn);
+    }
+    public Habit withCompletionBonus(HabitRegularity regularity, boolean granted, LocalDate settledOn) {
+        return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
+                weeklyRewardGranted, description, startDate, endDate, completionLimit,
+                completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
+                endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn);
     }
 }

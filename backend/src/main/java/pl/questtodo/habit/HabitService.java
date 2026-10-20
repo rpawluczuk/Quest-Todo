@@ -33,6 +33,7 @@ public class HabitService {
     private final HabitTargetRepository targets;
     private final HabitAwardRepository awards;
     private final HabitCompletionBonusAwardRepository completionBonusAwards;
+    private final HabitCompletionBonusService completionBonuses;
     private final GoalHabitRepository goalHabits;
     private final GoalRepository goals;
     private final CategoryRepository categories;
@@ -40,6 +41,7 @@ public class HabitService {
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
                         HabitAwardRepository awards, HabitCompletionBonusAwardRepository completionBonusAwards,
+                        HabitCompletionBonusService completionBonuses,
                         GoalHabitRepository goalHabits, GoalRepository goals,
                         CategoryRepository categories) {
         this.habits = habits;
@@ -50,6 +52,7 @@ public class HabitService {
         this.targets = targets;
         this.awards = awards;
         this.completionBonusAwards = completionBonusAwards;
+        this.completionBonuses = completionBonuses;
         this.goalHabits = goalHabits;
         this.goals = goals;
         this.categories = categories;
@@ -244,6 +247,9 @@ public class HabitService {
                 current = snapshot(habit, today);
             }
         }
+        if (completionBonuses.reconcileDatedConfiguration(habit))
+            balance = users.lockCurrentUser().getPoints();
+        current = snapshot(habit, today);
         return new HabitCompletionResult(withGoalTitles(current), balance, award == null ? null : award.toAward());
     }
 
@@ -274,7 +280,12 @@ public class HabitService {
                 : (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
                     || (habit.getCompletionLimit() != null && completedThroughDate >= habit.getCompletionLimit())
                     ? "FINISHED" : "ACTIVE";
-        return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted, totalCompletions, status);
+        var bonus = completionBonusAwards.findById(habit.getId()).orElse(null);
+        var regularity = bonus != null && bonus.getSettledOn() != null
+                ? bonus.regularity() : completionBonuses.regularity(habit);
+        return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted, totalCompletions, status)
+                .withCompletionBonus(regularity, bonus != null && bonus.isActive(),
+                        bonus == null ? null : bonus.getSettledOn());
     }
 
     public void deleteHabit(long id) {
@@ -413,25 +424,7 @@ public class HabitService {
     }
 
     private boolean reconcileCompletionBonus(HabitEntity habit) {
-        Integer limit = habit.getCompletionLimit();
-        if (limit == null) return false;
-        // This is separate from weekly awards: only an active limit bonus follows the completion count.
-        boolean reached = completions.countByHabitId(habit.getId()) >= limit;
-        var existing = completionBonusAwards.findById(habit.getId());
-        if (existing.isPresent()) {
-            var recorded = existing.get();
-            if (recorded.isActive() == reached) return false;
-            var user = users.lockCurrentUser();
-            user.addPoints(reached ? recorded.getPoints() : -(long) recorded.getPoints());
-            if (reached) recorded.activate();
-            else recorded.deactivate();
-            return true;
-        }
-        if (!reached || habit.getCompletionBonusPoints() == null) return false;
-        var user = users.lockCurrentUser();
-        user.addPoints(habit.getCompletionBonusPoints());
-        completionBonusAwards.save(new HabitCompletionBonusAwardEntity(habit.getId(), habit.getCompletionBonusPoints()));
-        return true;
+        return completionBonuses.reconcile(habit);
     }
 
     private void validateCompletionBonus(LocalDate end, Integer limit, Integer bonus, Integer percent) {

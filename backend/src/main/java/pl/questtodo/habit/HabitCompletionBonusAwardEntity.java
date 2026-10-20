@@ -18,6 +18,13 @@ public class HabitCompletionBonusAwardEntity {
     @Column(nullable = false)
     private boolean active;
 
+    @Column(name = "settled_on")
+    private java.time.LocalDate settledOn;
+    @Column(name = "successful_weeks")
+    private Long successfulWeeks;
+    @Column(name = "total_weeks")
+    private Long totalWeeks;
+
     protected HabitCompletionBonusAwardEntity() {}
 
     public HabitCompletionBonusAwardEntity(long habitId, int points) {
@@ -30,4 +37,18 @@ public class HabitCompletionBonusAwardEntity {
     public boolean isActive() { return active; }
     public void activate() { active = true; }
     public void deactivate() { active = false; }
+    public java.time.LocalDate getSettledOn() { return settledOn; }
+    public HabitRegularity regularity() {
+        return settledOn == null ? null : HabitRegularity.of(successfulWeeks, totalWeeks);
+    }
+    public void settle(java.time.LocalDate today, HabitRegularity regularity) {
+        settledOn = today;
+        successfulWeeks = regularity.successfulWeeks();
+        totalWeeks = regularity.totalWeeks();
+    }
+    public void clearSettlement() {
+        settledOn = null;
+        successfulWeeks = null;
+        totalWeeks = null;
+    }
 }

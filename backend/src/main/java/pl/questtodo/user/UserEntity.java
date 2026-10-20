@@ -32,6 +32,7 @@ public class UserEntity {
     }
 
     public long getPoints() { return points; }
+    public Long getId() { return id; }
 
     public String getLogin() { return login; }
     public String getPasswordHash() { return passwordHash; }

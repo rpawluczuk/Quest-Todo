@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface HabitCompletionRepository extends JpaRepository<HabitCompletionEntity, Long> {
+    List<HabitCompletionEntity> findByHabitIdAndDateBetween(long habitId, LocalDate start, LocalDate end);
     boolean existsByHabitIdAndDate(long habitId, LocalDate date);
     java.util.Optional<HabitCompletionEntity> findByHabitIdAndDate(long habitId, LocalDate date);
     java.util.Optional<HabitCompletionEntity> findFirstByHabitIdAndDateBetweenOrderByDateDescIdDesc(
