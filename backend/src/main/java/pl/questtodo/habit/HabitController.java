@@ -21,6 +21,11 @@ import pl.questtodo.habit.dto.EndHabitRequest;
 @RestController
 @RequestMapping("/api/habits")
 public class HabitController {
+    @org.springframework.web.bind.annotation.ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public org.springframework.http.ProblemDetail handleBusinessError(org.springframework.web.server.ResponseStatusException exception) {
+        return org.springframework.http.ProblemDetail.forStatusAndDetail(exception.getStatusCode(), exception.getReason());
+    }
+
     private final HabitService habits;
 
     public HabitController(HabitService habits) {

@@ -12,18 +12,21 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                     Category category,
                     List<Long> goalIds,
                     List<String> goalTitles, HabitRegularity regularity,
-                    boolean completionBonusGranted, LocalDate completionBonusSettledOn) {
+                    boolean completionBonusGranted, LocalDate completionBonusSettledOn,
+                    Boolean completionBonusEverGranted, boolean completionBonusConditionsLocked, Integer completionBonusAwardPoints) {
     public Habit withGoals(List<Long> ids, List<String> titles) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category, List.copyOf(ids), List.copyOf(titles),
-                regularity, completionBonusGranted, completionBonusSettledOn);
+                regularity, completionBonusGranted, completionBonusSettledOn,
+                completionBonusEverGranted, completionBonusConditionsLocked, completionBonusAwardPoints);
     }
-    public Habit withCompletionBonus(HabitRegularity regularity, boolean granted, LocalDate settledOn) {
+    public Habit withCompletionBonus(HabitRegularity regularity, boolean granted, LocalDate settledOn,
+            Boolean everGranted, boolean locked, Integer awardPoints) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
-                endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn);
+                endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn, everGranted, locked, awardPoints);
     }
 }

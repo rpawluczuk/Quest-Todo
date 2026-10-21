@@ -200,6 +200,10 @@ public class HabitService {
             if (endDate == null && completionLimit == null) effectiveBonus = null;
             if (endDate != null && effectiveBonus != null && effectivePercent == null) effectiveBonus = null;
         }
+        completionBonuses.assertEditable(habit, startDate == null ? habit.getStartDate() : startDate,
+                startDate == null ? habit.getEndDate() : endDate,
+                startDate == null ? habit.getCompletionLimit() : completionLimit,
+                effectiveBonus, effectivePercent, targetDays);
         validateCompletionBonus(startDate == null ? habit.getEndDate() : endDate,
                 startDate == null ? habit.getCompletionLimit() : completionLimit, effectiveBonus, effectivePercent);
         boolean bonusChanged = !Objects.equals(effectiveBonus, habit.getCompletionBonusPoints())
@@ -213,6 +217,8 @@ public class HabitService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Wybrany okres pomija zapisane wykonania. Najpierw cofnij je lub rozszerz zakres dat.");
             habit.schedule(startDate, endDate, completionLimit);
+            // Keep schedule and bonus valid together before the target query triggers an auto-flush.
+            if (bonusChanged) habit.setCompletionBonus(effectiveBonus, effectivePercent);
             var history = targets.findByHabit_IdOrderByEffectiveFromAsc(id);
             var monday = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             if (!history.isEmpty() && monday.isBefore(history.getFirst().getEffectiveFrom()))
@@ -226,7 +232,7 @@ public class HabitService {
             goalHabits.deleteByHabitId(habit.getId());
             selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
         }
-        if (bonusChanged) habit.setCompletionBonus(effectiveBonus, effectivePercent);
+        if (bonusChanged && startDate == null) habit.setCompletionBonus(effectiveBonus, effectivePercent);
         LocalDate today = calendar.today();
         Habit before = snapshot(habit, today);
         boolean targetLowered = targetDays != null && before.target() != null
@@ -247,7 +253,7 @@ public class HabitService {
                 current = snapshot(habit, today);
             }
         }
-        if (completionBonuses.reconcileDatedConfiguration(habit))
+        if (completionBonuses.reconcile(habit))
             balance = users.lockCurrentUser().getPoints();
         current = snapshot(habit, today);
         return new HabitCompletionResult(withGoalTitles(current), balance, award == null ? null : award.toAward());
@@ -285,7 +291,9 @@ public class HabitService {
                 ? bonus.regularity() : completionBonuses.regularity(habit);
         return habit.toHabit(completed, active, latest, weeklyCompletedDays, weeklyRewardGranted, totalCompletions, status)
                 .withCompletionBonus(regularity, bonus != null && bonus.isActive(),
-                        bonus == null ? null : bonus.getSettledOn());
+                        bonus == null ? null : bonus.getSettledOn(),
+                        bonus == null ? Boolean.FALSE : bonus.getEverGranted(), bonus != null && bonus.conditionsLocked(),
+                        bonus != null && bonus.isActive() ? bonus.getPoints() : null);
     }
 
     public void deleteHabit(long id) {
@@ -303,6 +311,7 @@ public class HabitService {
         HabitEntity habit = findForUpdate(id);
         if (habit.getEndedOn() != null)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten nawyk został już zakończony.");
+        completionBonuses.assertManualEndingAllowed(habit);
         habit.end(calendar.today(), reason);
         return withGoalTitles(snapshot(habit, calendar.today()));
     }
