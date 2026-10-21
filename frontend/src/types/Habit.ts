@@ -13,6 +13,9 @@ export type HabitSchedule = {
 export type HabitEndReason = 'ACHIEVED' | 'ESTABLISHED' | 'STOPPED'
 
 export type Habit = HabitSchedule & {
+  readonly regularity: { successfulWeeks: number; totalWeeks: number; successPercent: number | null } | null
+  readonly completionBonusGranted: boolean
+  readonly completionBonusSettledOn: string | null
   readonly totalCompletions: number
   readonly status: 'ACTIVE' | 'UPCOMING' | 'FINISHED'
   readonly id: number

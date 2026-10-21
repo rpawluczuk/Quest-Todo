@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
-import { Trophy } from 'lucide-react'
+import HabitCompletionBonus from '../components/HabitCompletionBonus'
 import { createHabit, deleteHabit, endHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm, { type CreateHabitFormHandle } from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
@@ -311,19 +311,9 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                   <HabitProgressPresentation habit={habit} />
                   <span className="task-points task-card-points">{habit.rewardPoints} pkt</span>
                 </div>
-                {habit.completionLimit !== null && habit.completionBonusPoints !== null &&
-                  <div className="habit-completion-bonus-row">
-                    <div className="habit-completion-bonus-details">
-                      <Trophy className="habit-completion-bonus-icon" size={16} strokeWidth={2} aria-hidden="true" />
-                      <div className="habit-completion-bonus-copy">
-                        <span>{habit.totalCompletions}/{habit.completionLimit} wykonań</span>
-                        <small>Premia za ukończenie</small>
-                      </div>
-                    </div>
-                    <span className="task-points task-card-points">+{habit.completionBonusPoints} pkt</span>
-                  </div>}
+                <HabitCompletionBonus habit={habit} today={today} />
                 {((habit.completionLimit !== null && habit.completionBonusPoints === null)
-                  || habit.status === 'UPCOMING' || habit.endDate !== null
+                  || habit.status === 'UPCOMING' || (habit.endDate !== null && habit.completionBonusPoints === null)
                   || (habit.status === 'FINISHED' && habit.endedOn && habit.endReason)) && <div className="habit-extra-meta">
                   {habit.completionLimit !== null && habit.completionBonusPoints === null && <small className="habit-total-progress">
                     Wykonania: {habit.totalCompletions}/{habit.completionLimit}
@@ -331,7 +321,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                   {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
                     <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}
                   </small>}
-                  {habit.endDate && !(habit.status === 'FINISHED' && habit.endedOn) && <small className="habit-schedule-meta">
+                  {habit.endDate && habit.completionBonusPoints === null && !(habit.status === 'FINISHED' && habit.endedOn) && <small className="habit-schedule-meta">
                     <HabitCalendarIcon />Do {habitEndDateLabel(habit.endDate, today)}
                   </small>}
                   {habit.status === 'FINISHED' && habit.endedOn && habit.endReason && <small className="habit-schedule-meta habit-manual-ending">

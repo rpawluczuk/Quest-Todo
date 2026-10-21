@@ -54,11 +54,19 @@ export default function HabitScheduleFields({ value, onChange, disabled }: {
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
       </label>}
-      {mode === 'count' && <label className="form-field habit-completion-bonus-field">
+      {mode !== 'none' && <label className="form-field habit-completion-bonus-field">
         <span>Premia za ukończenie (pkt)</span>
         <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
           disabled={disabled} onChange={event => onChange({ ...value,
-            completionBonusPoints: event.target.value === '' ? null : Number(event.target.value) })} />
+            completionBonusPoints: event.target.value === '' ? null : Number(event.target.value),
+            requiredSuccessPercent: event.target.value === '' || mode !== 'date' ? null : value.requiredSuccessPercent })} />
+      </label>}
+      {mode === 'date' && value.completionBonusPoints !== null && <label className="form-field habit-completion-bonus-field">
+        <span>Wymagana regularność (%)</span>
+        <input type="number" required min="1" max="100" step="1" value={value.requiredSuccessPercent ?? ''}
+          disabled={disabled} onChange={event => onChange({ ...value,
+            requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />
+        <small>Premię otrzymasz po zakończeniu nawyku, jeśli osiągniesz wymagany procent zaliczonych tygodni</small>
       </label>}
     </div>
   </fieldset>
