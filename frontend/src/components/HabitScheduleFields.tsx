@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import { habitEndMode, scheduleWithEndMode, type HabitEndMode } from '../habitScheduleForm'
 import type { HabitSchedule } from '../types/Habit'
 import FormSelect, { FormSelectItem } from './FormSelect'
 
@@ -8,15 +9,14 @@ const modeLabels = {
   count: 'Po określonej liczbie wykonań',
 } as const
 
-function scheduleMode(value: HabitSchedule): 'none' | 'date' | 'count' {
-  return value.endDate ? 'date' : value.completionLimit !== null ? 'count' : 'none'
-}
-
 export default function HabitScheduleFields({ value, onChange, disabled, lockMessage }: {
   value: HabitSchedule; onChange: (value: HabitSchedule) => void; disabled: boolean; lockMessage?: string | null
 }) {
-  const [mode, setMode] = useState(() => scheduleMode(value))
-  const displayedMode = lockMessage ? scheduleMode(value) : mode
+  const [mode, setMode] = useState(() => habitEndMode(value))
+  const [endDateError, setEndDateError] = useState('')
+  const previousEndDate = useRef(value.endDate)
+  const endDateErrorId = useId()
+  const displayedMode = lockMessage ? habitEndMode(value) : mode
   return <fieldset className="habit-schedule-fields">
     <legend><span>Okres trwania</span></legend>
     {lockMessage && <p className="habit-ending-lock-message" role="note">{lockMessage}</p>}
@@ -30,11 +30,10 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         <span>Sposób zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
         <FormSelect value={displayedMode} disabled={disabled} required ariaLabel="Sposób zakończenia"
           triggerContent={<span>{modeLabels[displayedMode]}</span>} onValueChange={selectedMode => {
-          const next = selectedMode as typeof mode
+          const next = selectedMode as HabitEndMode
           setMode(next)
-          onChange({ ...value, endDate: next === 'date' ? value.startDate : null,
-            completionLimit: next === 'count' ? 30 : null,
-            completionBonusPoints: null, requiredSuccessPercent: null })
+          setEndDateError('')
+          onChange(scheduleWithEndMode(value, next, previousEndDate.current))
         }}>
           {(Object.keys(modeLabels) as Array<keyof typeof modeLabels>).map(option =>
             <FormSelectItem className="goal-select-item" key={option} value={option}>
@@ -44,8 +43,27 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
       </div>
       {displayedMode === 'date' && <label className="form-field">
         <span>Data zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
-        <input type="date" required min={value.startDate} value={value.endDate ?? ''} disabled={disabled}
-          onChange={event => onChange({ ...value, endDate: event.target.value || null })} />
+        <span className="habit-end-date-control">
+          <input type="date" required min={value.startDate} value={value.endDate ?? ''} disabled={disabled}
+            placeholder="Wybierz datę zakończenia" aria-invalid={endDateError ? 'true' : undefined}
+            aria-describedby={endDateError ? endDateErrorId : undefined}
+            onInvalid={event => {
+              if (!event.currentTarget.validity.valueMissing) return
+              event.currentTarget.setCustomValidity('Wybierz datę zakończenia')
+              setEndDateError('Wybierz datę zakończenia')
+            }}
+            onChange={event => {
+              const endDate = event.target.value || null
+              event.target.setCustomValidity('')
+              setEndDateError('')
+              previousEndDate.current = endDate
+              onChange({ ...value, endDate })
+            }} />
+          {!value.endDate && <span className="habit-end-date-placeholder" aria-hidden="true">
+            Wybierz datę zakończenia
+          </span>}
+        </span>
+        {endDateError && <small id={endDateErrorId} className="field-error" role="alert">{endDateError}</small>}
       </label>}
       {displayedMode === 'count' && <label className="form-field">
         <span>Liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
