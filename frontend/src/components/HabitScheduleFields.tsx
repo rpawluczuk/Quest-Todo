@@ -1,20 +1,5 @@
 import { useState } from 'react'
 import type { HabitSchedule } from '../types/Habit'
-import { dateFromKey, habitToday } from '../weekDates'
-
-const displayDate = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
-
-function scheduleSummary(value: HabitSchedule): string {
-  const start = value.startDate === habitToday()
-    ? 'Od dziś'
-    : `Od ${displayDate.format(dateFromKey(value.startDate))}`
-  const end = value.endDate
-    ? `do ${displayDate.format(dateFromKey(value.endDate))}`
-    : value.completionLimit !== null
-      ? `do ${value.completionLimit} wykonań`
-      : 'bez końca'
-  return `${start} · ${end}`
-}
 
 function scheduleMode(value: HabitSchedule): 'none' | 'date' | 'count' {
   return value.endDate ? 'date' : value.completionLimit !== null ? 'count' : 'none'
@@ -27,7 +12,6 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
   const displayedMode = lockMessage ? scheduleMode(value) : mode
   return <fieldset className="habit-schedule-fields">
     <legend>Okres trwania</legend>
-    <p className="habit-schedule-summary">{scheduleSummary(value)}</p>
     {lockMessage && <p className="habit-ending-lock-message" role="note">{lockMessage}</p>}
     <div className="habit-schedule-inputs">
       <label className="form-field">

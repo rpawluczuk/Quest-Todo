@@ -1114,13 +1114,6 @@
   font-weight: 600;
 }
 
-.habit-schedule-summary {
-  margin: 4px 0 12px;
-  color: #767080;
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
 .habit-ending-lock-message {
   margin: 2px 0 10px;
   color: #625b70;
@@ -1140,6 +1133,10 @@
   display: grid;
   gap: 10px;
   min-width: 0;
+}
+
+.habit-schedule-fields legend + .habit-schedule-inputs {
+  margin-top: 10px;
 }
 
 .habit-schedule-inputs input {
