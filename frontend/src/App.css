@@ -1170,6 +1170,18 @@
   margin-top: 8px;
 }
 
+.habit-regularity-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.habit-regularity-settings.is-configured {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
 .habit-end-date-control {
   position: relative;
   display: block;
@@ -4127,6 +4139,10 @@
   .category-icon-grid,
   .category-color-grid {
     grid-template-columns: repeat(4, minmax(44px, 1fr));
+  }
+
+  .habit-regularity-settings.is-configured {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
