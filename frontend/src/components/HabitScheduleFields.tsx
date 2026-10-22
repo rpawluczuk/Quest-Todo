@@ -36,7 +36,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
           onChange={event => onChange({ ...value, startDate: event.target.value })} />
       </label>
       <label className="form-field">
-        <span>Data zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <span>Sposób zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
         <select value={displayedMode} disabled={disabled} required onChange={event => {
           const next = event.target.value as typeof mode
           setMode(next)
@@ -44,18 +44,18 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
             completionLimit: next === 'count' ? 30 : null,
             completionBonusPoints: null, requiredSuccessPercent: null })
         }}>
-          <option value="none">Bez daty końcowej</option>
-          <option value="date">W wybranym dniu</option>
+          <option value="none">Bezterminowo</option>
+          <option value="date">W określonym dniu</option>
           <option value="count">Po określonej liczbie wykonań</option>
         </select>
       </label>
       {displayedMode === 'date' && <label className="form-field">
-        <span>Ostatni dzień <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <span>Data zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="date" required min={value.startDate} value={value.endDate ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, endDate: event.target.value || null })} />
       </label>}
       {displayedMode === 'count' && <label className="form-field">
-        <span>Łączna liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <span>Liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="number" required min="1" max="2147483647" step="1" value={value.completionLimit ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
