@@ -12,7 +12,7 @@ export function scheduleWithEndMode(value: HabitSchedule, mode: HabitEndMode,
     ...value,
     endDate: mode === 'date' ? previousEndDate : null,
     completionLimit: mode === 'count' ? 30 : null,
-    completionBonusPoints: null,
+    completionBonusPoints: mode === 'none' ? null : value.completionBonusPoints,
     requiredSuccessPercent: null,
   }
 }

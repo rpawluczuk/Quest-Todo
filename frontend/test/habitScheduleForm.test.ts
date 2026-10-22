@@ -41,3 +41,18 @@ test('changing the ending mode clears inactive bonus conditions', () => {
 
   assert.deepEqual(scheduleWithEndMode(configured, 'none', configured.endDate), schedule)
 })
+
+test('changing between dated and count endings preserves entered bonus points', () => {
+  const dated = {
+    ...schedule,
+    endDate: '2026-12-31',
+    completionBonusPoints: 20,
+    requiredSuccessPercent: 80,
+  }
+
+  assert.deepEqual(scheduleWithEndMode(dated, 'count', dated.endDate), {
+    ...schedule,
+    completionLimit: 30,
+    completionBonusPoints: 20,
+  })
+})

@@ -72,7 +72,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
       </label>}
       {displayedMode !== 'none' && <label className="form-field habit-completion-bonus-field">
-        <span>Premia za ukończenie (pkt)</span>
+        <span>{displayedMode === 'date' ? 'Premia za regularność (pkt)' : 'Premia za ukończenie (pkt)'}</span>
         <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
           disabled={disabled} onChange={event => onChange({ ...value,
             completionBonusPoints: event.target.value === '' ? null : Number(event.target.value),
