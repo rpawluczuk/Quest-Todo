@@ -18,6 +18,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
   const [endDateError, setEndDateError] = useState('')
   const [regularityError, setRegularityError] = useState('')
   const previousEndDate = useRef(value.endDate)
+  const regularityInput = useRef<HTMLInputElement>(null)
   const endDateErrorId = useId()
   const regularityInputId = useId()
   const regularityErrorId = useId()
@@ -90,19 +91,27 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
           <span className="habit-number-unit" aria-hidden="true">pkt</span>
         </span>
       </label>}
-      {displayedMode === 'date' && <div className={`habit-regularity-settings habit-completion-bonus-start${hasValidRegularityBonus ? ' is-configured' : ''}`}>
+      {displayedMode === 'date' && <div className="habit-regularity-settings habit-completion-bonus-start">
         <label className="form-field habit-completion-bonus-field">
           <span>Premia</span>
           <span className="habit-number-unit-control">
             <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
               aria-label="Premia za regularność w punktach" disabled={disabled}
-              onChange={event => onChange({ ...value,
-                completionBonusPoints: event.target.value === '' ? null : Number(event.target.value),
-                requiredSuccessPercent: event.target.value === '' ? null : value.requiredSuccessPercent })} />
+              onChange={event => {
+                const completionBonusPoints = event.target.value === '' ? null : Number(event.target.value)
+                const activatesThreshold = completionBonusPoints !== null && Number.isInteger(completionBonusPoints)
+                  && completionBonusPoints >= 1 && completionBonusPoints <= 2147483647
+                if (!activatesThreshold) {
+                  regularityInput.current?.setCustomValidity('')
+                  setRegularityError('')
+                }
+                onChange({ ...value, completionBonusPoints,
+                  requiredSuccessPercent: activatesThreshold ? value.requiredSuccessPercent : null })
+              }} />
             <span className="habit-number-unit" aria-hidden="true">pkt</span>
           </span>
         </label>
-        {hasValidRegularityBonus && <div className="form-field habit-completion-bonus-field">
+        <div className="form-field habit-completion-bonus-field">
           <span className="habit-regularity-label">
             <label className="required-field-label" htmlFor={regularityInputId}>
               <span>Próg</span>
@@ -111,9 +120,10 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
             <InfoTooltipButton message={regularityBonusExplanation(value.requiredSuccessPercent)} />
           </span>
           <span className="habit-number-unit-control">
-            <input id={regularityInputId} type="number" required min="1" max="100" step="1"
+            <input ref={regularityInput} id={regularityInputId} type="number" required={hasValidRegularityBonus}
+              min="1" max="100" step="1"
               value={value.requiredSuccessPercent ?? ''} placeholder="Np. 80"
-              aria-label="Wymagana regularność w procentach" disabled={disabled}
+              aria-label="Wymagana regularność w procentach" disabled={disabled || !hasValidRegularityBonus}
               aria-invalid={regularityError ? 'true' : undefined}
               aria-describedby={regularityError ? regularityErrorId : undefined}
               onInvalid={event => {
@@ -133,7 +143,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
           {regularityError && <small id={regularityErrorId} className="field-error" role="alert">
             {regularityError}
           </small>}
-        </div>}
+        </div>
       </div>}
     </div>
   </fieldset>

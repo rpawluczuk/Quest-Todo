@@ -1172,14 +1172,16 @@
 
 .habit-regularity-settings {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 10px 12px;
   min-width: 0;
 }
 
-.habit-regularity-settings.is-configured {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+.habit-regularity-settings > .form-field > span:first-child {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .habit-end-date-control {
@@ -1224,6 +1226,14 @@
   line-height: 1;
   pointer-events: none;
   transform: translateY(-50%);
+}
+
+.habit-regularity-settings .habit-number-unit-control input {
+  padding-right: 44px;
+}
+
+.habit-regularity-settings .habit-number-unit {
+  right: 12px;
 }
 
 .habit-form select {
@@ -4141,9 +4151,6 @@
     grid-template-columns: repeat(4, minmax(44px, 1fr));
   }
 
-  .habit-regularity-settings.is-configured {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .task-card-due {
