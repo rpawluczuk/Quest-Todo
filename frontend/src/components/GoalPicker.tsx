@@ -117,7 +117,7 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
   }
 
   return <fieldset className="goal-form-picker" disabled={disabled}>
-    <legend>Cele <span>(opcjonalnie)</span></legend>
+    <legend>Cele</legend>
     {loading && <p className="goal-form-picker-status" role="status">Ładowanie celów…</p>}
     {!loading && error && <div className="goal-form-picker-error">
       <p className="form-error" role="alert">{error}</p>

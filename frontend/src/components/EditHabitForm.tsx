@@ -119,7 +119,9 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
         <h2 id={dialogTitleId}>Edytuj nawyk</h2>
         <form className="task-form habit-form habit-dialog-form edit-form" onSubmit={submit}>
           <label className="form-field habit-name-field">
-            <span>Nazwa nawyku</span>
+            <span>
+              Nazwa nawyku <span className="required-field-marker" aria-hidden="true">*</span>
+            </span>
             <input ref={input} value={name} maxLength={120} disabled={saving}
               onChange={event => setName(event.target.value)} required />
           </label>
@@ -132,7 +134,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
               <span>Zmiana obowiązuje od poniedziałku bieżącego tygodnia.</span>
             </p>}
           </div>
-          <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving}
+          <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} showOptionalLabel={false}
             integratedCreateAction onCreateRequest={() => setActiveView('category')} />
           <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
           <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}

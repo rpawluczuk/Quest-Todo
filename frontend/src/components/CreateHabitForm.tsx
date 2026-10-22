@@ -138,7 +138,9 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
         <h2 id={dialogTitleId}>Nowy nawyk</h2>
         <form className="task-form habit-form habit-dialog-form" onSubmit={submit}>
           <label className="form-field habit-name-field">
-            <span>Nazwa nawyku</span>
+            <span>
+              Nazwa nawyku <span className="required-field-marker" aria-hidden="true">*</span>
+            </span>
             <input ref={input} value={name} maxLength={120} disabled={saving}
               onChange={event => setName(event.target.value)} placeholder="Np. Przeczytać 10 stron" required />
           </label>
@@ -146,7 +148,7 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
             <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
             <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
           </div>
-          <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving}
+          <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} showOptionalLabel={false}
             integratedCreateAction onCreateRequest={() => setActiveView('category')} />
           <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
           <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}

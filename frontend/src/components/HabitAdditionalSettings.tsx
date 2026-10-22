@@ -27,7 +27,7 @@ export default function HabitAdditionalSettings({ description, schedule, disable
     </summary>
     <div className="habit-additional-content">
       <label className="form-field task-description-field">
-        <span>Opis / notatki (opcjonalnie)</span>
+        <span>Opis / notatki</span>
         <AutoResizeTextarea value={description} disabled={disabled}
           onChange={event => onDescriptionChange(event.target.value)} />
       </label>

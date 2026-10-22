@@ -31,13 +31,13 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
     {lockMessage && <p className="habit-ending-lock-message" role="note">{lockMessage}</p>}
     <div className="habit-schedule-inputs">
       <label className="form-field">
-        <span>Od kiedy</span>
+        <span>Od kiedy <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="date" required value={value.startDate} disabled={disabled}
           onChange={event => onChange({ ...value, startDate: event.target.value })} />
       </label>
       <label className="form-field">
-        <span>Data zakończenia</span>
-        <select value={displayedMode} disabled={disabled} onChange={event => {
+        <span>Data zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <select value={displayedMode} disabled={disabled} required onChange={event => {
           const next = event.target.value as typeof mode
           setMode(next)
           onChange({ ...value, endDate: next === 'date' ? value.startDate : null,
@@ -50,12 +50,12 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         </select>
       </label>
       {displayedMode === 'date' && <label className="form-field">
-        <span>Ostatni dzień</span>
+        <span>Ostatni dzień <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="date" required min={value.startDate} value={value.endDate ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, endDate: event.target.value || null })} />
       </label>}
       {displayedMode === 'count' && <label className="form-field">
-        <span>Łączna liczba wykonań</span>
+        <span>Łączna liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="number" required min="1" max="2147483647" step="1" value={value.completionLimit ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
@@ -68,7 +68,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
             requiredSuccessPercent: event.target.value === '' || displayedMode !== 'date' ? null : value.requiredSuccessPercent })} />
       </label>}
       {displayedMode === 'date' && value.completionBonusPoints !== null && <label className="form-field habit-completion-bonus-field">
-        <span>Wymagana regularność (%)</span>
+        <span>Wymagana regularność (%) <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="number" required min="1" max="100" step="1" value={value.requiredSuccessPercent ?? ''}
           disabled={disabled} onChange={event => onChange({ ...value,
             requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />

@@ -8,7 +8,9 @@ export default function HabitPointsField({ value, onChange, disabled }: {
   const message = 'Punkty otrzymasz po osiągnięciu celu tygodniowego'
   return <div className="form-field habit-points-field">
     <span className="habit-points-label">
-      <label htmlFor={inputId}>Punkty</label>
+      <label htmlFor={inputId}>
+        Punkty <span className="required-field-marker" aria-hidden="true">*</span>
+      </label>
       <button type="button" className={`habit-points-info${tooltipOpen ? ' habit-points-info-open' : ''}`}
         aria-label={message} aria-expanded={tooltipOpen} data-tooltip={message}
         onClick={() => setTooltipOpen(open => !open)} onBlur={() => setTooltipOpen(false)}>
