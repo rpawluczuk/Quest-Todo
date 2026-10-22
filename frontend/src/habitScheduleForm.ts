@@ -22,3 +22,10 @@ export function regularityBonusExplanation(requiredSuccessPercent: number | null
     ? 'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w wymaganym procencie tygodni.'
     : `Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w co najmniej ${requiredSuccessPercent}% tygodni.`
 }
+
+export function regularityValidationMessage(requiredSuccessPercent: number | null): string {
+  if (requiredSuccessPercent === null) return 'Podaj wymaganą regularność'
+  return Number.isInteger(requiredSuccessPercent) && requiredSuccessPercent >= 1 && requiredSuccessPercent <= 100
+    ? ''
+    : 'Wpisz wartość od 1 do 100%'
+}

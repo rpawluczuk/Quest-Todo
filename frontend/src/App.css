@@ -1166,6 +1166,10 @@
   box-sizing: border-box;
 }
 
+.habit-completion-bonus-start {
+  margin-top: 8px;
+}
+
 .habit-end-date-control {
   position: relative;
   display: block;
@@ -1250,7 +1254,9 @@
 }
 
 .habit-form .task-description-field textarea {
-  min-height: 72px;
+  min-height: calc(3em + 22px);
+  max-height: calc(9em + 22px);
+  overflow-y: auto;
 }
 
 .task.habit-card {

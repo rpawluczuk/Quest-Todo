@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
-import { habitEndMode, regularityBonusExplanation, scheduleWithEndMode, type HabitEndMode } from '../habitScheduleForm'
+import { habitEndMode, regularityBonusExplanation, regularityValidationMessage, scheduleWithEndMode,
+  type HabitEndMode } from '../habitScheduleForm'
 import type { HabitSchedule } from '../types/Habit'
 import FormSelect, { FormSelectItem } from './FormSelect'
 import InfoTooltipButton from './InfoTooltipButton'
@@ -15,16 +16,18 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
 }) {
   const [mode, setMode] = useState(() => habitEndMode(value))
   const [endDateError, setEndDateError] = useState('')
+  const [regularityError, setRegularityError] = useState('')
   const previousEndDate = useRef(value.endDate)
   const endDateErrorId = useId()
   const regularityInputId = useId()
+  const regularityErrorId = useId()
   const displayedMode = lockMessage ? habitEndMode(value) : mode
   return <fieldset className="habit-schedule-fields">
     <legend><span>Okres trwania</span></legend>
     {lockMessage && <p className="habit-ending-lock-message" role="note">{lockMessage}</p>}
     <div className="habit-schedule-inputs">
       <label className="form-field">
-        <span>Od kiedy <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <span>Data rozpoczęcia <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="date" required value={value.startDate} disabled={disabled}
           onChange={event => onChange({ ...value, startDate: event.target.value })} />
       </label>
@@ -73,7 +76,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
       </label>}
-      {displayedMode !== 'none' && <label className="form-field habit-completion-bonus-field">
+      {displayedMode !== 'none' && <label className="form-field habit-completion-bonus-field habit-completion-bonus-start">
         <span>{displayedMode === 'date' ? 'Premia za regularność' : 'Premia za ukończenie'}</span>
         <span className="habit-number-unit-control">
           <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
@@ -94,11 +97,27 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         </span>
         <span className="habit-number-unit-control">
           <input id={regularityInputId} type="number" required min="1" max="100" step="1"
-            value={value.requiredSuccessPercent ?? ''}
-            aria-label="Wymagana regularność w procentach" disabled={disabled} onChange={event => onChange({ ...value,
-              requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />
+            value={value.requiredSuccessPercent ?? ''} placeholder="Np. 80"
+            aria-label="Wymagana regularność w procentach" disabled={disabled}
+            aria-invalid={regularityError ? 'true' : undefined}
+            aria-describedby={regularityError ? regularityErrorId : undefined}
+            onInvalid={event => {
+              const enteredValue = event.currentTarget.value === '' ? null : Number(event.currentTarget.value)
+              const message = regularityValidationMessage(enteredValue)
+              event.currentTarget.setCustomValidity(message)
+              setRegularityError(message)
+            }}
+            onChange={event => {
+              const requiredSuccessPercent = event.target.value === '' ? null : Number(event.target.value)
+              event.target.setCustomValidity('')
+              setRegularityError('')
+              onChange({ ...value, requiredSuccessPercent })
+            }} />
           <span className="habit-number-unit" aria-hidden="true">%</span>
         </span>
+        {regularityError && <small id={regularityErrorId} className="field-error" role="alert">
+          {regularityError}
+        </small>}
       </div>}
     </div>
   </fieldset>

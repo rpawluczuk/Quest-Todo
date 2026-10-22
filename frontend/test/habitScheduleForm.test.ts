@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { habitEndMode, regularityBonusExplanation, scheduleWithEndMode } from '../src/habitScheduleForm.ts'
+import { habitEndMode, regularityBonusExplanation, regularityValidationMessage,
+  scheduleWithEndMode } from '../src/habitScheduleForm.ts'
 import type { HabitSchedule } from '../src/types/Habit.ts'
 
 const schedule: HabitSchedule = {
@@ -62,4 +63,13 @@ test('explains the regularity bonus with and without a selected threshold', () =
     'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w wymaganym procencie tygodni.')
   assert.equal(regularityBonusExplanation(80),
     'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w co najmniej 80% tygodni.')
+})
+
+test('validates the required regularity as a whole percentage from 1 to 100', () => {
+  assert.equal(regularityValidationMessage(null), 'Podaj wymaganą regularność')
+  assert.equal(regularityValidationMessage(0), 'Wpisz wartość od 1 do 100%')
+  assert.equal(regularityValidationMessage(50.5), 'Wpisz wartość od 1 do 100%')
+  assert.equal(regularityValidationMessage(101), 'Wpisz wartość od 1 do 100%')
+  assert.equal(regularityValidationMessage(1), '')
+  assert.equal(regularityValidationMessage(100), '')
 })
