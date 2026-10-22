@@ -247,34 +247,31 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
     }
   }
 
+  const editingHabit = editingId === null ? null : habits.find(habit => habit.id === editingId) ?? null
+
   return (
     <>
       {loading && <p role="status">Ładowanie nawyków…</p>}
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
       {!loading && (!loadError || habits.length > 0) && <>
-        <div className={allHabitIds.length === 0 ? 'habit-create-container task-empty-state task-empty-state-prominent' : 'habit-create-container'}>
-          {allHabitIds.length === 0 && <>
-            <span className="task-empty-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3" />
-              </svg>
-            </span>
-            <p className="empty-state">Nie masz jeszcze nawyków. Dodaj pierwszy i zacznij budować regularność!</p>
-          </>}
-          <CreateHabitForm ref={createHabitForm} onAdd={add} />
-        </div>
+        {allHabitIds.length === 0 && <div className="habit-create-container task-empty-state task-empty-state-prominent">
+          <span className="task-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3" />
+            </svg>
+          </span>
+          <p className="empty-state">Nie masz jeszcze nawyków. Dodaj pierwszy i zacznij budować regularność!</p>
+        </div>}
+        <CreateHabitForm ref={createHabitForm} onAdd={add} />
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {groups.map(group => {
           const items = sortHabitsForDay(habits.filter(habit => habit.status === group.status
             && (group.dayGroup === undefined || habitDayGroup(habit) === group.dayGroup)))
           if (!items.length) return null
           const list = <ul className="task-list habit-group-list">
-          {items.map(habit => <li className={`task habit-card${editingId === habit.id ? ' habit-card-editing' : ''}${hasReachedWeeklyTarget(habit) ? ' habit-card-achieved' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
+          {items.map(habit => <li className={`task habit-card${hasReachedWeeklyTarget(habit) ? ' habit-card-achieved' : ''}${habit.description && editingId === null && !busy ? ' task-card-has-note' : ''}`}
             key={habit.id} onClick={event => handleCardClick(event, habit)}>
-            {editingId === habit.id ? <EditHabitForm habit={habit}
-              onSave={(name, targetDays, points, description, schedule, categoryId, goalIds) =>
-                save(habit.id, name, targetDays, points, description, schedule, categoryId, goalIds)} onCancel={() => setEditingId(null)} /> : <>
-              <label className="task-card-check">
+            <label className="task-card-check">
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || editingId !== null || !canToggleHabit(habit)}
                   aria-label={`${habit.name} — ${displayDate.format(dateFromKey(date))}`}
@@ -341,11 +338,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                 </div>}
                 </div>
               </div>
-              {habit.description && <>
-                {expandedDescriptions.has(habit.id) && habit.category && <CategoryCardDetail category={habit.category} />}
-                <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
-                  hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>
-              </>}
+            {habit.description && <>
+              {expandedDescriptions.has(habit.id) && habit.category && <CategoryCardDetail category={habit.category} />}
+              <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
+                hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>
             </>}
           </li>)}
           </ul>
@@ -360,6 +356,10 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
             {list}
           </section>
         })}
+        {editingHabit && <EditHabitForm habit={editingHabit}
+          onSave={(name, targetDays, points, description, schedule, categoryId, goalIds) =>
+            save(editingHabit.id, name, targetDays, points, description, schedule, categoryId, goalIds)}
+          onCancel={() => setEditingId(null)} />}
         {deletingId !== null && <p className="reward-status" role="status">Usuwanie nawyku…</p>}
         {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
         {savingCompletionId !== null && <p role="status">Zapisywanie wykonania…</p>}

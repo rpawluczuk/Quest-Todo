@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { getGoals } from '../api/goalApi'
 import type { Goal } from '../types/Goal'
 
@@ -14,8 +14,7 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
   const [open, setOpen] = useState(false)
-  const [openAbove, setOpenAbove] = useState(false)
-  const [popoverMaxHeight, setPopoverMaxHeight] = useState(280)
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({})
   const picker = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const firstOption = useRef<HTMLInputElement>(null)
@@ -33,6 +32,25 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
       : selectedGoals.length === 2 && firstTwo.length <= 34
         ? { name: firstTwo, suffix: '' }
         : { name: selectedGoals[0].title, suffix: `+${selectedGoals.length - 1}` }
+
+  const positionPopover = useCallback(() => {
+    const bounds = trigger.current?.getBoundingClientRect()
+    if (!bounds) return
+    const viewportMargin = 12
+    const triggerGap = 4
+    const width = Math.min(bounds.width, window.innerWidth - viewportMargin * 2)
+    const preferredHeight = Math.min(280, window.innerHeight * 0.45)
+    const expectedHeight = Math.min(preferredHeight, Math.max(52, goals.length * 44 + 8))
+    const roomBelow = window.innerHeight - bounds.bottom - viewportMargin
+    const roomAbove = bounds.top - viewportMargin
+    const openAbove = roomBelow < expectedHeight + triggerGap && roomAbove > roomBelow
+    const availableHeight = Math.max(44, (openAbove ? roomAbove : roomBelow) - triggerGap)
+    const maxHeight = Math.min(preferredHeight, availableHeight)
+    const actualHeight = Math.min(expectedHeight, maxHeight)
+    const top = openAbove ? bounds.top - actualHeight - triggerGap : bounds.bottom + triggerGap
+    const left = Math.max(viewportMargin, Math.min(bounds.left, window.innerWidth - width - viewportMargin))
+    setPopoverStyle({ top, left, width, maxHeight })
+  }, [goals.length])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -63,12 +81,16 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
     document.addEventListener('pointerdown', closeWhenOutside)
     document.addEventListener('focusin', closeWhenOutside)
     document.addEventListener('keydown', closeOnEscape)
+    window.addEventListener('resize', positionPopover)
+    window.addEventListener('scroll', positionPopover, true)
     return () => {
       document.removeEventListener('pointerdown', closeWhenOutside)
       document.removeEventListener('focusin', closeWhenOutside)
       document.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener('resize', positionPopover)
+      window.removeEventListener('scroll', positionPopover, true)
     }
-  }, [open])
+  }, [open, positionPopover])
 
   useEffect(() => {
     // The picker must not reopen with stale state if saving finishes with an error.
@@ -83,17 +105,7 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
   }
 
   function toggleOpen() {
-    if (!open) {
-      const bounds = trigger.current?.getBoundingClientRect()
-      if (bounds) {
-        const roomBelow = window.innerHeight - bounds.bottom
-        const preferredHeight = Math.min(280, window.innerHeight * 0.45)
-        const shouldOpenAbove = roomBelow < preferredHeight && bounds.top > roomBelow
-        const availableHeight = (shouldOpenAbove ? bounds.top : roomBelow) - 12
-        setOpenAbove(shouldOpenAbove)
-        setPopoverMaxHeight(Math.max(44, Math.min(preferredHeight, availableHeight)))
-      }
-    }
+    if (!open) positionPopover()
     setOpen(value => !value)
   }
 
@@ -127,9 +139,8 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
           <svg viewBox="0 0 20 20"><path d="m5 7.5 5 5 5-5" /></svg>
         </span>
       </button>
-      {open && <div id={listId}
-        className={`goal-multiselect-popover${openAbove ? ' goal-multiselect-popover-above' : ''}`}
-        style={{ maxHeight: popoverMaxHeight }} role="dialog" aria-label="Wybierz cele">
+      {open && <div id={listId} className="goal-multiselect-popover"
+        style={popoverStyle} role="dialog" aria-label="Wybierz cele">
         {goals.length === 0
           ? <p className="goal-multiselect-empty">Nie masz jeszcze celów do przypięcia.</p>
           : goals.map((goal, index) => {
