@@ -7,6 +7,7 @@ import HabitAdditionalSettings from './HabitAdditionalSettings'
 import GoalPicker from './GoalPicker'
 import CategoryPicker from './CategoryPicker'
 import { completionConditionsMessage } from '../habitBonus'
+import { Info } from 'lucide-react'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
@@ -28,6 +29,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
   const input = useRef<HTMLInputElement>(null)
   const wasLocked = useRef(habit.completionBonusConditionsLocked)
   const conditionsLocked = habit.completionBonusConditionsLocked
+  const initialTargetDays = habit.latestTarget?.targetDays ?? 7
 
   useEffect(() => { input.current?.focus() }, [])
   useEffect(() => {
@@ -68,14 +70,17 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} required />
     </label>
-    <HabitTargetField value={targetDays} onChange={setTargetDays}
-      disabled={saving || habit.completionBonusTargetLocked} />
-    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <div className="habit-primary-settings">
+      <HabitTargetField value={targetDays} onChange={setTargetDays}
+        disabled={saving || habit.completionBonusTargetLocked} />
+      <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+      {targetDays !== initialTargetDays && <p className="habit-target-hint">
+        <Info aria-hidden="true" />
+        <span>Zmiana obowiązuje od poniedziałku bieżącego tygodnia.</span>
+      </p>}
+    </div>
     <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} integratedCreateAction />
     <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
-    <p className="habit-target-hint">
-      Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
-    </p>
     <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
       scheduleDisabled={saving || conditionsLocked} lockMessage={completionConditionsMessage(habit)}
       onDescriptionChange={setDescription} onScheduleChange={setSchedule} />

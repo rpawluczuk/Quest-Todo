@@ -88,8 +88,10 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} placeholder="Np. Przeczytać 10 stron" required />
     </label>
-    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
-    <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    <div className="habit-primary-settings">
+      <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+      <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
+    </div>
     <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} integratedCreateAction />
     <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
     <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}

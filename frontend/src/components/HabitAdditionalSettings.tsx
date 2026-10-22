@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import AutoResizeTextarea from './AutoResizeTextarea'
 import HabitScheduleFields from './HabitScheduleFields'
 import type { HabitSchedule } from '../types/Habit'
@@ -12,10 +14,16 @@ export default function HabitAdditionalSettings({ description, schedule, disable
   onDescriptionChange: (description: string) => void
   onScheduleChange: (schedule: HabitSchedule) => void
 }) {
-  return <details className="habit-additional-settings">
-    <summary>
-      <span>Dodatkowe ustawienia</span>
-      <small>Opis, okres trwania</small>
+  const [expanded, setExpanded] = useState(false)
+
+  return <details className="habit-additional-settings" open={expanded}
+    onToggle={event => setExpanded(event.currentTarget.open)}>
+    <summary aria-expanded={expanded}>
+      <ChevronRight className="habit-additional-chevron" aria-hidden="true" />
+      <span className="habit-additional-labels">
+        <span className="habit-additional-title">Dodatkowe ustawienia</span>
+        <small>Opis, okres trwania, premia końcowa</small>
+      </span>
     </summary>
     <div className="habit-additional-content">
       <label className="form-field task-description-field">

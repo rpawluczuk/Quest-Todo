@@ -949,13 +949,22 @@
 
 .habit-form .habit-name-field,
 .habit-form .habit-additional-settings,
-.habit-form .habit-target-hint,
+.habit-form .habit-primary-settings,
 .habit-form .task-actions {
   grid-column: 1 / -1;
 }
 
-.habit-form .habit-frequency-field { grid-column: 1; }
-.habit-form .habit-points-field { grid-column: 2; }
+.habit-primary-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  align-items: end;
+  column-gap: 12px;
+  row-gap: 6px;
+  min-width: 0;
+}
+
+.habit-primary-settings .habit-frequency-field { grid-column: 1; }
+.habit-primary-settings .habit-points-field { grid-column: 2; }
 
 .habit-points-label {
   display: flex;
@@ -1030,20 +1039,50 @@
 }
 
 .habit-additional-settings > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px 0;
+  list-style: none;
   cursor: pointer;
   color: var(--color-primary);
-  padding: 8px 0;
-  min-height: 44px;
 }
 
-.habit-additional-settings > summary > span {
+.habit-additional-settings > summary::-webkit-details-marker { display: none; }
+.habit-additional-settings > summary::marker { content: ''; }
+
+.habit-additional-chevron {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+  transition: transform 150ms ease;
+}
+
+.habit-additional-settings[open] > summary .habit-additional-chevron {
+  transform: rotate(90deg);
+}
+
+.habit-additional-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.habit-additional-title {
   display: block;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .habit-additional-settings > summary small {
   display: block;
-  margin: 3px 0 0 2px;
+  margin-top: 2px;
   color: #767080;
   font-size: 0.78rem;
   line-height: 1.35;
@@ -1127,11 +1166,25 @@
 }
 
 .habit-target-hint {
-  display: block;
-  margin: 4px 0 0;
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0;
   color: #625b70;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.habit-target-hint svg {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--color-primary-muted);
+  stroke-width: 1.8;
 }
 
 .habit-form .task-description-field textarea {
@@ -3910,12 +3963,13 @@
     gap: 12px 10px;
   }
 
-  .habit-form .habit-name-field {
-    grid-column: 1 / -1;
+  .habit-primary-settings {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    column-gap: 10px;
   }
 
-  .habit-form .habit-points-field {
-    grid-column: 2;
+  .habit-form .habit-name-field {
+    grid-column: 1 / -1;
   }
 
   .habit-form .habit-form-actions {
