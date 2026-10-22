@@ -969,8 +969,16 @@
 .habit-points-label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-height: 24px;
+}
+
+.required-field-label {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .habit-frequency-field > span {
@@ -982,14 +990,17 @@
 .task-form .habit-points-info {
   position: relative;
   display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 24px;
-  min-height: 24px;
+  place-items: center start;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin-block: -4px;
+  margin-right: -14px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-primary-muted);
+  color: #625b70;
   cursor: help;
 }
 
@@ -1000,8 +1011,9 @@
 }
 
 .habit-points-info svg {
-  width: 17px;
-  height: 17px;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .habit-points-info::after {

@@ -14,8 +14,9 @@ export default function HabitTargetField({ value, onChange, disabled }: {
   const selectedLabel = targetOptions.find(option => option.days === value)?.label ?? targetLabel(value)
 
   return <div className="form-field habit-frequency-field">
-    <span>
-      Cel tygodniowy <span className="required-field-marker" aria-hidden="true">*</span>
+    <span className="required-field-label">
+      <span>Cel tygodniowy</span>
+      <span className="required-field-marker" aria-hidden="true">*</span>
     </span>
     <FormSelect value={String(value)} onValueChange={selected => onChange(Number(selected))}
       disabled={disabled} required ariaLabel="Cel tygodniowy" triggerContent={<span>{selectedLabel}</span>}>
