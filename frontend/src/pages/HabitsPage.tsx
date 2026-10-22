@@ -325,7 +325,9 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
                   || habit.status === 'UPCOMING' || (habit.endDate !== null && habit.completionBonusPoints === null)
                   || (habit.status === 'FINISHED' && habit.endedOn && habit.endReason)) && <div className="habit-extra-meta">
                   {habit.completionLimit !== null && habit.completionBonusPoints === null && <small className="habit-total-progress">
-                    Wykonania: {habit.totalCompletions}/{habit.completionLimit}
+                    <span className="habit-total-progress-count">{habit.totalCompletions}/{habit.completionLimit}</span>
+                    {' '}
+                    <span>wykonań</span>
                   </small>}
                   {habit.status === 'UPCOMING' && <small className="habit-schedule-meta">
                     <HabitCalendarIcon />Od {displayDate.format(dateFromKey(habit.startDate))}

@@ -100,9 +100,10 @@ function TaskItem({
   }
 
   return (
-    <li ref={card} className={`task-card task-card-${variant}${isEditing ? ' task-card-editing' : ''}${task.description && !disabled ? ' task-card-has-note' : ''}`}
+    <li ref={card} className={`task-card task-card-${variant}${task.description && !disabled ? ' task-card-has-note' : ''}`}
       aria-busy={isSaving} onClick={handleCardClick}>
-      {isEditing ? <EditTaskForm task={task} onSave={saveDetails} onCancel={onCancel} /> : <>
+      {isEditing && <EditTaskForm task={task} onSave={saveDetails} onCancel={onCancel} />}
+      <>
           {(variant === 'focus' || variant === 'completed') && (
             <label className="task-card-leading-control task-card-check" htmlFor={checkboxId}>
               <input
@@ -177,7 +178,7 @@ function TaskItem({
             {descriptionExpanded && task.category && <CategoryCardDetail category={task.category} />}
             <p id={descriptionId} className="task-card-description" hidden={!descriptionExpanded}>{task.description}</p>
           </>}
-      </>}
+      </>
       {isSaving && <span className="task-card-status" role="status">Zapisywanie…</span>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </li>

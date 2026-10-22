@@ -1415,13 +1415,16 @@
 }
 
 .habit-total-progress {
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary-status-strong);
-  font-size: 0.8rem !important;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #625b70;
+  font-size: 0.875rem !important;
   font-variant-numeric: tabular-nums;
+}
+
+.habit-total-progress-count {
+  font-weight: 600;
 }
 
 .habit-schedule-meta {
@@ -3645,11 +3648,6 @@
 .task-card-priority-action:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-
-.task-card-editing {
-  display: block;
-  padding: 12px;
 }
 
 .task-card-status,
