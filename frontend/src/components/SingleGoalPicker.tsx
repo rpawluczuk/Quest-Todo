@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import * as Select from '@radix-ui/react-select'
 import { getGoals } from '../api/goalApi'
 import type { Goal } from '../types/Goal'
+import FormSelect, { FormSelectItem } from './FormSelect'
 
 type SingleGoalPickerProps = {
   readonly selectedId: number | null
@@ -16,7 +16,6 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(undefined)
   const dropdownTrigger = useRef<HTMLButtonElement>(null)
 
   const selected = useMemo(
@@ -47,42 +46,20 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
         setRetry(value => value + 1)
       }}>Spróbuj ponownie</button>
     </div>}
-    {!loading && !error && <Select.Root
-      onOpenChange={open => {
-        if (open) setPortalContainer(dropdownTrigger.current?.closest('dialog') ?? undefined)
-      }}
+    {!loading && !error && <FormSelect
+      ref={dropdownTrigger}
       value={selectedId === null ? noGoalValue : String(selectedId)}
       disabled={disabled}
+      ariaLabel="Wybierz cel"
+      triggerClassName="goal-select-trigger"
+      contentClassName="goal-select-content"
+      triggerContent={<span>{selected?.title ?? 'Bez celu'}</span>}
       onValueChange={value => onChange(value === noGoalValue ? null : Number(value))}
     >
-      <Select.Trigger ref={dropdownTrigger} className="category-select-trigger goal-select-trigger" aria-label="Wybierz cel">
-        <span className="category-select-trigger-value">
-          <Select.Value>{selected?.title ?? 'Bez celu'}</Select.Value>
-        </span>
-        <Select.Icon className="category-select-chevron">
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
-        </Select.Icon>
-      </Select.Trigger>
-      <Select.Portal container={portalContainer}>
-        <Select.Content className="category-select-content goal-select-content" position="popper" sideOffset={4}
-          collisionPadding={12}>
-          <Select.Viewport className="category-select-viewport">
-            <Select.Item className="category-select-item goal-select-item" value={noGoalValue}>
-              <Select.ItemText>Bez celu</Select.ItemText>
-              <Select.ItemIndicator className="category-select-indicator" aria-hidden="true">
-                <svg viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-8" /></svg>
-              </Select.ItemIndicator>
-            </Select.Item>
-            {goals.map(goal => <Select.Item className="category-select-item goal-select-item" key={goal.id}
-              value={String(goal.id)}>
-              <Select.ItemText>{goal.title}</Select.ItemText>
-              <Select.ItemIndicator className="category-select-indicator" aria-hidden="true">
-                <svg viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-8" /></svg>
-              </Select.ItemIndicator>
-            </Select.Item>)}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>}
+      <FormSelectItem className="goal-select-item" value={noGoalValue}>Bez celu</FormSelectItem>
+      {goals.map(goal => <FormSelectItem className="goal-select-item" key={goal.id} value={String(goal.id)}>
+        {goal.title}
+      </FormSelectItem>)}
+    </FormSelect>}
   </fieldset>
 }

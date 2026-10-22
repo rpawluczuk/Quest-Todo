@@ -1,5 +1,12 @@
 import { useState } from 'react'
 import type { HabitSchedule } from '../types/Habit'
+import FormSelect, { FormSelectItem } from './FormSelect'
+
+const modeLabels = {
+  none: 'Bezterminowo',
+  date: 'W określonym dniu',
+  count: 'Po określonej liczbie wykonań',
+} as const
 
 function scheduleMode(value: HabitSchedule): 'none' | 'date' | 'count' {
   return value.endDate ? 'date' : value.completionLimit !== null ? 'count' : 'none'
@@ -19,20 +26,22 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         <input type="date" required value={value.startDate} disabled={disabled}
           onChange={event => onChange({ ...value, startDate: event.target.value })} />
       </label>
-      <label className="form-field">
+      <div className="form-field">
         <span>Sposób zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
-        <select value={displayedMode} disabled={disabled} required onChange={event => {
-          const next = event.target.value as typeof mode
+        <FormSelect value={displayedMode} disabled={disabled} required ariaLabel="Sposób zakończenia"
+          triggerContent={<span>{modeLabels[displayedMode]}</span>} onValueChange={selectedMode => {
+          const next = selectedMode as typeof mode
           setMode(next)
           onChange({ ...value, endDate: next === 'date' ? value.startDate : null,
             completionLimit: next === 'count' ? 30 : null,
             completionBonusPoints: null, requiredSuccessPercent: null })
         }}>
-          <option value="none">Bezterminowo</option>
-          <option value="date">W określonym dniu</option>
-          <option value="count">Po określonej liczbie wykonań</option>
-        </select>
-      </label>
+          {(Object.keys(modeLabels) as Array<keyof typeof modeLabels>).map(option =>
+            <FormSelectItem className="goal-select-item" key={option} value={option}>
+              {modeLabels[option]}
+            </FormSelectItem>)}
+        </FormSelect>
+      </div>
       {displayedMode === 'date' && <label className="form-field">
         <span>Data zakończenia <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="date" required min={value.startDate} value={value.endDate ?? ''} disabled={disabled}
