@@ -90,7 +90,7 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
     </label>
     <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
-    <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} />
+    <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} integratedCreateAction />
     <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
     <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
       onDescriptionChange={setDescription} onScheduleChange={setSchedule} />

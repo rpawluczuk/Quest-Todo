@@ -71,7 +71,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
     <HabitTargetField value={targetDays} onChange={setTargetDays}
       disabled={saving || habit.completionBonusTargetLocked} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
-    <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} />
+    <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} integratedCreateAction />
     <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
     <p className="habit-target-hint">
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
