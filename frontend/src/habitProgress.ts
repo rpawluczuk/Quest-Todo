@@ -16,11 +16,8 @@ export function withOptimisticCompletion(habit: Habit, completed: boolean): Habi
 }
 
 export function earnedCompletionBonus(previous: Habit, current: Habit): number | null {
-  const limit = current.completionLimit
-  const bonus = current.completionBonusPoints
-  return previous.id === current.id && !previous.completed && current.completed
-    && limit !== null && bonus !== null
-    && previous.totalCompletions < limit && current.totalCompletions >= limit ? bonus : null
+  return previous.id === current.id && !previous.completionBonusGranted && current.completionBonusGranted
+    ? current.completionBonusAwardPoints : null
 }
 
 export type HabitDayGroup = 'PENDING' | 'COMPLETED_TODAY' | 'TARGET_REACHED'

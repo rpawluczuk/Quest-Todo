@@ -6,6 +6,7 @@ import HabitPointsField from './HabitPointsField'
 import HabitAdditionalSettings from './HabitAdditionalSettings'
 import GoalPicker from './GoalPicker'
 import CategoryPicker from './CategoryPicker'
+import { completionConditionsMessage } from '../habitBonus'
 
 export default function EditHabitForm({ habit, onSave, onCancel }: {
   habit: Habit
@@ -25,8 +26,24 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const input = useRef<HTMLInputElement>(null)
+  const wasLocked = useRef(habit.completionBonusConditionsLocked)
+  const conditionsLocked = habit.completionBonusConditionsLocked
 
   useEffect(() => { input.current?.focus() }, [])
+  useEffect(() => {
+    if (!wasLocked.current && conditionsLocked) {
+      // A 409 refresh can lock financial fields while allowed draft fields stay untouched.
+      // oxlint-disable-next-line react/set-state-in-effect
+      setSchedule({ startDate: habit.startDate, endDate: habit.endDate,
+        completionLimit: habit.completionLimit, completionBonusPoints: habit.completionBonusPoints,
+        requiredSuccessPercent: habit.requiredSuccessPercent })
+      if (habit.completionBonusTargetLocked) {
+        // oxlint-disable-next-line react/set-state-in-effect
+        setTargetDays(habit.latestTarget?.targetDays ?? 7)
+      }
+    }
+    wasLocked.current = conditionsLocked
+  }, [conditionsLocked, habit])
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,7 +68,8 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
       <input ref={input} value={name} maxLength={120} disabled={saving}
         onChange={event => setName(event.target.value)} required />
     </label>
-    <HabitTargetField value={targetDays} onChange={setTargetDays} disabled={saving} />
+    <HabitTargetField value={targetDays} onChange={setTargetDays}
+      disabled={saving || habit.completionBonusTargetLocked} />
     <HabitPointsField value={rewardPoints} onChange={setRewardPoints} disabled={saving} />
     <CategoryPicker selectedId={categoryId} onChange={setCategoryId} disabled={saving} />
     <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
@@ -59,6 +77,7 @@ export default function EditHabitForm({ habit, onSave, onCancel }: {
       Zmiana częstotliwości obowiązuje od poniedziałku bieżącego tygodnia, niezależnie od wybranego dnia.
     </p>
     <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
+      scheduleDisabled={saving || conditionsLocked} lockMessage={completionConditionsMessage(habit)}
       onDescriptionChange={setDescription} onScheduleChange={setSchedule} />
     <div className="task-actions habit-form-actions">
       <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>

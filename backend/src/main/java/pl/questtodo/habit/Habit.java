@@ -13,20 +13,23 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                     List<Long> goalIds,
                     List<String> goalTitles, HabitRegularity regularity,
                     boolean completionBonusGranted, LocalDate completionBonusSettledOn,
-                    Boolean completionBonusEverGranted, boolean completionBonusConditionsLocked, Integer completionBonusAwardPoints) {
+                    Boolean completionBonusEverGranted, boolean completionBonusConditionsLocked,
+                    boolean completionBonusTargetLocked, Integer completionBonusAwardPoints) {
     public Habit withGoals(List<Long> ids, List<String> titles) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category, List.copyOf(ids), List.copyOf(titles),
                 regularity, completionBonusGranted, completionBonusSettledOn,
-                completionBonusEverGranted, completionBonusConditionsLocked, completionBonusAwardPoints);
+                completionBonusEverGranted, completionBonusConditionsLocked,
+                completionBonusTargetLocked, completionBonusAwardPoints);
     }
     public Habit withCompletionBonus(HabitRegularity regularity, boolean granted, LocalDate settledOn,
-            Boolean everGranted, boolean locked, Integer awardPoints) {
+            Boolean everGranted, boolean locked, boolean targetLocked, Integer awardPoints) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
-                endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn, everGranted, locked, awardPoints);
+                endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn,
+                everGranted, locked, targetLocked, awardPoints);
     }
 }

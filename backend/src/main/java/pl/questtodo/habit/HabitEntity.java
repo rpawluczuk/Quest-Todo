@@ -108,7 +108,7 @@ public class HabitEntity {
                 weeklyRewardGranted, description, getStartDate(), endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category == null ? null : category.toCategory(),
-                java.util.List.of(), java.util.List.of(), null, false, null, false, false, null);
+                java.util.List.of(), java.util.List.of(), null, false, null, false, false, false, null);
     }
 
     public long getId() { return id; }

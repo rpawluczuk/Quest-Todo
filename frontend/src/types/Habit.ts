@@ -16,6 +16,10 @@ export type Habit = HabitSchedule & {
   readonly regularity: { successfulWeeks: number; totalWeeks: number; successPercent: number | null } | null
   readonly completionBonusGranted: boolean
   readonly completionBonusSettledOn: string | null
+  readonly completionBonusEverGranted: boolean | null
+  readonly completionBonusConditionsLocked: boolean
+  readonly completionBonusTargetLocked: boolean
+  readonly completionBonusAwardPoints: number | null
   readonly totalCompletions: number
   readonly status: 'ACTIVE' | 'UPCOMING' | 'FINISHED'
   readonly id: number

@@ -17,6 +17,7 @@ import { sortActiveTasks } from './taskSorting'
 import './App.css'
 import type { Theme } from './theme'
 import type { CategoryMutation } from './categoryEvents'
+import { createRefreshGate } from './habitBonus'
 
 type AppProps = {
   onThemeChange: (theme: Theme) => Promise<void>
@@ -37,6 +38,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const [taskRevision, setTaskRevision] = useState(0)
   const [habitGoalRevision, setHabitGoalRevision] = useState(0)
   const [categoryRevision, setCategoryRevision] = useState(0)
+  const [habitSyncRevision, setHabitSyncRevision] = useState(0)
   const [lastCompletedTask, setLastCompletedTask] = useState<Task | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardsLoading, setRewardsLoading] = useState(true)
@@ -50,6 +52,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const [buying, setBuying] = useState(false)
   const buyingRef = useRef(false)
   const accountRequest = useRef(0)
+  const [externalRefresh] = useState(() => createRefreshGate(10_000, Date.now()))
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const completionRequests = useRef(new Set<number>())
   function refreshTaskGoalLinks() {
@@ -76,18 +79,19 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     setCategoryRevision(value => value + 1)
   }
 
-  async function refreshAccount(signal?: AbortSignal) {
+  async function refreshAccount(signal?: AbortSignal, includePurchases = true) {
     const request = ++accountRequest.current
     try {
-      const [user, history] = await Promise.all([getUser(signal), getPurchases(signal)])
+      const [user, history] = includePurchases
+        ? await Promise.all([getUser(signal), getPurchases(signal)])
+        : [await getUser(signal), null]
       if (!signal?.aborted && request === accountRequest.current) {
         setPoints(user.points)
-        setPurchases(history)
+        if (history) setPurchases(history)
         setAccountError('')
       }
     } catch {
       if (!signal?.aborted && request === accountRequest.current) {
-        setPoints(null)
         setAccountError('Nie udało się odświeżyć salda i zakupów. Odśwież stronę.')
       }
     }
@@ -182,6 +186,21 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     }
   }, [])
 
+  // The listeners must keep the request gate created for this mounted app instance.
+  // oxlint-disable react-hooks/exhaustive-deps
+  useEffect(() => {
+    const becameVisible = () => { if (document.visibilityState === 'visible') synchronizeExternalState() }
+    const timer = window.setInterval(synchronizeExternalState, 60_000)
+    window.addEventListener('focus', synchronizeExternalState)
+    document.addEventListener('visibilitychange', becameVisible)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', synchronizeExternalState)
+      document.removeEventListener('visibilitychange', becameVisible)
+    }
+  }, [])
+  // oxlint-enable react-hooks/exhaustive-deps
+
   const focusTasks = sortActiveTasks(tasks.filter((task) => !task.completed && task.inFocus))
   const backlogTasks = sortActiveTasks(tasks.filter((task) => !task.completed && !task.inFocus))
   const completedTasks = tasks.filter((task) => task.completed).sort((a, b) =>
@@ -232,6 +251,14 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     categoryId: number | null, goalId: number | null, inFocus: boolean) {
     const task = await createTask(title, taskPoints, description, dueDate, dueTime, categoryId, goalId, inFocus)
     setTasks((currentTasks) => [...currentTasks, task])
+  }
+
+  function synchronizeExternalState() {
+    if (document.visibilityState === 'hidden') return
+    void externalRefresh(async () => {
+      setHabitSyncRevision(value => value + 1)
+      await refreshAccount(undefined, false)
+    })
   }
 
   async function redeemPurchase(id: number) {
@@ -341,7 +368,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           className="secondary-button"
           aria-pressed={activePage === 'habits'}
           aria-controls="habits-page"
-          onClick={() => setActivePage('habits')}
+          onClick={() => { setActivePage('habits'); synchronizeExternalState() }}
         >
           Nawyki
         </button>
@@ -416,7 +443,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision} onPointsChanged={balance => {
+        <HabitsPage goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
+          syncRevision={habitSyncRevision} onPointsChanged={balance => {
           accountRequest.current++
           setPoints(balance)
         }} />

@@ -8,6 +8,8 @@ function habit(count: number, goal: number | null = 2, completed = false, id = 1
   return { id, name: `Nawyk ${id}`, description: null, createdOn: '2026-10-09', completed, rewardPoints: 1,
     weeklyRewardGranted: false, startDate: '2026-10-09', endDate: null, completionLimit: null,
     completionBonusPoints: null, requiredSuccessPercent: null,
+    completionBonusGranted: false, completionBonusSettledOn: null, completionBonusEverGranted: false,
+    completionBonusConditionsLocked: false, completionBonusTargetLocked: false, completionBonusAwardPoints: null,
     totalCompletions: count, status: 'ACTIVE', endedOn: null, endReason: null,
     target: goal === null ? null : { targetDays: goal, effectiveFrom: '2026-10-05' },
     latestTarget: null, weeklyCompletedDays: count }
@@ -40,11 +42,13 @@ test('updates day and progress counters immediately while saving a completion', 
 
 test('recognizes a completion bonus only when the saved completion reaches its limit', () => {
   const before = { ...habit(149, 7), completionLimit: 150, completionBonusPoints: 15 }
-  const reached = { ...before, completed: true, totalCompletions: 150 }
+  const reached = { ...before, completed: true, totalCompletions: 150,
+    completionBonusGranted: true, completionBonusAwardPoints: 15 }
   assert.equal(earnedCompletionBonus(before, reached), 15)
-  assert.equal(earnedCompletionBonus(before, { ...reached, totalCompletions: 149 }), null)
+  assert.equal(earnedCompletionBonus(before, { ...reached, totalCompletions: 149,
+    completionBonusGranted: false, completionBonusAwardPoints: null }), null)
   assert.equal(earnedCompletionBonus(reached, { ...reached, completed: false, totalCompletions: 149 }), null)
-  assert.equal(earnedCompletionBonus(before, { ...reached, completionBonusPoints: null }), null)
+  assert.equal(earnedCompletionBonus(before, { ...reached, completionBonusPoints: null }), 15)
 })
 
 test('sorts habits by day status and then by descending weekly frequency', () => {

@@ -12,6 +12,10 @@ export async function getHabits(date: string, signal?: AbortSignal): Promise<Hab
   return response.json()
 }
 
+export class HabitUpdateConflictError extends Error {
+  constructor(message: string) { super(message); this.name = 'HabitUpdateConflictError' }
+}
+
 export async function setHabitCompletion(id: number, date: string, completed: boolean): Promise<HabitCompletionResult> {
   const response = await apiFetch(`/api/habits/${id}/completions/${encodeURIComponent(date)}`, {
     method: completed ? 'PUT' : 'DELETE',
@@ -45,6 +49,9 @@ export async function updateHabit(id: number, name: string, targetDays: number, 
     body: JSON.stringify({ name, targetDays, rewardPoints, description, ...schedule, replaceCompletionBonus: true, categoryId, goalIds }),
   })
   if (!response.ok) {
+    if (response.status === 409) {
+      throw new HabitUpdateConflictError(await errorMessage(response, 'Nie udało się zapisać nawyku'))
+    }
     if (response.status === 404) throw new Error('Nawyk nie istnieje. Odśwież stronę.')
     throw new Error(await errorMessage(response, 'Nie udało się zapisać nawyku'))
   }

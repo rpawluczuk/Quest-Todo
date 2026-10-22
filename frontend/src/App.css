@@ -1082,6 +1082,21 @@
   line-height: 1.35;
 }
 
+.habit-ending-lock-message {
+  margin: 2px 0 10px;
+  color: #625b70;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.habit-schedule-fields :is(input, select):disabled,
+.habit-frequency-field select:disabled {
+  opacity: 1;
+  color: var(--color-text);
+  background: #f7f5fa;
+  cursor: not-allowed;
+}
+
 .habit-schedule-inputs {
   display: grid;
   gap: 10px;

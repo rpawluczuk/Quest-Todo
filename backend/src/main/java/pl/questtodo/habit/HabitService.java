@@ -293,6 +293,8 @@ public class HabitService {
                 .withCompletionBonus(regularity, bonus != null && bonus.isActive(),
                         bonus == null ? null : bonus.getSettledOn(),
                         bonus == null ? Boolean.FALSE : bonus.getEverGranted(), bonus != null && bonus.conditionsLocked(),
+                        bonus != null && bonus.conditionsLocked() && habit.getEndDate() != null
+                                && !calendar.today().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).isAfter(habit.getEndDate()),
                         bonus != null && bonus.isActive() ? bonus.getPoints() : null);
     }
 

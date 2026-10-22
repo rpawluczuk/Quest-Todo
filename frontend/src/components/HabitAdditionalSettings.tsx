@@ -2,10 +2,13 @@ import AutoResizeTextarea from './AutoResizeTextarea'
 import HabitScheduleFields from './HabitScheduleFields'
 import type { HabitSchedule } from '../types/Habit'
 
-export default function HabitAdditionalSettings({ description, schedule, disabled, onDescriptionChange, onScheduleChange }: {
+export default function HabitAdditionalSettings({ description, schedule, disabled, scheduleDisabled = disabled,
+  lockMessage, onDescriptionChange, onScheduleChange }: {
   description: string
   schedule: HabitSchedule
   disabled: boolean
+  scheduleDisabled?: boolean
+  lockMessage?: string | null
   onDescriptionChange: (description: string) => void
   onScheduleChange: (schedule: HabitSchedule) => void
 }) {
@@ -20,7 +23,8 @@ export default function HabitAdditionalSettings({ description, schedule, disable
         <AutoResizeTextarea value={description} disabled={disabled}
           onChange={event => onDescriptionChange(event.target.value)} />
       </label>
-      <HabitScheduleFields value={schedule} onChange={onScheduleChange} disabled={disabled} />
+      <HabitScheduleFields value={schedule} onChange={onScheduleChange} disabled={scheduleDisabled}
+        lockMessage={lockMessage} />
     </div>
   </details>
 }

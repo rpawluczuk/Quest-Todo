@@ -80,6 +80,7 @@ class HabitBonusConfigurationTests {
         assertEquals(30L,result.balance());
         assertEquals("FINISHED",result.habit().status());
         assertEquals(20,result.habit().completionBonusAwardPoints());
+        assertFalse(result.habit().completionBonusTargetLocked());
         assertLocked(true);
         assertNull(edit(START,null,100,20,null,7).balance());
         assertEquals(30,balance());
@@ -209,6 +210,7 @@ class HabitBonusConfigurationTests {
             assertEquals(success ? 30:10,balance());
             assertEquals(Boolean.valueOf(success),habit().completionBonusEverGranted());
             assertTrue(habit().completionBonusConditionsLocked());
+            assertTrue(habit().completionBonusTargetLocked());
             conflict(()->edit(TODAY.minusDays(2),TODAY,null,20,100,7));
             conflict(()->edit(TODAY.minusDays(2),TODAY.minusDays(1),null,20,50,7));
             conflict(()->edit(TODAY.minusDays(2),TODAY.minusDays(1),null,50,100,7));
@@ -265,6 +267,7 @@ class HabitBonusConfigurationTests {
         bonuses.settle(1001);
         when(calendar.today()).thenReturn(TODAY.plusWeeks(1));
         edit(TODAY.minusDays(2),TODAY.minusDays(1),null,20,100,2);
+        assertFalse(habit().completionBonusTargetLocked());
         assertEquals(1,habit().regularity().successfulWeeks());
         assertEquals(30,balance());
     }

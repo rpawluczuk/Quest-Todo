@@ -1,6 +1,7 @@
 import { Trophy } from 'lucide-react'
 import type { Habit } from '../types/Habit'
 import { habitEndDateLabel } from '../habitSchedule'
+import { displayedCompletionBonusPoints } from '../habitBonus'
 
 const percent = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 })
 
@@ -8,6 +9,8 @@ export default function HabitCompletionBonus({ habit, today }: { habit: Habit; t
   if (habit.completionBonusPoints === null || (!habit.endDate && habit.completionLimit === null)) return null
   const dated = habit.endDate !== null
   const regularity = habit.regularity
+  const displayedPoints = displayedCompletionBonusPoints(habit)
+  if (displayedPoints === null) return null
   const result = habit.completionBonusGranted ? 'Premia przyznana'
     : habit.completionBonusSettledOn ? 'Premia nieprzyznana'
     : habit.endedOn ? 'Premia nieprzyznana'
@@ -28,6 +31,6 @@ export default function HabitCompletionBonus({ habit, today }: { habit: Habit; t
       </div>
     </div>
     <span className="task-points task-card-points" title={result}
-      aria-label={`${result}: ${habit.completionBonusPoints} pkt`}>+{habit.completionBonusPoints} pkt</span>
+      aria-label={`${result}: ${displayedPoints} pkt`}>+{displayedPoints} pkt</span>
   </div>
 }

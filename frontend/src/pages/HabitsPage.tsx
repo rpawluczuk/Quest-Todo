@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
 import HabitCompletionBonus from '../components/HabitCompletionBonus'
-import { createHabit, deleteHabit, endHabit, getHabits, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
+import { createHabit, deleteHabit, endHabit, getHabits, HabitUpdateConflictError, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm, { type CreateHabitFormHandle } from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
@@ -18,8 +18,8 @@ const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 type AwardNotice = HabitAward & { habitId: number; name: string }
 type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
-export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision }: {
-  onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number
+export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision }: {
+  onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
 }) {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
@@ -86,7 +86,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList key={`${selectedDay}:${today}:${refresh}:${goalLinksRevision}:${categoryRevision}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
+    <HabitDayList key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
+      syncRevision={syncRevision + goalLinksRevision + categoryRevision}
       onCompletionSaved={completionSaved} createHabitForm={createHabitForm} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
@@ -98,10 +99,11 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm }: {
+function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision }: {
   date: string; today: string; busy: boolean; onBusy: (busy: boolean) => void
   onCompletionSaved: (result: HabitCompletionResult, previous?: Habit) => void
   createHabitForm: RefObject<CreateHabitFormHandle | null>
+  syncRevision: number
 }) {
   const savingCompletion = useRef(false)
   const [habits, setHabits] = useState<Habit[]>([])
@@ -155,7 +157,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
       if (!controller.signal.aborted) setLoading(false)
     })
     return () => controller.abort()
-  }, [date, today])
+  }, [date, today, syncRevision])
 
   async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
     categoryId: number | null, goalIds: number[]) {
@@ -181,6 +183,12 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
       onCompletionSaved(result)
       setEditingId(null)
       setExpandedDescriptions(current => { const next = new Set(current); next.delete(id); return next })
+    } catch (failure) {
+      if (failure instanceof HabitUpdateConflictError) {
+        const loaded = await getHabits(date).catch(() => null)
+        if (loaded) setHabits(loaded)
+      }
+      throw failure
     } finally {
       onBusy(false)
     }
