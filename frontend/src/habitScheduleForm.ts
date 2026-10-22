@@ -16,3 +16,9 @@ export function scheduleWithEndMode(value: HabitSchedule, mode: HabitEndMode,
     requiredSuccessPercent: null,
   }
 }
+
+export function regularityBonusExplanation(requiredSuccessPercent: number | null): string {
+  return requiredSuccessPercent === null
+    ? 'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w wymaganym procencie tygodni.'
+    : `Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w co najmniej ${requiredSuccessPercent}% tygodni.`
+}

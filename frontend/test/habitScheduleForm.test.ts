@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { habitEndMode, scheduleWithEndMode } from '../src/habitScheduleForm.ts'
+import { habitEndMode, regularityBonusExplanation, scheduleWithEndMode } from '../src/habitScheduleForm.ts'
 import type { HabitSchedule } from '../src/types/Habit.ts'
 
 const schedule: HabitSchedule = {
@@ -55,4 +55,11 @@ test('changing between dated and count endings preserves entered bonus points', 
     completionLimit: 30,
     completionBonusPoints: 20,
   })
+})
+
+test('explains the regularity bonus with and without a selected threshold', () => {
+  assert.equal(regularityBonusExplanation(null),
+    'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w wymaganym procencie tygodni.')
+  assert.equal(regularityBonusExplanation(80),
+    'Premię otrzymasz po zakończeniu nawyku, jeśli zrealizujesz tygodniowy cel w co najmniej 80% tygodni.')
 })

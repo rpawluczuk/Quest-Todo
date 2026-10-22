@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react'
-import { habitEndMode, scheduleWithEndMode, type HabitEndMode } from '../habitScheduleForm'
+import { habitEndMode, regularityBonusExplanation, scheduleWithEndMode, type HabitEndMode } from '../habitScheduleForm'
 import type { HabitSchedule } from '../types/Habit'
 import FormSelect, { FormSelectItem } from './FormSelect'
 
@@ -72,18 +72,28 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
       </label>}
       {displayedMode !== 'none' && <label className="form-field habit-completion-bonus-field">
-        <span>{displayedMode === 'date' ? 'Premia za regularność (pkt)' : 'Premia za ukończenie (pkt)'}</span>
-        <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
-          disabled={disabled} onChange={event => onChange({ ...value,
-            completionBonusPoints: event.target.value === '' ? null : Number(event.target.value),
-            requiredSuccessPercent: event.target.value === '' || displayedMode !== 'date' ? null : value.requiredSuccessPercent })} />
+        <span>{displayedMode === 'date' ? 'Premia za regularność' : 'Premia za ukończenie'}</span>
+        <span className="habit-number-unit-control">
+          <input type="number" min="1" max="2147483647" step="1" value={value.completionBonusPoints ?? ''}
+            aria-label={displayedMode === 'date' ? 'Premia za regularność w punktach' : 'Premia za ukończenie w punktach'}
+            disabled={disabled} onChange={event => onChange({ ...value,
+              completionBonusPoints: event.target.value === '' ? null : Number(event.target.value),
+              requiredSuccessPercent: event.target.value === '' || displayedMode !== 'date' ? null : value.requiredSuccessPercent })} />
+          <span className="habit-number-unit" aria-hidden="true">pkt</span>
+        </span>
       </label>}
       {displayedMode === 'date' && value.completionBonusPoints !== null && <label className="form-field habit-completion-bonus-field">
-        <span>Wymagana regularność (%) <span className="required-field-marker" aria-hidden="true">*</span></span>
-        <input type="number" required min="1" max="100" step="1" value={value.requiredSuccessPercent ?? ''}
-          disabled={disabled} onChange={event => onChange({ ...value,
-            requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />
-        <small>Premię otrzymasz po zakończeniu nawyku, jeśli osiągniesz wymagany procent zaliczonych tygodni</small>
+        <span className="required-field-label">
+          <span>Wymagana regularność</span>
+          <span className="required-field-marker" aria-hidden="true">*</span>
+        </span>
+        <span className="habit-number-unit-control">
+          <input type="number" required min="1" max="100" step="1" value={value.requiredSuccessPercent ?? ''}
+            aria-label="Wymagana regularność w procentach" disabled={disabled} onChange={event => onChange({ ...value,
+              requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />
+          <span className="habit-number-unit" aria-hidden="true">%</span>
+        </span>
+        <small>{regularityBonusExplanation(value.requiredSuccessPercent)}</small>
       </label>}
     </div>
   </fieldset>

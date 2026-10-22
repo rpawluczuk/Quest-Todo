@@ -1190,6 +1190,28 @@
   transform: translateY(-50%);
 }
 
+.habit-number-unit-control {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.habit-number-unit-control input {
+  padding-right: 64px;
+}
+
+.habit-number-unit {
+  position: absolute;
+  top: 50%;
+  right: 30px;
+  color: #767080;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
 .habit-form select {
   width: 100%;
   min-width: 0;
