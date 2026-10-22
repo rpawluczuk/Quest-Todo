@@ -150,6 +150,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
       if (!controller.signal.aborted) {
         setHabits(loaded)
         setAllHabitIds(loaded.map(habit => habit.id))
+        setLoadError('')
       }
     }).catch(() => {
       if (!controller.signal.aborted) setLoadError('Nie udało się pobrać nawyków. Odśwież stronę i spróbuj ponownie.')
@@ -250,7 +251,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
     <>
       {loading && <p role="status">Ładowanie nawyków…</p>}
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
-      {!loading && !loadError && <>
+      {!loading && (!loadError || habits.length > 0) && <>
         <div className={allHabitIds.length === 0 ? 'habit-create-container task-empty-state task-empty-state-prominent' : 'habit-create-container'}>
           {allHabitIds.length === 0 && <>
             <span className="task-empty-icon" aria-hidden="true">

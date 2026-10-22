@@ -74,6 +74,31 @@ class HabitBonusConfigurationTests {
         assertEquals(Boolean.TRUE,h.completionBonusEverGranted());
     }
 
+    @Test void createdThreeCompletionHabitPaysTenReversesRestoresAndLocks() {
+        var created = service.createHabit("Reading",7,0,null,START,null,3,List.of(),null,10,null);
+        assertEquals("ACTIVE",created.status());
+        service.setCompletion(created.id(),START,true);
+        service.setCompletion(created.id(),START.plusDays(1),true);
+        assertEquals(10,balance());
+        var earned = service.setCompletion(created.id(),START.plusDays(2),true);
+        assertEquals(20L,earned.balance());
+        assertTrue(earned.habit().completionBonusGranted());
+        assertEquals(10,earned.habit().completionBonusAwardPoints());
+        assertEquals("FINISHED",earned.habit().status());
+        var undone = service.setCompletion(created.id(),START.plusDays(2),false);
+        assertEquals(10L,undone.balance());
+        assertFalse(undone.habit().completionBonusGranted());
+        assertTrue(undone.habit().completionBonusConditionsLocked());
+        assertEquals("ACTIVE",undone.habit().status());
+        var restored = service.setCompletion(created.id(),START.plusDays(2),true);
+        assertEquals(20L,restored.balance());
+        assertTrue(restored.habit().completionBonusGranted());
+        assertEquals("FINISHED",restored.habit().status());
+        conflict(() -> service.updateHabit(created.id(),"Reading",7,0,null,START,null,4,
+                List.of(),null,10,null,true));
+        assertEquals(20,balance());
+    }
+
     @Test void loweringLimitAwardsImmediatelyAndReturnsFinishedSnapshot() {
         count(150,20,100);
         var result=edit(START,null,100,20,null,7);
