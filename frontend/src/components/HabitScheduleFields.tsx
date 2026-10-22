@@ -71,10 +71,9 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
         {endDateError && <small id={endDateErrorId} className="field-error" role="alert">{endDateError}</small>}
       </label>}
       {displayedMode === 'count' && <label className="form-field">
-        <span>Liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
+        <span>Docelowa liczba wykonań <span className="required-field-marker" aria-hidden="true">*</span></span>
         <input type="number" required min="1" max="2147483647" step="1" value={value.completionLimit ?? ''} disabled={disabled}
           onChange={event => onChange({ ...value, completionLimit: event.target.value ? Number(event.target.value) : null })} />
-        <small>Od daty rozpoczęcia, niezależnie od celu tygodniowego.</small>
       </label>}
       {displayedMode !== 'none' && <label className="form-field habit-completion-bonus-field habit-completion-bonus-start">
         <span>{displayedMode === 'date' ? 'Premia za regularność' : 'Premia za ukończenie'}</span>
