@@ -22,12 +22,12 @@ export default function HabitAdditionalSettings({ description, schedule, disable
       <ChevronRight className="habit-additional-chevron" aria-hidden="true" />
       <span className="habit-additional-labels">
         <span className="habit-additional-title">Dodatkowe ustawienia</span>
-        <small>Opis, okres trwania, premia końcowa</small>
+        {!expanded && <small>Opis, okres trwania, premia końcowa</small>}
       </span>
     </summary>
     <div className="habit-additional-content">
       <label className="form-field task-description-field">
-        <span>Opis / notatki</span>
+        <span>Notatki</span>
         <AutoResizeTextarea value={description} disabled={disabled}
           onChange={event => onDescriptionChange(event.target.value)} />
       </label>
