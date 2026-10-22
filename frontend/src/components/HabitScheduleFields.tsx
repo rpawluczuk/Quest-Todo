@@ -18,7 +18,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
   const [mode, setMode] = useState(() => scheduleMode(value))
   const displayedMode = lockMessage ? scheduleMode(value) : mode
   return <fieldset className="habit-schedule-fields">
-    <legend>Okres trwania</legend>
+    <legend><span>Okres trwania</span></legend>
     {lockMessage && <p className="habit-ending-lock-message" role="note">{lockMessage}</p>}
     <div className="habit-schedule-inputs">
       <label className="form-field">

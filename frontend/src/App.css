@@ -1108,22 +1108,33 @@
 
 .habit-additional-content {
   display: grid;
-  gap: 14px;
+  gap: 18px;
   padding-top: 8px;
 }
 
 .habit-schedule-fields {
   min-width: 0;
   margin: 0;
-  padding: 14px 0 0;
+  padding: 0;
   border: 0;
-  border-top: 1px solid #e9e5ef;
 }
 
 .habit-schedule-fields legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
   padding: 0;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.habit-schedule-fields legend::after {
+  flex: 1 1 auto;
+  height: 1px;
+  background: #e9e5ef;
+  content: '';
 }
 
 .habit-ending-lock-message {
@@ -1148,7 +1159,7 @@
 }
 
 .habit-schedule-fields legend + .habit-schedule-inputs {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .habit-schedule-inputs input {
