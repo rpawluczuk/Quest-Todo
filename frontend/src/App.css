@@ -987,16 +987,15 @@
   min-height: 24px;
 }
 
-.task-form .habit-points-info {
+.task-form .field-info-button {
   position: relative;
   display: inline-grid;
-  place-items: center start;
+  place-items: center;
   flex: 0 0 32px;
   width: 32px;
   height: 32px;
   min-height: 32px;
   margin-block: -4px;
-  margin-right: -14px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1004,46 +1003,45 @@
   cursor: help;
 }
 
-.task-form .habit-points-info:hover:not(:disabled),
-.task-form .habit-points-info:focus-visible {
+.task-form .field-info-button:hover:not(:disabled),
+.task-form .field-info-button:focus-visible {
   background: transparent;
   color: var(--color-primary);
 }
 
-.habit-points-info svg {
+.field-info-button svg {
   flex: 0 0 18px;
   width: 18px;
   height: 18px;
 }
 
-.habit-points-info::after {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  z-index: 2;
+.task-form .habit-points-info {
+  place-items: center start;
+  margin-right: -14px;
+}
+
+.habit-regularity-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 24px;
+}
+
+.field-info-tooltip {
+  position: fixed;
+  z-index: 100;
   width: max-content;
   max-width: min(240px, calc(100vw - 40px));
   padding: 7px 9px;
   border-radius: 8px;
   background: #2f2938;
   color: #fff;
-  content: attr(data-tooltip);
   font-size: 0.75rem;
   font-weight: 400;
   line-height: 1.35;
   white-space: normal;
-  opacity: 0;
   pointer-events: none;
-  transform: translateY(3px);
-  transition: opacity 120ms ease, transform 120ms ease;
-}
-
-.habit-points-info:hover::after,
-.habit-points-info:focus-visible::after,
-.habit-points-info:focus::after,
-.habit-points-info-open::after {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .habit-additional-settings {

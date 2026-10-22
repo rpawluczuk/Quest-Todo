@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react'
 import { habitEndMode, regularityBonusExplanation, scheduleWithEndMode, type HabitEndMode } from '../habitScheduleForm'
 import type { HabitSchedule } from '../types/Habit'
 import FormSelect, { FormSelectItem } from './FormSelect'
+import InfoTooltipButton from './InfoTooltipButton'
 
 const modeLabels = {
   none: 'Bezterminowo',
@@ -16,6 +17,7 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
   const [endDateError, setEndDateError] = useState('')
   const previousEndDate = useRef(value.endDate)
   const endDateErrorId = useId()
+  const regularityInputId = useId()
   const displayedMode = lockMessage ? habitEndMode(value) : mode
   return <fieldset className="habit-schedule-fields">
     <legend><span>Okres trwania</span></legend>
@@ -82,19 +84,22 @@ export default function HabitScheduleFields({ value, onChange, disabled, lockMes
           <span className="habit-number-unit" aria-hidden="true">pkt</span>
         </span>
       </label>}
-      {displayedMode === 'date' && value.completionBonusPoints !== null && <label className="form-field habit-completion-bonus-field">
-        <span className="required-field-label">
-          <span>Wymagana regularność</span>
-          <span className="required-field-marker" aria-hidden="true">*</span>
+      {displayedMode === 'date' && value.completionBonusPoints !== null && <div className="form-field habit-completion-bonus-field">
+        <span className="habit-regularity-label">
+          <label className="required-field-label" htmlFor={regularityInputId}>
+            <span>Wymagana regularność</span>
+            <span className="required-field-marker" aria-hidden="true">*</span>
+          </label>
+          <InfoTooltipButton message={regularityBonusExplanation(value.requiredSuccessPercent)} />
         </span>
         <span className="habit-number-unit-control">
-          <input type="number" required min="1" max="100" step="1" value={value.requiredSuccessPercent ?? ''}
+          <input id={regularityInputId} type="number" required min="1" max="100" step="1"
+            value={value.requiredSuccessPercent ?? ''}
             aria-label="Wymagana regularność w procentach" disabled={disabled} onChange={event => onChange({ ...value,
               requiredSuccessPercent: event.target.value === '' ? null : Number(event.target.value) })} />
           <span className="habit-number-unit" aria-hidden="true">%</span>
         </span>
-        <small>{regularityBonusExplanation(value.requiredSuccessPercent)}</small>
-      </label>}
+      </div>}
     </div>
   </fieldset>
 }
