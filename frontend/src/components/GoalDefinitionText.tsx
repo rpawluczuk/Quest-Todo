@@ -9,7 +9,7 @@ export default function GoalDefinitionText({ text }: { text: string }) {
 
   const measure = useCallback(() => {
     const element = paragraph.current
-    if (!element) return
+    if (!element || element.getClientRects().length === 0) return
     const lineHeight = Number.parseFloat(window.getComputedStyle(element).lineHeight)
     const overflowing = Number.isFinite(lineHeight) && element.scrollHeight > lineHeight * 3 + 1
     setCanToggle(overflowing)

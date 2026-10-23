@@ -44,6 +44,7 @@ try {
     else if (path === '/api/goals') body = [
       { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
       { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
+      { id: 3, title: 'Cel bez opisu', currentState: null, desiredOutcome: null },
     ]
     else if (path === '/api/goals/1/tasks/available') body = { tasks: [availableTask, longAvailableTask], hasMore: false }
     else if (path === '/api/goals/1/tasks') body = attachedTasks
@@ -118,15 +119,29 @@ try {
   }
   assert.equal(await summary.count(), 0)
   await assertHeaderControlsAligned()
+  const emptyDescriptionToggle = page.getByRole('button', { name: 'Cel bez opisu', exact: true })
+  await emptyDescriptionToggle.click()
+  assert.equal(await emptyDescriptionToggle.locator('..').locator('.goal-description-toggle').count(), 0)
+  await emptyDescriptionToggle.click()
   const exactThreeLineToggle = page.getByRole('button', { name: longGoalTitle, exact: true })
   await exactThreeLineToggle.click()
-  const exactThreeLineDefinition = exactThreeLineToggle.locator('..').locator('.goal-definition')
+  const exactThreeLineCard = exactThreeLineToggle.locator('..')
+  const exactDescriptionToggle = exactThreeLineCard.getByRole('button', { name: 'Opis celu', exact: true })
+  assert.equal(await exactDescriptionToggle.getAttribute('aria-expanded'), 'false')
+  assert.equal(await exactThreeLineCard.locator('.goal-definition').isHidden(), true)
+  await exactDescriptionToggle.click()
+  const exactThreeLineDefinition = exactThreeLineCard.locator('.goal-definition')
   await exactThreeLineDefinition.getByText('Linia pierwsza', { exact: false }).waitFor()
   assert.equal(await exactThreeLineDefinition.locator('.goal-definition-expand').count(), 0)
   await exactThreeLineToggle.click()
   const goalToggle = page.getByRole('button', { name: 'Przebiegam 5 km', exact: true })
   await goalToggle.click()
-  const goalDefinition = goalToggle.locator('..').locator('.goal-definition')
+  const goalCard = goalToggle.locator('..')
+  const descriptionToggle = goalCard.getByRole('button', { name: 'Opis celu', exact: true })
+  assert.equal(await descriptionToggle.getAttribute('aria-expanded'), 'false')
+  assert.equal(await goalCard.locator('.goal-definition').isHidden(), true)
+  await descriptionToggle.click()
+  const goalDefinition = goalCard.locator('.goal-definition')
   const definitionSections = goalDefinition.locator('section')
   const definitionButtons = goalDefinition.locator('.goal-definition-expand')
   await definitionButtons.nth(1).waitFor()
@@ -149,6 +164,14 @@ try {
     assert.equal(await definitionButtons.count(), 2)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+  await descriptionToggle.click()
+  assert.equal(await descriptionToggle.getAttribute('aria-expanded'), 'false')
+  assert.equal(await goalDefinition.isHidden(), true)
+  assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
+  await descriptionToggle.click()
+  assert.equal(await definitionButtons.first().getAttribute('aria-expanded'), 'false')
+  assert.equal(await definitionButtons.nth(1).getAttribute('aria-expanded'), 'true')
+  await descriptionToggle.click()
   await page.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
   const section = page.getByRole('region', { name: 'Kamienie milowe' })
   const taskSection = page.locator('#goal-tasks-1')
@@ -251,6 +274,7 @@ try {
   }
   await page.getByRole('button', { name: 'Rozwiń cel „Przebiegam 5 km”' }).click()
   await section.getByRole('checkbox').first().waitFor()
+  assert.equal(await descriptionToggle.getAttribute('aria-expanded'), 'false')
   failCompletion = true
   await section.getByRole('checkbox').first().check()
   await section.getByRole('alert').getByText('Nie udało się zapisać ukończenia.').waitFor()
@@ -430,6 +454,7 @@ try {
   }
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS goal descriptions clamp at three lines, expand independently and react to 320/375/390px widths')
+  console.log('PASS goal description panel defaults closed, preserves inner expansion and stays hidden for empty descriptions')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
   console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')

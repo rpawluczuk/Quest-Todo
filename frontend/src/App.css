@@ -3462,15 +3462,39 @@
 .goal-chevron-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .goal-chevron { width: 20px; height: 20px; }
 .goal-chevron-button[aria-expanded='true'] .goal-chevron { transform: rotate(180deg); }
+.goal-description-toggle {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 2px;
+  border: 0;
+  border-top: 1px solid #e9e5ef;
+  background: transparent;
+  color: #625b70;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.goal-description-toggle-label { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.goal-description-toggle svg { flex: 0 0 18px; }
+.goal-description-toggle:hover { color: var(--color-primary); }
+.goal-description-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 6px; }
 .goal-definition {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   min-width: 0;
-  padding: 12px 0;
-  border-top: 1px solid #e9e5ef;
+  padding: 2px 0 12px;
 }
+.goal-definition[hidden] { display: none; }
 .goal-definition section { min-width: 0; padding: 12px; border-radius: 10px; background: var(--color-primary-soft); }
 .goal-definition h3 { margin: 0 0 6px; color: #625b70; font-size: 0.8rem; font-weight: 600; }
 .goal-definition p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }

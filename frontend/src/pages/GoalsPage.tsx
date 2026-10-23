@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
-import { Flag } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Flag } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
@@ -25,6 +25,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   onHabitGoalLinksChanged: () => void
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [descriptionOpenId, setDescriptionOpenId] = useState<number | null>(null)
   const [goals, setGoals] = useState<Goal[]>([])
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -62,6 +63,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
 
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
+
+  function toggleGoal(goalId: number) {
+    setDescriptionOpenId(null)
+    setExpandedId(current => current === goalId ? null : goalId)
+  }
 
   async function add(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -197,7 +203,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               aria-label={goal.title}
               aria-describedby={milestones?.length ? `goal-milestone-summary-${goal.id}` : undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
-              onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
+              onClick={() => toggleGoal(goal.id)}>
               <span className="goal-title-text">{goal.title}</span>
               {!!milestones?.length && <span className="goal-milestone-summary"
                 id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
@@ -209,7 +215,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               <button type="button" className="goal-chevron-button" aria-expanded={expandedId === goal.id}
                 aria-label={`${expandedId === goal.id ? 'Zwiń' : 'Rozwiń'} cel „${goal.title}”`}
                 aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
-                onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
+                onClick={() => toggleGoal(goal.id)}>
                 <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
               </button>
@@ -221,11 +227,24 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
               ]} />
             </div>
-            {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) &&
-              <div className="goal-definition" id={`goal-definition-${goal.id}`}>
+            {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) && <>
+              <button type="button" className="goal-description-toggle"
+                aria-expanded={descriptionOpenId === goal.id} aria-controls={`goal-definition-${goal.id}`}
+                onClick={() => setDescriptionOpenId(current => current === goal.id ? null : goal.id)}>
+                <span className="goal-description-toggle-label">
+                  <FileText size={18} strokeWidth={1.8} aria-hidden="true" />
+                  <span>Opis celu</span>
+                </span>
+                {descriptionOpenId === goal.id
+                  ? <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />
+                  : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
+              </button>
+              <div className="goal-definition" id={`goal-definition-${goal.id}`}
+                hidden={descriptionOpenId !== goal.id}>
                 {goal.currentState && <section><h3>Stan obecny</h3><GoalDefinitionText text={goal.currentState} /></section>}
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
-              </div>}
+              </div>
+            </>}
             {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
               onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />}
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
