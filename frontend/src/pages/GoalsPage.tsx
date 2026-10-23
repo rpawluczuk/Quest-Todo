@@ -7,6 +7,7 @@ import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 import GoalHabits from '../components/GoalHabits'
 import GoalMilestones from '../components/GoalMilestones'
 import AutoResizeTextarea from '../components/AutoResizeTextarea'
+import GoalDefinitionText from '../components/GoalDefinitionText'
 
 function titleError(title: string): string {
   if (!title.trim()) return 'Podaj tytuł celu.'
@@ -222,8 +223,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             </div>
             {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) &&
               <div className="goal-definition" id={`goal-definition-${goal.id}`}>
-                {goal.currentState && <section><h3>Stan obecny</h3><p>{goal.currentState}</p></section>}
-                {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><p>{goal.desiredOutcome}</p></section>}
+                {goal.currentState && <section><h3>Stan obecny</h3><GoalDefinitionText text={goal.currentState} /></section>}
+                {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
               </div>}
             {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
               onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />}

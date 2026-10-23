@@ -3474,6 +3474,33 @@
 .goal-definition section { min-width: 0; padding: 12px; border-radius: 10px; background: var(--color-primary-soft); }
 .goal-definition h3 { margin: 0 0 6px; color: #625b70; font-size: 0.8rem; font-weight: 600; }
 .goal-definition p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.goal-definition-text-clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.goal-definition-expand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.goal-definition-expand::before { content: ''; position: absolute; inset: -4px 0; }
+.goal-definition-expand svg { flex: 0 0 16px; transition: transform 120ms ease; }
+.goal-definition-expand[aria-expanded='true'] svg { transform: rotate(180deg); }
+.goal-definition-expand:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .milestone-list { display: grid; gap: 8px; padding: 0; list-style: none; }
 .milestone-heading { display: flex; align-items: center; gap: 8px; }
 .milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 32px 32px; column-gap: 4px; align-items: start; min-width: 0; }

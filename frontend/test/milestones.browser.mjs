@@ -11,6 +11,8 @@ try {
   let orderFailure = 0
   let orderWrites = 0
   const longGoalTitle = 'Bardzo długi cel, którego nazwa zawija się na kilku liniach na małym ekranie telefonu'
+  const longCurrentState = 'To jest długi opis obecnej sytuacji. '.repeat(18)
+  const longDesiredOutcome = 'To jest szczegółowy opis zamierzonego rezultatu. '.repeat(18)
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const path = new URL(route.request().url()).pathname
     let body = []
@@ -19,8 +21,8 @@ try {
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path.includes('email')) body = { verifiedEmail: null }
     else if (path === '/api/goals') body = [
-      { id: 1, title: 'Przebiegam 5 km', currentState: null, desiredOutcome: null },
-      { id: 2, title: longGoalTitle, currentState: null, desiredOutcome: null },
+      { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
+      { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
     ]
     else if (path === '/api/goals/1/milestones/order') {
       orderWrites++
@@ -83,8 +85,37 @@ try {
   }
   assert.equal(await summary.count(), 0)
   await assertHeaderControlsAligned()
+  const exactThreeLineToggle = page.getByRole('button', { name: longGoalTitle, exact: true })
+  await exactThreeLineToggle.click()
+  const exactThreeLineDefinition = exactThreeLineToggle.locator('..').locator('.goal-definition')
+  await exactThreeLineDefinition.getByText('Linia pierwsza', { exact: false }).waitFor()
+  assert.equal(await exactThreeLineDefinition.locator('.goal-definition-expand').count(), 0)
+  await exactThreeLineToggle.click()
   const goalToggle = page.getByRole('button', { name: 'Przebiegam 5 km', exact: true })
   await goalToggle.click()
+  const goalDefinition = goalToggle.locator('..').locator('.goal-definition')
+  const definitionSections = goalDefinition.locator('section')
+  const definitionButtons = goalDefinition.locator('.goal-definition-expand')
+  await definitionButtons.nth(1).waitFor()
+  assert.equal(await definitionButtons.count(), 2)
+  for (let index = 0; index < 2; index++) {
+    assert.ok(await definitionSections.nth(index).locator('p').evaluate(element => {
+      const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight)
+      return element.clientHeight <= lineHeight * 3 + 1 && element.scrollHeight > element.clientHeight
+    }))
+  }
+  await definitionButtons.first().click()
+  assert.equal(await definitionButtons.first().getAttribute('aria-expanded'), 'true')
+  assert.equal(await definitionButtons.nth(1).getAttribute('aria-expanded'), 'false')
+  await definitionButtons.nth(1).click()
+  assert.equal(await definitionButtons.nth(1).getAttribute('aria-expanded'), 'true')
+  await definitionButtons.first().click()
+  assert.equal(await definitionButtons.first().getAttribute('aria-expanded'), 'false')
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    assert.equal(await definitionButtons.count(), 2)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
   await page.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
   const section = page.getByRole('region', { name: 'Kamienie milowe' })
   await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
@@ -297,6 +328,7 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
+  console.log('PASS goal descriptions clamp at three lines, expand independently and react to 320/375/390px widths')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
   console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')
