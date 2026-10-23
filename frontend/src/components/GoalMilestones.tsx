@@ -175,7 +175,7 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
                 aria-label={item.title} aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
                 onChange={() => void toggle(item)} />
             </label>
-            <span className={item.completed ? 'milestone-completed' : undefined}>{item.title}</span>
+            <span className={`milestone-title${item.completed ? ' milestone-completed' : ''}`}>{item.title}</span>
             {handle}
             <TaskActionsMenu itemTitle={item.title} itemType="kamienia milowego"
               disabled={pendingIds.has(item.id) || editingId !== null || mutationsDisabled} actions={[

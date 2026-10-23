@@ -265,8 +265,39 @@ try {
   await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
   assert.equal(await section.locator('.task-section-count').count(), 0)
   await page.waitForFunction(() => !document.querySelector('.goal-milestone-summary'))
-  await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).waitFor()
+  milestones.push(
+    { id: 1, title: 'Krótki rezultat', completed: false, position: 0 },
+    { id: 2, title: 'Dłuższa nazwa rezultatu, która naturalnie zawija się na kilka linii', completed: false, position: 1 },
+    { id: 3, title: 'Ukończony rezultat', completed: true, position: 2 },
+    { id: 4, title: 'Czwarty rezultat', completed: false, position: 3 },
+    { id: 5, title: 'Piąty rezultat', completed: false, position: 4 },
+  )
+  await page.reload()
+  await page.getByRole('button', { name: 'Cele', exact: true }).click()
+  await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
+  await section.locator('.milestone-list > li').nth(4).waitFor()
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    const compactRows = section.locator('.milestone-list > li')
+    const shortRow = await compactRows.first().boundingBox()
+    const list = await section.locator('.milestone-list').boundingBox()
+    const checkbox = await compactRows.first().getByRole('checkbox').boundingBox()
+    const grip = await compactRows.first().locator('.milestone-grip').boundingBox()
+    const menu = await compactRows.first().locator('.task-menu-trigger').boundingBox()
+    assert.ok(shortRow && list && checkbox && grip && menu)
+    assert.ok(shortRow.height <= 46)
+    assert.ok(list.height < 340)
+    assert.equal(grip.width, 32)
+    assert.equal(grip.height, 32)
+    assert.equal(menu.width, 32)
+    assert.equal(menu.height, 32)
+    assert.ok(Math.abs(checkbox.y + checkbox.height / 2 - (grip.y + grip.height / 2)) < 0.5)
+    assert.ok(Math.abs(grip.y + grip.height / 2 - (menu.y + menu.height / 2)) < 0.5)
+    assert.ok(await compactRows.nth(2).locator('.milestone-title').evaluate(element => element.classList.contains('milestone-completed')))
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
+  console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')
 } finally { await browser.close() }

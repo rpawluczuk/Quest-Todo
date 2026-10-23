@@ -3476,17 +3476,19 @@
 .goal-definition p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .milestone-list { display: grid; gap: 8px; padding: 0; list-style: none; }
 .milestone-heading { display: flex; align-items: center; gap: 8px; }
-.milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 44px 32px; column-gap: 6px; align-items: start; line-height: 26px; }
-.milestone-grip { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #625b70; cursor: grab; touch-action: none; user-select: none; }
+.milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 32px 32px; column-gap: 4px; align-items: start; min-width: 0; }
+.milestone-title { min-width: 0; padding-top: 6px; font-size: 14px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; }
+.milestone-grip { position: relative; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #625b70; cursor: grab; touch-action: none; user-select: none; }
+.milestone-grip::before { content: ''; position: absolute; inset: -6px; }
 .milestone-grip:hover:not(:disabled) { background: var(--color-primary-soft); color: var(--color-primary); }
 .milestone-grip:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .milestone-list .milestone-dragging { position: relative; z-index: 5; background: var(--color-primary-soft); outline: 2px solid var(--color-primary); user-select: none; }
 .milestone-dragging .milestone-grip { cursor: grabbing; }
 .milestone-row > .task-menu { grid-area: auto; }
 .milestone-edit-form { margin-top: 0; }
-.milestone-row .milestone-check { grid-area: auto; position: relative; align-self: start; }
+.milestone-row .milestone-check { grid-area: auto; position: relative; align-self: start; display: grid; place-items: center; width: 26px; height: 32px; }
 .milestone-completed { text-decoration: line-through; color: #625b70; }
-.milestone-list li { padding: 10px 12px; border: 1px solid var(--color-primary-border); border-radius: 8px; overflow-wrap: anywhere; }
+.milestone-list li { padding: 6px 8px; border: 1px solid var(--color-primary-border); border-radius: 8px; overflow-wrap: anywhere; }
 .milestone-form { display: grid; gap: 10px; margin-top: 12px; min-width: 0; }
 .milestone-form input { box-sizing: border-box; }
 .milestone-form .task-actions { flex-wrap: wrap; }
