@@ -1,6 +1,12 @@
 package pl.questtodo.goal;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -14,6 +20,19 @@ import pl.questtodo.user.UserEntity;
 @Entity
 @Table(name = "goals")
 public class GoalEntity {
+    @OneToMany(mappedBy = "goal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private List<MilestoneEntity> milestones = new ArrayList<>();
+
+    public List<MilestoneEntity> getMilestones() { return Collections.unmodifiableList(milestones); }
+
+    public MilestoneEntity addMilestone(String title) {
+        int position = milestones.stream().mapToInt(MilestoneEntity::getPosition).max().orElse(-1) + 1;
+        MilestoneEntity milestone = new MilestoneEntity(this, title, position);
+        milestones.add(milestone);
+        return milestone;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

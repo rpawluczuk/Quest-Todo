@@ -4,6 +4,7 @@ import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 import GoalHabits from '../components/GoalHabits'
+import GoalMilestones from '../components/GoalMilestones'
 import AutoResizeTextarea from '../components/AutoResizeTextarea'
 
 function titleError(title: string): string {
@@ -175,7 +176,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             </div>
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
-              aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id}` : undefined}
+              aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
               <span>{goal.title}</span>
               <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -193,6 +194,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 {goal.currentState && <section><h3>Stan obecny</h3><p>{goal.currentState}</p></section>}
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><p>{goal.desiredOutcome}</p></section>}
               </div>}
+            {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id} />}
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
             {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
               onGoalLinksChanged={onHabitGoalLinksChanged} />}

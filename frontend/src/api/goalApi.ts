@@ -2,6 +2,22 @@ import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
 
+export type Milestone = { id: number; title: string; completed: boolean; position: number }
+
+export async function getMilestones(goalId: number, signal?: AbortSignal): Promise<Milestone[]> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać kamieni milowych'))
+  return response.json()
+}
+
+export async function createMilestone(goalId: number, title: string): Promise<Milestone> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }),
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać kamienia milowego'))
+  return response.json()
+}
+
 export type GoalHabit = { id: number; name: string }
 export type AvailableGoalHabits = { habits: GoalHabit[]; hasMore: boolean }
 
