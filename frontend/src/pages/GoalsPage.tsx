@@ -109,9 +109,16 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   }
 
   return <section className="tasks-section" aria-labelledby="goals-heading">
-    <div className="section-header">
+    <div className="section-header section-header-with-action">
       <h2 id="goals-heading">Cele</h2>
-      <p>Cele, które chcesz osiągnąć.</p>
+      <button type="button" className="add-task-header-button" aria-label="Dodaj cel" title="Dodaj cel"
+        disabled={loading || !!loadError || saving}
+        onClick={() => { setEditingId(null); setError(''); setCreateOpen(true) }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
     </div>
     {loading && <p role="status">Ładowanie celów…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
@@ -127,7 +134,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
           </span>
           <p className="empty-state">Nie masz jeszcze celów. Dodaj pierwszy, aby zacząć!</p>
         </>}
-        {createOpen ? <form className="task-form goal-form" onSubmit={add}>
+        {createOpen && <form className="task-form goal-form" onSubmit={add}>
         <label className="form-field"><span>Tytuł celu</span>
           <input ref={createInput} value={title} maxLength={120} required disabled={saving}
             onChange={event => setTitle(event.target.value)} placeholder="Np. Przebiec 5 km" /></label>
@@ -150,9 +157,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             setCreateDetailsOpen(false); setError('')
           }}>Anuluj</button>
         </div>
-        </form> : <button type="button" className={`${goals.length === 0 ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`} onClick={() => {
-          setEditingId(null); setError(''); setCreateOpen(true)
-        }}>{goals.length === 0 ? '+ Dodaj pierwszy cel' : '+ Dodaj cel'}</button>}
+        </form>}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => <li key={goal.id} className="task-card goal-card">
