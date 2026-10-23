@@ -3533,14 +3533,27 @@
 .goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 10px 0 0; border-top: 1px solid #e9e5ef; }
 .goal-tasks h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: #625b70; }
 .goal-tasks .empty-state { margin-top: 12px; }
-.goal-linked-tasks { margin-top: 12px; }
-.goal-linked-task { display: grid; grid-template-columns: 24px minmax(0, 1fr) 40px; align-items: start; gap: 10px; min-width: 0; }
-.goal-linked-task > input { width: 24px; height: 24px; margin: 10px 0; accent-color: var(--color-primary); }
-.goal-linked-task-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; padding-top: 9px; overflow-wrap: anywhere; }
+.goal-linked-tasks { gap: 8px; margin: 12px 0 0; }
+.goal-linked-task {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 32px;
+  grid-template-areas: 'check title menu' '. meta meta';
+  align-items: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+}
+.goal-linked-task > input { grid-area: check; width: 24px; height: 24px; margin: 4px 0; accent-color: var(--color-primary); }
+.goal-linked-item-title { grid-area: title; min-width: 0; padding-top: 6px; font-size: 14px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; }
+.goal-linked-item-meta { grid-area: meta; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; min-width: 0; }
 .goal-linked-task-due { color: #625b70; font-size: 0.8rem; line-height: 1.35; }
-.goal-linked-task > .task-menu { grid-area: auto; }
-.goal-linked-habit { grid-template-columns: minmax(0, 1fr) 40px; }
-.goal-linked-task button { min-height: 44px; }
+.goal-linked-task > .task-menu { grid-area: menu; }
+.goal-linked-habit { grid-template-columns: minmax(0, 1fr) 32px; grid-template-areas: 'title menu' 'meta meta'; }
+.goal-linked-habit-progress { min-width: 0; color: #625b70; font-size: 0.8rem; line-height: 1.35; overflow-wrap: anywhere; }
+.goal-linked-habit-progress strong { color: #514b5d; font-weight: 600; }
+.goal-linked-item-meta > .task-points { justify-self: end; white-space: nowrap; }
 .goal-task-completed { text-decoration: line-through; color: #666173; }
 .goal-task-picker { grid-template-columns: minmax(0, 1fr); }
 .goal-task-picker input[type='search'] { width: 100%; min-width: 0; }

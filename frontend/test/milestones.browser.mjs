@@ -11,11 +11,18 @@ try {
   let orderFailure = 0
   let orderWrites = 0
   const availableTask = {
-    id: 101, title: 'Zadanie do przypięcia', description: null, points: 5, completed: false,
-    completedAt: null, inFocus: false, dueDate: null, dueTime: null, category: null,
+    id: 101, title: 'Konsultacja GPT', description: null, points: 5, completed: false,
+    completedAt: null, inFocus: false, dueDate: '2026-10-30', dueTime: '21:52', category: null,
     goalId: null, goalTitle: null,
   }
-  const availableHabit = { id: 201, name: 'Nawyk do przypięcia' }
+  const longAvailableTask = {
+    ...availableTask, id: 102, title: 'Bardzo długie zadanie przypięte do celu, które zawija się naturalnie na małym ekranie telefonu',
+    points: 1000, dueDate: null, dueTime: null,
+  }
+  const availableHabit = {
+    id: 201, name: 'Bardzo długi nawyk przypięty do celu, którego nazwa zawija się na telefonie',
+    weeklyCompletedDays: 1, rewardPoints: 2, target: { targetDays: 3, effectiveFrom: '2026-10-19' },
+  }
   const attachedTasks = []
   const attachedHabits = []
   const longGoalTitle = 'Bardzo długi cel, którego nazwa zawija się na kilku liniach na małym ekranie telefonu'
@@ -26,16 +33,23 @@ try {
     let body = []
     if (path === '/api/users/me') body = { id: 1, login: 'test', points: 0, theme: 'PURPLE' }
     else if (path === '/api/tasks/overview') body = { tasks: [], completedCount: 0 }
+    else if (path === '/api/tasks/101') body = availableTask
+    else if (path === '/api/tasks/101/completion') {
+      availableTask.completed = route.request().postDataJSON().completed
+      body = availableTask
+    }
+    else if (path === '/api/habits') body = [availableHabit]
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path.includes('email')) body = { verifiedEmail: null }
     else if (path === '/api/goals') body = [
       { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
       { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
     ]
-    else if (path === '/api/goals/1/tasks/available') body = { tasks: [availableTask], hasMore: false }
+    else if (path === '/api/goals/1/tasks/available') body = { tasks: [availableTask, longAvailableTask], hasMore: false }
     else if (path === '/api/goals/1/tasks') body = attachedTasks
-    else if (path === '/api/goals/1/tasks/101') {
-      if (route.request().method() === 'PUT' && attachedTasks.length === 0) attachedTasks.push(availableTask)
+    else if (/^\/api\/goals\/1\/tasks\/\d+$/.test(path)) {
+      const task = [availableTask, longAvailableTask].find(item => item.id === Number(path.split('/').at(-1)))
+      if (route.request().method() === 'PUT' && task && !attachedTasks.some(item => item.id === task.id)) attachedTasks.push(task)
     }
     else if (path === '/api/goals/1/habits/available') body = { habits: [availableHabit], hasMore: false }
     else if (path === '/api/goals/1/habits') body = attachedHabits
@@ -157,17 +171,51 @@ try {
   }
   await taskSection.getByRole('button', { name: 'Przypnij zadanie', exact: true }).click()
   const taskDialog = page.getByRole('dialog', { name: 'Przypnij zadania' })
-  await taskDialog.getByRole('button', { name: 'Przypnij zadanie: Zadanie do przypięcia' }).click()
+  await taskDialog.getByRole('button', { name: 'Przypnij zadanie: Konsultacja GPT' }).click()
   await taskSection.getByText('Zadania · 1', { exact: true }).waitFor()
+  await taskDialog.getByRole('button', { name: `Przypnij zadanie: ${longAvailableTask.title}` }).click()
+  await taskSection.getByText('Zadania · 2', { exact: true }).waitFor()
   await taskDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   await habitSection.getByRole('button', { name: 'Przypnij nawyk', exact: true }).click()
   const habitDialog = page.getByRole('dialog', { name: 'Przypnij nawyki' })
-  await habitDialog.getByRole('button', { name: 'Przypnij nawyk: Nawyk do przypięcia' }).click()
+  await habitDialog.getByRole('button', { name: `Przypnij nawyk: ${availableHabit.name}` }).click()
   await habitSection.getByText('Nawyki · 1', { exact: true }).waitFor()
   await habitDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
   assert.equal(await page.getByText('+ Przypnij zadanie', { exact: true }).count(), 0)
   assert.equal(await page.getByText('+ Przypnij nawyk', { exact: true }).count(), 0)
+  const linkedTaskRows = taskSection.locator('.goal-linked-task')
+  const linkedHabitRow = habitSection.locator('.goal-linked-habit')
+  await linkedTaskRows.nth(1).waitFor()
+  await linkedHabitRow.waitFor()
+  await taskSection.getByText('30 paź, 21:52', { exact: true }).waitFor()
+  await taskSection.getByText('5 pkt', { exact: true }).waitFor()
+  await taskSection.getByText('1000 pkt', { exact: true }).waitFor()
+  await habitSection.getByText('1/3 dni w tygodniu', { exact: true }).waitFor()
+  await habitSection.getByText('2 pkt', { exact: true }).waitFor()
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (const row of [linkedTaskRows.first(), linkedTaskRows.nth(1), linkedHabitRow]) {
+      const styles = await row.evaluate(element => {
+        const style = getComputedStyle(element)
+        return { borderWidth: style.borderTopWidth, radius: style.borderRadius }
+      })
+      assert.equal(styles.borderWidth, '1px')
+      assert.equal(styles.radius, '8px')
+    }
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
+  await Promise.all([
+    page.waitForResponse(response => response.url().endsWith('/api/tasks/101/completion')),
+    linkedTaskRows.first().getByRole('checkbox').click(),
+  ])
+  assert.equal(availableTask.completed, true)
+  await linkedTaskRows.first().getByRole('button', { name: /Więcej opcji/ }).click()
+  await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
+  await page.keyboard.press('Escape')
+  await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
+  await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
+  await page.keyboard.press('Escape')
   await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
   await section.getByLabel('Nazwa kamienia milowego').fill('  Przebiegam 2 km bez przerwy  ')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
@@ -383,4 +431,5 @@ try {
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
   console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')
   console.log('PASS goal subsection header actions create a milestone and attach a task/habit at 320/375/390px')
+  console.log('PASS compact linked task/habit rows show metadata, wrap on mobile and preserve checkbox/menu actions')
 } finally { await browser.close() }

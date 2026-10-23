@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
+import { getHabits } from '../api/habitApi'
+import { formatHabitProgress } from '../habitTarget'
+import type { Habit } from '../types/Habit'
+import { habitToday } from '../weekDates'
 import TaskActionsMenu from './TaskActionsMenu'
 import { Plus } from 'lucide-react'
 
@@ -7,6 +11,7 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
 }) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
+  const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
@@ -32,6 +37,9 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
     }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać nawyków.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    getHabits(habitToday(), controller.signal).then(habits => {
+      if (!controller.signal.aborted) setDetailsById(new Map(habits.map(habit => [habit.id, habit])))
+    }).catch(() => undefined)
     return () => controller.abort()
   }, [goalId, retry])
 
@@ -127,8 +135,19 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
     </> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij nawyki, które pomogą Ci osiągnąć ten cel.</p>}
       {attached.length > 0 && <ul className="task-list goal-linked-tasks">
-        {attached.map(habit => <li key={habit.id} className="goal-linked-task goal-linked-habit">
-          <div className="goal-linked-task-body"><span>{habit.name}</span></div>
+        {attached.map(habit => {
+          const details = detailsById.get(habit.id)
+          const progress = details
+            ? formatHabitProgress(details.weeklyCompletedDays, details.target?.targetDays ?? null)
+            : null
+          return <li key={habit.id} className="goal-linked-task goal-linked-habit">
+          <span className="goal-linked-item-title">{habit.name}</span>
+          {details && progress && <div className="goal-linked-item-meta">
+            <span className="goal-linked-habit-progress">
+              <strong>{progress.count}</strong> {progress.period}
+            </span>
+            <span className="task-points task-card-points">{details.rewardPoints} pkt</span>
+          </div>}
           <TaskActionsMenu itemTitle={habit.name} itemType="nawyku" disabled={busy} actions={[{
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalHabit(goalId, habit.id, false)
@@ -136,7 +155,7 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
               onGoalLinksChanged()
             }),
           }]} />
-        </li>)}
+        </li>})}
       </ul>}
       {!pickerOpen && busy && <p role="status">Zapisywanie…</p>}
       {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}

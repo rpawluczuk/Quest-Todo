@@ -188,10 +188,10 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
             aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
               await onToggleTask(task.id)
             })} />
-          <div className="goal-linked-task-body">
-            <span className={task.completed ? 'goal-task-completed' : undefined}>{task.title}</span>
+          <span className={`goal-linked-item-title${task.completed ? ' goal-task-completed' : ''}`}>{task.title}</span>
+          <div className="goal-linked-item-meta">
             {due && <span className={`goal-linked-task-due${due.overdue ? ' task-card-due-overdue' : ''}`}>{due.label}</span>}
-            <span className="task-points">{task.points} pkt</span>
+            <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
           <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
