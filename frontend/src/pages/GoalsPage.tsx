@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from 'react'
 import { ChevronDown, ChevronRight, FileText, Flag } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
@@ -21,11 +21,16 @@ function definitionError(currentState: string, desiredOutcome: string): string {
   return ''
 }
 
+type GoalTab = 'milestones' | 'tasks' | 'habits'
+
 export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: GoalTasksProps & {
   onHabitGoalLinksChanged: () => void
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [descriptionOpenId, setDescriptionOpenId] = useState<number | null>(null)
+  const [activeTabByGoal, setActiveTabByGoal] = useState<Record<number, GoalTab>>({})
+  const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
+  const [habitCountByGoal, setHabitCountByGoal] = useState<Record<number, number>>({})
   const [goals, setGoals] = useState<Goal[]>([])
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -64,9 +69,31 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
 
+  const updateTaskCount = useCallback((goalId: number, count: number) => {
+    setTaskCountByGoal(current => current[goalId] === count ? current : { ...current, [goalId]: count })
+  }, [])
+
+  const updateHabitCount = useCallback((goalId: number, count: number) => {
+    setHabitCountByGoal(current => current[goalId] === count ? current : { ...current, [goalId]: count })
+  }, [])
+
   function toggleGoal(goalId: number) {
     setDescriptionOpenId(null)
+    if (expandedId !== goalId) setActiveTabByGoal(current => ({ ...current, [goalId]: 'milestones' }))
     setExpandedId(current => current === goalId ? null : goalId)
+  }
+
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, goalId: number) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    const tabs = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? [])
+    const currentIndex = tabs.indexOf(event.currentTarget)
+    if (currentIndex < 0) return
+    event.preventDefault()
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+    const nextTab = ['milestones', 'tasks', 'habits'][nextIndex] as GoalTab
+    setActiveTabByGoal(current => ({ ...current, [goalId]: nextTab }))
+    tabs[nextIndex]?.focus()
   }
 
   async function add(event: SubmitEvent<HTMLFormElement>) {
@@ -179,6 +206,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
       {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => {
         const milestones = milestonesByGoal[goal.id]
         const completedMilestones = milestones?.filter(item => item.completed).length ?? 0
+        const activeTab = activeTabByGoal[goal.id] ?? 'milestones'
         return <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu</span>
@@ -245,11 +273,44 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
               </div>
             </>}
-            {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
-              onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />}
-            {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
-            {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
-              onGoalLinksChanged={onHabitGoalLinksChanged} />}
+            {expandedId === goal.id && <>
+              <div className="goal-tabs" role="tablist" aria-label={`Elementy celu „${goal.title}”`}>
+                <button type="button" role="tab" id={`goal-tab-milestones-${goal.id}`}
+                  aria-selected={activeTab === 'milestones'} aria-controls={`goal-panel-milestones-${goal.id}`}
+                  tabIndex={activeTab === 'milestones' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
+                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'milestones' }))}>
+                  <span>Kamienie</span><span className="goal-tab-count">{completedMilestones}/{milestones?.length ?? 0}</span>
+                </button>
+                <button type="button" role="tab" id={`goal-tab-tasks-${goal.id}`}
+                  aria-selected={activeTab === 'tasks'} aria-controls={`goal-panel-tasks-${goal.id}`}
+                  tabIndex={activeTab === 'tasks' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
+                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'tasks' }))}>
+                  <span>Zadania</span><span className="goal-tab-count">{taskCountByGoal[goal.id] ?? 0}</span>
+                </button>
+                <button type="button" role="tab" id={`goal-tab-habits-${goal.id}`}
+                  aria-selected={activeTab === 'habits'} aria-controls={`goal-panel-habits-${goal.id}`}
+                  tabIndex={activeTab === 'habits' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
+                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'habits' }))}>
+                  <span>Nawyki</span><span className="goal-tab-count">{habitCountByGoal[goal.id] ?? 0}</span>
+                </button>
+              </div>
+              <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-milestones-${goal.id}`}
+                aria-labelledby={`goal-tab-milestones-${goal.id}`} hidden={activeTab !== 'milestones'}>
+                <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
+                  onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />
+              </div>
+              <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-tasks-${goal.id}`}
+                aria-labelledby={`goal-tab-tasks-${goal.id}`} hidden={activeTab !== 'tasks'}>
+                <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps}
+                  onCountChange={updateTaskCount} />
+              </div>
+              <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-habits-${goal.id}`}
+                aria-labelledby={`goal-tab-habits-${goal.id}`} hidden={activeTab !== 'habits'}>
+                <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
+                  onGoalLinksChanged={onHabitGoalLinksChanged}
+                  onCountChange={updateHabitCount} />
+              </div>
+            </>}
           </>}
         </li>})}</ul>}
     </>}

@@ -176,24 +176,45 @@ try {
   const section = page.getByRole('region', { name: 'Kamienie milowe' })
   const taskSection = page.locator('#goal-tasks-1')
   const habitSection = page.locator('#goal-habits-1')
+  const milestoneTab = page.locator('#goal-tab-milestones-1')
+  const taskTab = page.locator('#goal-tab-tasks-1')
+  const habitTab = page.locator('#goal-tab-habits-1')
+  const milestonePanel = page.locator('#goal-panel-milestones-1')
+  const taskPanel = page.locator('#goal-panel-tasks-1')
+  const habitPanel = page.locator('#goal-panel-habits-1')
   const subsectionButtons = page.locator([
     '#goal-milestones-1 > .goal-subsection-header .goal-subsection-add',
     '#goal-tasks-1 > .goal-subsection-header .goal-subsection-add',
     '#goal-habits-1 > .goal-subsection-header .goal-subsection-add',
   ].join(', '))
-  await subsectionButtons.nth(2).waitFor()
+  await subsectionButtons.nth(2).waitFor({ state: 'attached' })
   assert.equal(await subsectionButtons.count(), 3)
+  assert.equal(await milestoneTab.getAttribute('aria-selected'), 'true')
+  assert.equal(await milestonePanel.isVisible(), true)
+  assert.equal(await taskPanel.isHidden(), true)
+  assert.equal(await habitPanel.isHidden(), true)
+  await milestoneTab.focus()
+  await page.keyboard.press('ArrowRight')
+  assert.equal(await taskTab.getAttribute('aria-selected'), 'true')
+  assert.equal(await taskTab.evaluate(element => element === document.activeElement), true)
+  assert.equal(await taskPanel.isVisible(), true)
+  await page.keyboard.press('End')
+  assert.equal(await habitTab.getAttribute('aria-selected'), 'true')
+  assert.equal(await habitPanel.isVisible(), true)
   await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 })
-    const boxes = await subsectionButtons.evaluateAll(elements => elements.map(element => {
+    const tabBoxes = await page.locator('#goal-tab-milestones-1, #goal-tab-tasks-1, #goal-tab-habits-1')
+      .evaluateAll(elements => elements.map(element => {
       const box = element.getBoundingClientRect()
-      return { width: box.width, height: box.height, right: box.right }
+      return { top: box.top, bottom: box.bottom }
     }))
-    assert.ok(boxes.every(box => box.width === 32 && box.height === 32))
-    assert.ok(boxes.every(box => Math.abs(box.right - boxes[0].right) < 0.5))
+    assert.ok(tabBoxes.every(box => Math.abs(box.top - tabBoxes[0].top) < 0.5
+      && Math.abs(box.bottom - tabBoxes[0].bottom) < 0.5))
+    assert.ok(await page.locator('.goal-tabs').evaluate(element => element.scrollWidth <= element.clientWidth))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+  await taskTab.click()
   await taskSection.getByRole('button', { name: 'Przypnij zadanie', exact: true }).click()
   const taskDialog = page.getByRole('dialog', { name: 'Przypnij zadania' })
   await taskDialog.getByRole('button', { name: 'Przypnij zadanie: Konsultacja GPT' }).click()
@@ -201,26 +222,32 @@ try {
   await taskDialog.getByRole('button', { name: `Przypnij zadanie: ${longAvailableTask.title}` }).click()
   await taskSection.getByText('Zadania · 2', { exact: true }).waitFor()
   await taskDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('2'))
+  await habitTab.click()
   await habitSection.getByRole('button', { name: 'Przypnij nawyk', exact: true }).click()
   const habitDialog = page.getByRole('dialog', { name: 'Przypnij nawyki' })
   await habitDialog.getByRole('button', { name: `Przypnij nawyk: ${availableHabit.name}` }).click()
   await habitSection.getByText('Nawyki · 1', { exact: true }).waitFor()
   await habitDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
   assert.equal(await page.getByText('+ Przypnij zadanie', { exact: true }).count(), 0)
   assert.equal(await page.getByText('+ Przypnij nawyk', { exact: true }).count(), 0)
   const linkedTaskRows = taskSection.locator('.goal-linked-task')
   const linkedHabitRow = habitSection.locator('.goal-linked-habit')
-  await linkedTaskRows.nth(1).waitFor()
-  await linkedHabitRow.waitFor()
+  await linkedTaskRows.nth(1).waitFor({ state: 'attached' })
+  await linkedHabitRow.waitFor({ state: 'attached' })
+  await taskTab.click()
   await taskSection.getByText('30 paź, 21:52', { exact: true }).waitFor()
   await taskSection.getByText('5 pkt', { exact: true }).waitFor()
   await taskSection.getByText('1000 pkt', { exact: true }).waitFor()
+  await habitTab.click()
   await habitSection.getByText('1/3 dni w tygodniu', { exact: true }).waitFor()
   await habitSection.getByText('2 pkt', { exact: true }).waitFor()
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 })
-    for (const row of [linkedTaskRows.first(), linkedTaskRows.nth(1), linkedHabitRow]) {
+    await taskTab.click()
+    for (const row of [linkedTaskRows.first(), linkedTaskRows.nth(1)]) {
       const styles = await row.evaluate(element => {
         const style = getComputedStyle(element)
         return { borderWidth: style.borderTopWidth, radius: style.borderRadius }
@@ -228,8 +255,16 @@ try {
       assert.equal(styles.borderWidth, '1px')
       assert.equal(styles.radius, '8px')
     }
+    await habitTab.click()
+    const habitStyles = await linkedHabitRow.evaluate(element => {
+      const style = getComputedStyle(element)
+      return { borderWidth: style.borderTopWidth, radius: style.borderRadius }
+    })
+    assert.equal(habitStyles.borderWidth, '1px')
+    assert.equal(habitStyles.radius, '8px')
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+  await taskTab.click()
   await Promise.all([
     page.waitForResponse(response => response.url().endsWith('/api/tasks/101/completion')),
     linkedTaskRows.first().getByRole('checkbox').click(),
@@ -238,10 +273,12 @@ try {
   await linkedTaskRows.first().getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
   await page.keyboard.press('Escape')
+  await habitTab.click()
   await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).click()
   await habitSection.getByText('Nawyki · 0', { exact: true }).waitFor()
   await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
+  await milestoneTab.click()
   await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
   await section.getByLabel('Nazwa kamienia milowego').fill('  Przebiegam 2 km bez przerwy  ')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
@@ -275,6 +312,7 @@ try {
   await page.getByRole('button', { name: 'Rozwiń cel „Przebiegam 5 km”' }).click()
   await section.getByRole('checkbox').first().waitFor()
   assert.equal(await descriptionToggle.getAttribute('aria-expanded'), 'false')
+  assert.equal(await milestoneTab.getAttribute('aria-selected'), 'true')
   failCompletion = true
   await section.getByRole('checkbox').first().check()
   await section.getByRole('alert').getByText('Nie udało się zapisać ukończenia.').waitFor()
@@ -455,6 +493,7 @@ try {
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS goal descriptions clamp at three lines, expand independently and react to 320/375/390px widths')
   console.log('PASS goal description panel defaults closed, preserves inner expansion and stays hidden for empty descriptions')
+  console.log('PASS goal tabs switch with pointer/keyboard, keep one panel visible and fit at 320/375/390px')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
   console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')

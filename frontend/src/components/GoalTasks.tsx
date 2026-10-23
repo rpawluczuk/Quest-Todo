@@ -17,7 +17,8 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
   return [...current, ...next.filter(task => !known.has(task.id))]
 }
 
-export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask, onGoalLinksChanged }: GoalTasksProps & { goalId: number; goalTitle: string }) {
+export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask, onGoalLinksChanged,
+  onCountChange }: GoalTasksProps & { goalId: number; goalTitle: string; onCountChange?: (goalId: number, count: number) => void }) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -49,6 +50,8 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [goalId, taskRevision])
+
+  useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
 
   useEffect(() => {
     if (!pickerOpen || queryInput.trim() === query) return

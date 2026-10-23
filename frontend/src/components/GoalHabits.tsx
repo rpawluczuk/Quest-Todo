@@ -7,8 +7,9 @@ import { habitToday } from '../weekDates'
 import TaskActionsMenu from './TaskActionsMenu'
 import { Plus } from 'lucide-react'
 
-export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
+export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange }: {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
+  onCountChange?: (goalId: number, count: number) => void
 }) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
   const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
@@ -42,6 +43,8 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
     }).catch(() => undefined)
     return () => controller.abort()
   }, [goalId, retry])
+
+  useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
 
   useEffect(() => {
     if (!pickerOpen || queryInput.trim() === query) return
