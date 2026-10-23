@@ -5,6 +5,7 @@ import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
+import { Plus } from 'lucide-react'
 
 export default function GoalMilestones({ goalId, onItemsChange }: {
   goalId: number
@@ -136,8 +137,14 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
   }
   return <section className="goal-tasks goal-milestones" id={`goal-milestones-${goalId}`}
     aria-labelledby={`milestones-heading-${goalId}`}>
-    <div className="milestone-heading">
+    <div className="goal-subsection-header">
       <h3 id={`milestones-heading-${goalId}`}>Kamienie milowe</h3>
+      <button type="button" className="add-task-header-button goal-subsection-add"
+        aria-label="Dodaj kamień milowy" title="Dodaj kamień milowy"
+        disabled={loading || !!loadError || mutationsDisabled || open}
+        onClick={() => setOpen(true)}>
+        <Plus aria-hidden="true" />
+      </button>
     </div>
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
@@ -202,8 +209,7 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
           <button type="button" className="secondary-button" disabled={saving}
             onClick={() => { setOpen(false); setTitle(''); setError('') }}>Anuluj</button>
         </div>
-      </form> : <button type="button" className="secondary-button goal-attach-trigger"
-        disabled={mutationsDisabled} onClick={() => setOpen(true)}>Dodaj kamień milowy</button>}
+      </form> : null}
     </>}
   </section>
 }

@@ -3,6 +3,7 @@ import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi
 import type { Task } from '../types/Task'
 import TaskActionsMenu from './TaskActionsMenu'
 import { getTaskDuePresentation } from '../taskDue'
+import { Plus } from 'lucide-react'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -167,7 +168,15 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   }
 
   return <div className="goal-tasks" id={`goal-tasks-${goalId}`}>
-    <h3>Zadania{!loading && !loadError && <> · {attached.length}</>}</h3>
+    <div className="goal-subsection-header">
+      <h3>Zadania{!loading && !loadError && <> · {attached.length}</>}</h3>
+      <button ref={trigger} type="button" className="add-task-header-button goal-subsection-add"
+        aria-label="Przypnij zadanie" title="Przypnij zadanie"
+        disabled={loading || !!loadError || disabled || pickerOpen}
+        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>
+        <Plus aria-hidden="true" />
+      </button>
+    </div>
     {loading ? <p role="status">Ładowanie zadań…</p> : loadError ?
       <p className="form-error" role="alert">{loadError}</p> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij zadania, które pomogą Ci osiągnąć ten cel.</p>}
@@ -193,8 +202,6 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
           }]} />
         </li>})}
       </ul>}
-      <button ref={trigger} type="button" className="goal-picker-link goal-attach-trigger" disabled={disabled || pickerOpen}
-        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>+ Przypnij zadanie</button>
       {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog" aria-labelledby="goal-picker-title"
         onCancel={event => { event.preventDefault(); closePicker() }}>
         <div className="goal-picker-header">

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
 import TaskActionsMenu from './TaskActionsMenu'
+import { Plus } from 'lucide-react'
 
 export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
@@ -109,7 +110,15 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
   }
 
   return <div className="goal-tasks" id={`goal-habits-${goalId}`}>
-    <h3>Nawyki{!loading && !loadError && <> · {attached.length}</>}</h3>
+    <div className="goal-subsection-header">
+      <h3>Nawyki{!loading && !loadError && <> · {attached.length}</>}</h3>
+      <button ref={trigger} type="button" className="add-task-header-button goal-subsection-add"
+        aria-label="Przypnij nawyk" title="Przypnij nawyk"
+        disabled={loading || !!loadError || busy || pickerOpen}
+        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>
+        <Plus aria-hidden="true" />
+      </button>
+    </div>
     {loading ? <p role="status">Ładowanie nawyków…</p> : loadError ? <>
       <p className="form-error" role="alert">{loadError}</p>
       <button type="button" className="goal-picker-link" onClick={() => {
@@ -129,8 +138,6 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
           }]} />
         </li>)}
       </ul>}
-      <button ref={trigger} type="button" className="goal-picker-link goal-attach-trigger" disabled={busy || pickerOpen}
-        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>+ Przypnij nawyk</button>
       {!pickerOpen && busy && <p role="status">Zapisywanie…</p>}
       {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}
     </>}

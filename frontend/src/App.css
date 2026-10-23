@@ -3502,7 +3502,18 @@
 .goal-definition-expand[aria-expanded='true'] svg { transform: rotate(180deg); }
 .goal-definition-expand:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .milestone-list { display: grid; gap: 8px; padding: 0; list-style: none; }
-.milestone-heading { display: flex; align-items: center; gap: 8px; }
+.goal-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.goal-subsection-header h3 { min-width: 0; }
+.goal-subsection-add {
+  position: relative;
+  flex-basis: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.goal-subsection-add::before { content: ''; position: absolute; inset: -6px; }
+.goal-subsection-add svg { width: 16px; height: 16px; }
+.goal-subsection-add:disabled { cursor: not-allowed; opacity: 0.5; transform: none; }
 .milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 32px 32px; column-gap: 4px; align-items: start; min-width: 0; }
 .milestone-title { min-width: 0; padding-top: 6px; font-size: 14px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; }
 .milestone-grip { position: relative; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #625b70; cursor: grab; touch-action: none; user-select: none; }
@@ -3529,8 +3540,6 @@
 .goal-linked-task-due { color: #625b70; font-size: 0.8rem; line-height: 1.35; }
 .goal-linked-task > .task-menu { grid-area: auto; }
 .goal-linked-habit { grid-template-columns: minmax(0, 1fr) 40px; }
-.goal-tasks .goal-attach-trigger { margin-top: 8px; padding-inline: 0; font-size: 0.9rem; }
-.goal-attach-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
 .goal-linked-task button { min-height: 44px; }
 .goal-task-completed { text-decoration: line-through; color: #666173; }
 .goal-task-picker { grid-template-columns: minmax(0, 1fr); }
