@@ -12,6 +12,10 @@ public class MilestoneController {
     public MilestoneController(MilestoneService milestones) { this.milestones = milestones; }
     @GetMapping
     public List<Milestone> list(@PathVariable long goalId) { return milestones.list(goalId); }
+    @PutMapping("/order")
+    public List<Milestone> reorder(@PathVariable long goalId, @Valid @RequestBody MilestoneOrderRequest request) {
+        return milestones.reorder(goalId, request.milestoneIds());
+    }
     @PatchMapping("/{milestoneId}")
     public Milestone rename(@PathVariable long goalId, @PathVariable long milestoneId,
             @Valid @RequestBody MilestoneRequest request) {

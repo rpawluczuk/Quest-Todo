@@ -8,6 +8,8 @@ try {
   const milestones = []
   let failCompletion = false
   let failChange = false
+  let orderFailure = 0
+  let orderWrites = 0
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const path = new URL(route.request().url()).pathname
     let body = []
@@ -16,6 +18,14 @@ try {
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path.includes('email')) body = { verifiedEmail: null }
     else if (path === '/api/goals') body = [{ id: 1, title: 'Przebiegam 5 km', currentState: null, desiredOutcome: null }]
+    else if (path === '/api/goals/1/milestones/order') {
+      orderWrites++
+      if (orderFailure) return route.fulfill({ status: orderFailure, json: { detail: 'Nie udało się zapisać kolejności.' } })
+      const ids = route.request().postDataJSON().milestoneIds
+      const reordered = ids.map((id, position) => ({ ...milestones.find(item => item.id === id), position }))
+      milestones.splice(0, milestones.length, ...reordered)
+      body = milestones
+    }
     else if (path.endsWith('/completion')) {
       if (failCompletion) return route.fulfill({ status: 503, json: { detail: 'Nie udało się zapisać ukończenia.' } })
       const item = milestones.find(value => value.id === Number(path.split('/')[5]))
@@ -89,6 +99,84 @@ try {
   await page.getByText('1/2', { exact: true }).waitFor()
   assert.equal(await page.getByRole('checkbox').nth(1).isChecked(), true)
   const rows = section.locator('.milestone-list > li')
+  async function moveFirstDown() {
+    await page.waitForTimeout(350)
+    const handle = rows.first().getByRole('button', { name: /Zmień kolejność/ })
+    await handle.scrollIntoViewIfNeeded()
+    await handle.focus()
+    await page.keyboard.press('Space')
+    await page.locator('.milestone-dragging').waitFor()
+    await page.waitForTimeout(100)
+    await page.keyboard.press('ArrowDown')
+    await page.waitForTimeout(300)
+    const response = page.waitForResponse(response => response.url().endsWith('/milestones/order'))
+    await page.keyboard.press('Space')
+    await response
+    await page.waitForFunction(() => !document.querySelector('.milestone-grip').disabled)
+  }
+  const originalNames = await rows.locator('.milestone-row > span').allTextContents()
+  await moveFirstDown()
+  assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
+  assert.equal(await rows.first().getByRole('checkbox').isChecked(), true)
+  await page.reload()
+  await page.getByRole('button', { name: 'Cele', exact: true }).click()
+  await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
+  await section.getByText('1/2', { exact: true }).waitFor()
+  assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
+  await moveFirstDown()
+  orderFailure = 503
+  await moveFirstDown()
+  await section.getByText('Nie udało się zapisać kolejności.').waitFor()
+  assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), originalNames)
+  orderFailure = 0
+  const beforeCancel = orderWrites
+  await rows.first().getByRole('button', { name: /Zmień kolejność/ }).focus()
+  await page.keyboard.press('Space')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Escape')
+  assert.equal(orderWrites, beforeCancel)
+  assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), originalNames)
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    await rows.first().scrollIntoViewIfNeeded()
+    const start = await rows.first().locator('.milestone-grip').boundingBox()
+    const end = await rows.nth(1).locator('.milestone-grip').boundingBox()
+    const client = await page.context().newCDPSession(page)
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: start.x + 20, y: start.y + 20 }] })
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + 20, y: start.y + 30 }] })
+    await page.waitForTimeout(100)
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: end.x + 20, y: end.y + 20 }] })
+    await page.waitForTimeout(100)
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForFunction(() => !document.querySelector('.milestone-grip').disabled)
+    assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    await moveFirstDown()
+    await client.detach()
+  }
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await rows.first().scrollIntoViewIfNeeded()
+  const mouseStart = await rows.first().locator('.milestone-grip').boundingBox()
+  const mouseEnd = await rows.nth(1).locator('.milestone-grip').boundingBox()
+  await page.mouse.move(mouseStart.x + 20, mouseStart.y + 20)
+  await page.mouse.down()
+  await page.mouse.move(mouseStart.x + 20, mouseStart.y + 30, { steps: 3 })
+  await page.mouse.move(mouseEnd.x + 20, mouseEnd.y + 20, { steps: 8 })
+  await page.mouse.up()
+  await page.waitForFunction(() => !document.querySelector('.milestone-grip').disabled)
+  assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
+  await moveFirstDown()
+  orderFailure = 409
+  milestones.push({ id: 99, title: 'Dodany w innej sesji', completed: false, position: 2 })
+  await moveFirstDown()
+  await section.getByText('Dodany w innej sesji', { exact: true }).waitFor()
+  await section.getByText('1/3', { exact: true }).waitFor()
+  orderFailure = 0
+  milestones.pop()
+  await page.reload()
+  await page.getByRole('button', { name: 'Cele', exact: true }).click()
+  await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
+  await section.getByText('1/2', { exact: true }).waitFor()
   async function edit(index) {
     await rows.nth(index).getByRole('button', { name: /Więcej opcji/ }).click()
     await page.getByRole('menuitem', { name: 'Edytuj', exact: true }).click()
@@ -137,4 +225,5 @@ try {
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).waitFor()
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
+  console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
 } finally { await browser.close() }

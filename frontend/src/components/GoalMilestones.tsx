@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { createMilestone, getMilestones, setMilestoneCompleted, renameMilestone, deleteMilestone, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from './TaskActionsMenu'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import SortableMilestone from './SortableMilestone'
+import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 
 export default function GoalMilestones({ goalId }: { goalId: number }) {
   const [items, setItems] = useState<Milestone[]>([])
@@ -18,6 +22,37 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
   const [pendingIds, setPendingIds] = useState(new Set<number>())
   const [completionErrors, setCompletionErrors] = useState<Record<number, string>>({})
   const input = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const [ordering, setOrdering] = useState(false)
+  const [orderError, setOrderError] = useState('')
+  const orderBusy = useRef(false)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
+  const mutationsDisabled = dragging || ordering
+  async function finishDrag({ active, over }: DragEndEvent) {
+    setDragging(false)
+    if (!over || active.id === over.id || orderBusy.current) return
+    const previous = items
+    const next = arrayMove(items, items.findIndex(item => item.id === active.id), items.findIndex(item => item.id === over.id))
+    orderBusy.current = true
+    setOrdering(true)
+    setOrderError('')
+    setItems(next)
+    try {
+      setItems(await reorderMilestones(goalId, next.map(item => item.id)))
+    } catch (failure) {
+      setItems(previous)
+      if (failure instanceof MilestoneOrderConflict) {
+        try { setItems(await getMilestones(goalId)) }
+        catch { setOrderError('Nie udało się odświeżyć listy po konflikcie. Otwórz cel ponownie.'); return }
+      }
+      setOrderError(failure instanceof Error ? failure.message : 'Nie udało się zapisać kolejności.')
+    } finally {
+      orderBusy.current = false
+      setOrdering(false)
+    }
+  }
   useEffect(() => {
     const controller = new AbortController()
     getMilestones(goalId, controller.signal).then(setItems).catch(failure => {
@@ -28,6 +63,7 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
   useEffect(() => { if (open) input.current?.focus() }, [open])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
   async function changeItem(item: Milestone, remove: boolean) {
+    if (orderBusy.current || dragging) return
     if (pending.current.has(item.id)) return
     if (!remove && !editTitle.trim()) {
       setCompletionErrors(current => ({ ...current, [item.id]: 'Podaj nazwę kamienia milowego.' }))
@@ -56,6 +92,7 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
   }
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (orderBusy.current || dragging) return
     if (sending.current) return
     if (!title.trim()) { setError('Podaj nazwę kamienia milowego.'); return }
     sending.current = true
@@ -71,6 +108,7 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
     } finally { sending.current = false; setSaving(false) }
   }
   async function toggle(item: Milestone) {
+    if (orderBusy.current || dragging) return
     if (pending.current.has(item.id)) return
     pending.current.add(item.id)
     setPendingIds(new Set(pending.current))
@@ -98,9 +136,24 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
     </div>
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
+    {orderError && <p className="form-error" role="alert">{orderError}</p>}
     {!loading && !loadError && <>
       {items.length === 0 ? <p className="empty-state">Nie masz jeszcze kamieni milowych dla tego celu.</p>
-        : <ol className="milestone-list">{items.map(item => <li key={item.id}>
+        : <DndContext sensors={sensors} collisionDetection={closestCenter}
+          onDragStart={() => { setDragging(true); setOrderError('') }}
+          onDragCancel={() => setDragging(false)} onDragEnd={event => void finishDrag(event)}
+          accessibility={{
+            screenReaderInstructions: { draggable: 'Naciśnij Space lub Enter, aby przenieść. Strzałki zmieniają pozycję. Space lub Enter zapisuje, Escape anuluje.' },
+            announcements: {
+              onDragStart: ({ active }) => `Przenosisz: ${items.find(item => item.id === active.id)?.title}.`,
+              onDragOver: ({ over }) => over ? `Nowa pozycja: ${items.findIndex(item => item.id === over.id) + 1} z ${items.length}.` : undefined,
+              onDragEnd: ({ over }) => over ? `Upuszczono na pozycji ${items.findIndex(item => item.id === over.id) + 1}.` : 'Anulowano przenoszenie.',
+              onDragCancel: () => 'Anulowano przenoszenie.',
+            },
+          }}>
+          <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
+          <ol className="milestone-list">{items.map(item => <SortableMilestone key={item.id} id={item.id}
+            title={item.title} disabled={orderDisabled}>{handle => <>
           {editingId === item.id ? <form className="milestone-form milestone-edit-form"
             onSubmit={event => { event.preventDefault(); void changeItem(item, false) }}>
             <label className="form-field"><span>Nazwa kamienia milowego</span>
@@ -113,13 +166,14 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
             </div>
           </form> : <div className="milestone-row">
             <label className="task-card-check milestone-check">
-              <input type="checkbox" checked={item.completed} disabled={pendingIds.has(item.id)}
+              <input type="checkbox" checked={item.completed} disabled={pendingIds.has(item.id) || mutationsDisabled}
                 aria-label={item.title} aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
                 onChange={() => void toggle(item)} />
             </label>
             <span className={item.completed ? 'milestone-completed' : undefined}>{item.title}</span>
+            {handle}
             <TaskActionsMenu itemTitle={item.title} itemType="kamienia milowego"
-              disabled={pendingIds.has(item.id) || editingId !== null} actions={[
+              disabled={pendingIds.has(item.id) || editingId !== null || mutationsDisabled} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => {
                   setEditingId(item.id); setEditTitle(item.title)
                   setCompletionErrors(current => ({ ...current, [item.id]: '' }))
@@ -130,19 +184,21 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
           {completionErrors[item.id] && <p id={`milestone-error-${item.id}`} className="form-error" role="alert">
             {completionErrors[item.id]}
           </p>}
-        </li>)}</ol>}
+        </>}</SortableMilestone>)}</ol>
+          </SortableContext>
+        </DndContext>}
       {open ? <form className="milestone-form" onSubmit={submit}>
         <label className="form-field"><span>Nazwa kamienia milowego</span>
           <input ref={input} required maxLength={120} value={title} disabled={saving}
             placeholder="Np. Przebiegam 2 km bez przerwy" onChange={event => setTitle(event.target.value)} /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="task-actions">
-          <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
+          <button type="submit" disabled={saving || mutationsDisabled}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
           <button type="button" className="secondary-button" disabled={saving}
             onClick={() => { setOpen(false); setTitle(''); setError('') }}>Anuluj</button>
         </div>
       </form> : <button type="button" className="secondary-button goal-attach-trigger"
-        onClick={() => setOpen(true)}>Dodaj kamień milowy</button>}
+        disabled={mutationsDisabled} onClick={() => setOpen(true)}>Dodaj kamień milowy</button>}
     </>}
   </section>
 }

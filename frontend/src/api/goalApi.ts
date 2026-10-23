@@ -4,6 +4,20 @@ import type { Task } from '../types/Task'
 
 export type Milestone = { id: number; title: string; completed: boolean; position: number }
 
+export class MilestoneOrderConflict extends Error {}
+
+export async function reorderMilestones(goalId: number, milestoneIds: number[]): Promise<Milestone[]> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones/order`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ milestoneIds }),
+  })
+  if (!response.ok) {
+    const message = await errorMessage(response, 'Nie udało się zapisać kolejności kamieni milowych')
+    if (response.status === 409) throw new MilestoneOrderConflict(message)
+    throw new Error(message)
+  }
+  return response.json()
+}
+
 export async function renameMilestone(goalId: number, id: number, title: string): Promise<Milestone> {
   const response = await apiFetch(`/api/goals/${goalId}/milestones/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }),

@@ -58,4 +58,24 @@ public class MilestoneService {
         return goal.getMilestones().stream().filter(item -> item.getId() == id).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kamień milowy nie istnieje."));
     }
+
+    public List<Milestone> reorder(long goalId, List<Long> ids) {
+        GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        var byId = goal.getMilestones().stream().collect(java.util.stream.Collectors.toMap(MilestoneEntity::getId, item -> item));
+        if (ids.size() != byId.size() || new java.util.HashSet<>(ids).size() != ids.size()
+                || !byId.keySet().containsAll(ids)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Lista kamieni milowych zmieniła się lub jest niepoprawna. Odśwież listę i spróbuj ponownie.");
+        }
+        // Vacate final positions first; the unique constraint is checked after each UPDATE.
+        long temporaryStart = (long) goal.getMilestones().stream().mapToInt(MilestoneEntity::getPosition).max().orElse(-1) + 1;
+        if (temporaryStart + ids.size() > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nie można teraz zmienić kolejności.");
+        }
+        for (int i = 0; i < ids.size(); i++) byId.get(ids.get(i)).setPosition((int) temporaryStart + i);
+        goals.flush();
+        for (int i = 0; i < ids.size(); i++) byId.get(ids.get(i)).setPosition(i);
+        goals.flush();
+        return ids.stream().map(id -> byId.get(id).toMilestone()).toList();
+    }
 }

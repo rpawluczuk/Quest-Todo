@@ -176,4 +176,41 @@ class MilestoneControllerTests {
         assertEquals("Own", jdbc.queryForObject("SELECT title FROM milestones WHERE id = 8001", String.class));
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM milestones", Integer.class));
     }
+
+    @Test
+    void reordersPersistentlyWithoutUniquePositionConflictsOrChangingCompletion() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position, completed) VALUES (8001, 1001, 'First', 0, false), (8002, 1001, 'Second', 1, true), (8003, 1001, 'Third', 5, false)");
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put("/api/goals/1001/milestones/order").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"milestoneIds\":[8002,8003,8001]}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(8002))
+                    .andExpect(jsonPath("$[0].completed").value(true)).andExpect(jsonPath("$[2].position").value(2));
+            entityManager.flush();
+            entityManager.clear();
+        }
+        mvc.perform(get("/api/goals/1001/milestones"))
+                .andExpect(jsonPath("$[0].id").value(8002)).andExpect(jsonPath("$[1].id").value(8003))
+                .andExpect(jsonPath("$[2].id").value(8001));
+    }
+
+    @Test
+    void rejectsInvalidOrStaleOrdersAtomicallyAndChecksOwnership() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position) VALUES (8001, 1001, 'First', 0), (8002, 1001, 'Second', 1), (8003, 2001, 'Foreign', 0)");
+        for (String ids : new String[]{"[8001,8001]", "[8001]", "[8002,8003]", "[8002,9999]", "[]", "[8001,8002,8003]"}) {
+            mvc.perform(put("/api/goals/1001/milestones/order").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"milestoneIds\":" + ids + "}")).andExpect(status().isConflict());
+            entityManager.flush();
+            entityManager.clear();
+            assertEquals(0, jdbc.queryForObject("SELECT position FROM milestones WHERE id = 8001", Integer.class));
+            assertEquals(1, jdbc.queryForObject("SELECT position FROM milestones WHERE id = 8002", Integer.class));
+        }
+        for (String body : new String[]{"{}", "{\"milestoneIds\":null}", "{\"milestoneIds\":[null]}"}) {
+            mvc.perform(put("/api/goals/1001/milestones/order").contentType(MediaType.APPLICATION_JSON)
+                    .content(body)).andExpect(status().isBadRequest());
+        }
+        mvc.perform(put("/api/goals/2001/milestones/order").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"milestoneIds\":[8003]}")).andExpect(status().isNotFound());
+        mvc.perform(put("/api/goals/9999/milestones/order").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"milestoneIds\":[]}")).andExpect(status().isNotFound());
+    }
 }
