@@ -1,16 +1,17 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
 import { getHabits } from '../api/habitApi'
 import { formatHabitProgress } from '../habitTarget'
 import type { Habit } from '../types/Habit'
 import { habitToday } from '../weekDates'
 import TaskActionsMenu from './TaskActionsMenu'
-import { Plus } from 'lucide-react'
+import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
 
-export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange }: {
+const GoalHabits = forwardRef<GoalSectionActionHandle, {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
   onCountChange?: (goalId: number, count: number) => void
-}) {
+} & GoalSectionActionProps>(function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange,
+  actionTriggerRef, onActionDisabledChange }, ref) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
   const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -28,7 +29,6 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCo
   const sending = useRef(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const search = useRef<HTMLInputElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
   const titleId = useId()
 
   useEffect(() => {
@@ -74,6 +74,18 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCo
   }, [pickerOpen])
 
   const disabled = busy || pickerLoading || queryInput.trim() !== query
+  const actionDisabled = loading || !!loadError || busy || pickerOpen
+  useImperativeHandle(ref, () => ({
+    activate: () => {
+      if (actionDisabled) return
+      setError('')
+      setPickerLoading(true)
+      setPickerOpen(true)
+    },
+  }), [actionDisabled])
+  useEffect(() => {
+    onActionDisabledChange?.(goalId, 'habits', actionDisabled)
+  }, [actionDisabled, goalId, onActionDisabledChange])
 
   async function run(action: () => Promise<void>) {
     if (sending.current) return
@@ -94,7 +106,7 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCo
     setHasMore(false)
     setError('')
     setNotice('')
-    requestAnimationFrame(() => trigger.current?.focus())
+    requestAnimationFrame(() => actionTriggerRef?.current?.focus())
   }
 
   function attach(habit: GoalHabit) {
@@ -121,15 +133,6 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCo
   }
 
   return <div className="goal-tasks" id={`goal-habits-${goalId}`}>
-    <div className="goal-subsection-header">
-      <h3>Nawyki{!loading && !loadError && <> · {attached.length}</>}</h3>
-      <button ref={trigger} type="button" className="add-task-header-button goal-subsection-add"
-        aria-label="Przypnij nawyk" title="Przypnij nawyk"
-        disabled={loading || !!loadError || busy || pickerOpen}
-        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>
-        <Plus aria-hidden="true" />
-      </button>
-    </div>
     {loading ? <p role="status">Ładowanie nawyków…</p> : loadError ? <>
       <p className="form-error" role="alert">{loadError}</p>
       <button type="button" className="goal-picker-link" onClick={() => {
@@ -199,4 +202,6 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCo
       </div>
     </dialog>}
   </div>
-}
+})
+
+export default GoalHabits

@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type SubmitEvent } from 'react'
 import { createMilestone, getMilestones, setMilestoneCompleted, renameMilestone, deleteMilestone, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from './TaskActionsMenu'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
-import { Plus } from 'lucide-react'
+import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
 
-export default function GoalMilestones({ goalId, onItemsChange }: {
+const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   goalId: number
   onItemsChange?: (items: Milestone[]) => void
-}) {
+} & GoalSectionActionProps>(function GoalMilestones({ goalId, onItemsChange, actionTriggerRef,
+  onActionDisabledChange }, ref) {
   const [items, setItems] = useState<Milestone[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -35,6 +36,13 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
   const mutationsDisabled = dragging || ordering
+  const actionDisabled = loading || !!loadError || mutationsDisabled || open
+  useImperativeHandle(ref, () => ({
+    activate: () => { if (!actionDisabled) setOpen(true) },
+  }), [actionDisabled])
+  useEffect(() => {
+    onActionDisabledChange?.(goalId, 'milestones', actionDisabled)
+  }, [actionDisabled, goalId, onActionDisabledChange])
   useEffect(() => { onItemsChangeRef.current = onItemsChange }, [onItemsChange])
   useEffect(() => {
     if (!loading && !loadError) onItemsChangeRef.current?.(items)
@@ -136,16 +144,7 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
     }
   }
   return <section className="goal-tasks goal-milestones" id={`goal-milestones-${goalId}`}
-    aria-labelledby={`milestones-heading-${goalId}`}>
-    <div className="goal-subsection-header">
-      <h3 id={`milestones-heading-${goalId}`}>Kamienie milowe</h3>
-      <button type="button" className="add-task-header-button goal-subsection-add"
-        aria-label="Dodaj kamień milowy" title="Dodaj kamień milowy"
-        disabled={loading || !!loadError || mutationsDisabled || open}
-        onClick={() => setOpen(true)}>
-        <Plus aria-hidden="true" />
-      </button>
-    </div>
+    aria-label="Kamienie milowe">
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
     {orderError && <p className="form-error" role="alert">{orderError}</p>}
@@ -207,9 +206,14 @@ export default function GoalMilestones({ goalId, onItemsChange }: {
         <div className="task-actions">
           <button type="submit" disabled={saving || mutationsDisabled}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
           <button type="button" className="secondary-button" disabled={saving}
-            onClick={() => { setOpen(false); setTitle(''); setError('') }}>Anuluj</button>
+            onClick={() => {
+              setOpen(false); setTitle(''); setError('')
+              requestAnimationFrame(() => actionTriggerRef?.current?.focus())
+            }}>Anuluj</button>
         </div>
       </form> : null}
     </>}
   </section>
-}
+})
+
+export default GoalMilestones

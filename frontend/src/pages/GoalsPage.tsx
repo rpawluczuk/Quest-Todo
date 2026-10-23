@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from 'react'
-import { ChevronDown, ChevronRight, FileText, Flag } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Flag, Plus } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
@@ -8,6 +8,7 @@ import GoalHabits from '../components/GoalHabits'
 import GoalMilestones from '../components/GoalMilestones'
 import AutoResizeTextarea from '../components/AutoResizeTextarea'
 import GoalDefinitionText from '../components/GoalDefinitionText'
+import type { GoalSection, GoalSectionActionHandle } from '../components/GoalSectionAction'
 
 function titleError(title: string): string {
   if (!title.trim()) return 'Podaj tytuł celu.'
@@ -16,12 +17,12 @@ function titleError(title: string): string {
 }
 
 function definitionError(currentState: string, desiredOutcome: string): string {
-  if (currentState.length > 2000) return 'Stan obecny może mieć maksymalnie 2000 znaków.'
+  if (currentState.length > 2000) return 'Stan początkowy może mieć maksymalnie 2000 znaków.'
   if (desiredOutcome.length > 2000) return 'Zamierzony efekt może mieć maksymalnie 2000 znaków.'
   return ''
 }
 
-type GoalTab = 'milestones' | 'tasks' | 'habits'
+type GoalTab = GoalSection
 
 export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: GoalTasksProps & {
   onHabitGoalLinksChanged: () => void
@@ -31,6 +32,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   const [activeTabByGoal, setActiveTabByGoal] = useState<Record<number, GoalTab>>({})
   const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
   const [habitCountByGoal, setHabitCountByGoal] = useState<Record<number, number>>({})
+  const [sectionActionDisabled, setSectionActionDisabled] = useState<Record<string, boolean>>({})
   const [goals, setGoals] = useState<Goal[]>([])
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -50,6 +52,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   const createInput = useRef<HTMLInputElement>(null)
   const editInput = useRef<HTMLInputElement>(null)
   const sending = useRef(false)
+  const sectionActions = useRef(new Map<string, GoalSectionActionHandle>())
+  const sectionActionTrigger = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,6 +79,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
 
   const updateHabitCount = useCallback((goalId: number, count: number) => {
     setHabitCountByGoal(current => current[goalId] === count ? current : { ...current, [goalId]: count })
+  }, [])
+
+  const updateSectionActionDisabled = useCallback((goalId: number, section: GoalSection, disabled: boolean) => {
+    const key = `${goalId}:${section}`
+    setSectionActionDisabled(current => current[key] === disabled ? current : { ...current, [key]: disabled })
   }, [])
 
   function toggleGoal(goalId: number) {
@@ -184,9 +193,9 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
         {!createDetailsOpen && <button type="button" className="goal-definition-toggle" disabled={saving}
           onClick={() => setCreateDetailsOpen(true)}>+ Doprecyzuj cel</button>}
         {createDetailsOpen && <>
-          <label className="form-field goal-definition-field"><span>Stan obecny <span className="field-optional">(opcjonalnie)</span></span>
+          <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
-              placeholder="Opisz punkt wyjścia i obecną sytuację…"
+              placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
               onChange={event => setCurrentState(event.target.value)} /></label>
           <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
             <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
@@ -207,14 +216,17 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
         const milestones = milestonesByGoal[goal.id]
         const completedMilestones = milestones?.filter(item => item.completed).length ?? 0
         const activeTab = activeTabByGoal[goal.id] ?? 'milestones'
+        const activeActionKey = `${goal.id}:${activeTab}`
+        const actionLabel = activeTab === 'milestones' ? 'Dodaj kamień milowy'
+          : activeTab === 'tasks' ? 'Przypnij zadanie' : 'Przypnij nawyk'
         return <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu</span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
                 onChange={event => setEditTitle(event.target.value)} /></label>
-            <label className="form-field goal-definition-field"><span>Stan obecny <span className="field-optional">(opcjonalnie)</span></span>
+            <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
               <AutoResizeTextarea value={editCurrentState} maxLength={2000} disabled={pendingId !== null}
-                placeholder="Opisz punkt wyjścia i obecną sytuację…"
+                placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
                 onChange={event => setEditCurrentState(event.target.value)} /></label>
             <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
               <AutoResizeTextarea value={editDesiredOutcome} maxLength={2000} disabled={pendingId !== null}
@@ -269,11 +281,12 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               </button>
               <div className="goal-definition" id={`goal-definition-${goal.id}`}
                 hidden={descriptionOpenId !== goal.id}>
-                {goal.currentState && <section><h3>Stan obecny</h3><GoalDefinitionText text={goal.currentState} /></section>}
+                {goal.currentState && <section><h3>Stan początkowy</h3><GoalDefinitionText text={goal.currentState} /></section>}
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
               </div>
             </>}
             {expandedId === goal.id && <>
+              <div className="goal-tabs-row">
               <div className="goal-tabs" role="tablist" aria-label={`Elementy celu „${goal.title}”`}>
                 <button type="button" role="tab" id={`goal-tab-milestones-${goal.id}`}
                   aria-selected={activeTab === 'milestones'} aria-controls={`goal-panel-milestones-${goal.id}`}
@@ -294,19 +307,45 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                   <span>Nawyki</span><span className="goal-tab-count">{habitCountByGoal[goal.id] ?? 0}</span>
                 </button>
               </div>
+              <button ref={sectionActionTrigger} type="button"
+                className="add-task-header-button goal-subsection-add goal-tabs-add"
+                aria-label={actionLabel} title={actionLabel}
+                aria-controls={`goal-panel-${activeTab}-${goal.id}`}
+                disabled={sectionActionDisabled[activeActionKey] ?? true}
+                onClick={() => sectionActions.current.get(activeActionKey)?.activate()}>
+                <Plus aria-hidden="true" />
+              </button>
+              </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-milestones-${goal.id}`}
                 aria-labelledby={`goal-tab-milestones-${goal.id}`} hidden={activeTab !== 'milestones'}>
-                <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
+                <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id} actionTriggerRef={sectionActionTrigger}
+                  ref={action => {
+                    if (action) sectionActions.current.set(`${goal.id}:milestones`, action)
+                    else sectionActions.current.delete(`${goal.id}:milestones`)
+                  }}
+                  onActionDisabledChange={updateSectionActionDisabled}
                   onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-tasks-${goal.id}`}
                 aria-labelledby={`goal-tab-tasks-${goal.id}`} hidden={activeTab !== 'tasks'}>
                 <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps}
+                  actionTriggerRef={sectionActionTrigger}
+                  ref={action => {
+                    if (action) sectionActions.current.set(`${goal.id}:tasks`, action)
+                    else sectionActions.current.delete(`${goal.id}:tasks`)
+                  }}
+                  onActionDisabledChange={updateSectionActionDisabled}
                   onCountChange={updateTaskCount} />
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-habits-${goal.id}`}
                 aria-labelledby={`goal-tab-habits-${goal.id}`} hidden={activeTab !== 'habits'}>
                 <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
+                  actionTriggerRef={sectionActionTrigger}
+                  ref={action => {
+                    if (action) sectionActions.current.set(`${goal.id}:habits`, action)
+                    else sectionActions.current.delete(`${goal.id}:habits`)
+                  }}
+                  onActionDisabledChange={updateSectionActionDisabled}
                   onGoalLinksChanged={onHabitGoalLinksChanged}
                   onCountChange={updateHabitCount} />
               </div>

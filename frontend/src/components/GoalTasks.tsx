@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi'
 import type { Task } from '../types/Task'
 import TaskActionsMenu from './TaskActionsMenu'
 import { getTaskDuePresentation } from '../taskDue'
-import { Plus } from 'lucide-react'
+import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -17,8 +17,10 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
   return [...current, ...next.filter(task => !known.has(task.id))]
 }
 
-export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask, onGoalLinksChanged,
-  onCountChange }: GoalTasksProps & { goalId: number; goalTitle: string; onCountChange?: (goalId: number, count: number) => void }) {
+const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
+  goalId: number; goalTitle: string; onCountChange?: (goalId: number, count: number) => void
+} & GoalSectionActionProps>(function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask,
+  onGoalLinksChanged, onCountChange, actionTriggerRef, onActionDisabledChange }, ref) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -36,7 +38,6 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   const [busy, setBusy] = useState(false)
   const sending = useRef(false)
   const searchInput = useRef<HTMLInputElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const [notice, setNotice] = useState('')
   const [retry, setRetry] = useState(0)
@@ -90,6 +91,18 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   }, [pickerOpen])
 
   const disabled = busy || tasksDisabled || pageLoading
+  const actionDisabled = loading || !!loadError || disabled || pickerOpen
+  useImperativeHandle(ref, () => ({
+    activate: () => {
+      if (actionDisabled) return
+      setError('')
+      setPickerLoading(true)
+      setPickerOpen(true)
+    },
+  }), [actionDisabled])
+  useEffect(() => {
+    onActionDisabledChange?.(goalId, 'tasks', actionDisabled)
+  }, [actionDisabled, goalId, onActionDisabledChange])
   const priorityTasks = active.filter(task => task.inFocus)
   const backlogTasks = active.filter(task => !task.inFocus)
 
@@ -114,7 +127,7 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
     setCompleted([])
     setError('')
     setNotice('')
-    requestAnimationFrame(() => trigger.current?.focus())
+    requestAnimationFrame(() => actionTriggerRef?.current?.focus())
   }
 
   function attach(task: Task) {
@@ -171,15 +184,6 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
   }
 
   return <div className="goal-tasks" id={`goal-tasks-${goalId}`}>
-    <div className="goal-subsection-header">
-      <h3>Zadania{!loading && !loadError && <> · {attached.length}</>}</h3>
-      <button ref={trigger} type="button" className="add-task-header-button goal-subsection-add"
-        aria-label="Przypnij zadanie" title="Przypnij zadanie"
-        disabled={loading || !!loadError || disabled || pickerOpen}
-        onClick={() => { setError(''); setPickerLoading(true); setPickerOpen(true) }}>
-        <Plus aria-hidden="true" />
-      </button>
-    </div>
     {loading ? <p role="status">Ładowanie zadań…</p> : loadError ?
       <p className="form-error" role="alert">{loadError}</p> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij zadania, które pomogą Ci osiągnąć ten cel.</p>}
@@ -260,4 +264,6 @@ export default function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabl
       {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}
     </>}
   </div>
-}
+})
+
+export default GoalTasks

@@ -142,6 +142,8 @@ try {
   assert.equal(await goalCard.locator('.goal-definition').isHidden(), true)
   await descriptionToggle.click()
   const goalDefinition = goalCard.locator('.goal-definition')
+  await goalDefinition.getByRole('heading', { name: 'Stan początkowy', exact: true }).waitFor()
+  assert.equal(await goalDefinition.getByRole('heading', { name: 'Stan obecny', exact: true }).count(), 0)
   const definitionSections = goalDefinition.locator('section')
   const definitionButtons = goalDefinition.locator('.goal-definition-expand')
   await definitionButtons.nth(1).waitFor()
@@ -182,42 +184,35 @@ try {
   const milestonePanel = page.locator('#goal-panel-milestones-1')
   const taskPanel = page.locator('#goal-panel-tasks-1')
   const habitPanel = page.locator('#goal-panel-habits-1')
-  const subsectionButtons = page.locator([
-    '#goal-milestones-1 > .goal-subsection-header .goal-subsection-add',
-    '#goal-tasks-1 > .goal-subsection-header .goal-subsection-add',
-    '#goal-habits-1 > .goal-subsection-header .goal-subsection-add',
-  ].join(', '))
-  await subsectionButtons.nth(2).waitFor({ state: 'attached' })
-  assert.equal(await subsectionButtons.count(), 3)
-  async function assertSubsectionHeaderLayout(tab, sectionSelector) {
+  const contextualAction = goalCard.locator('.goal-tabs-add')
+  await contextualAction.waitFor()
+  assert.equal(await contextualAction.count(), 1)
+  assert.equal(await goalCard.locator('.goal-subsection-header').count(), 0)
+  async function assertTabsActionLayout(tab, sectionSelector, actionLabel) {
     await tab.click()
-    const metrics = await page.locator(sectionSelector).evaluate(element => {
-      const sectionBox = element.getBoundingClientRect()
-      const sectionStyle = getComputedStyle(element)
-      const header = element.querySelector(':scope > .goal-subsection-header')
-      const title = header.querySelector('h3')
-      const addButton = header.querySelector('.goal-subsection-add')
-      const content = element.querySelector(':scope > .empty-state, :scope > .milestone-list, :scope > .goal-linked-tasks')
-      const headerBox = header.getBoundingClientRect()
-      const titleBox = title.getBoundingClientRect()
+    await contextualAction.waitFor({ state: 'visible' })
+    assert.equal(await contextualAction.getAttribute('aria-label'), actionLabel)
+    const metrics = await goalCard.locator('.goal-tabs-row').evaluate(element => {
+      const rowBox = element.getBoundingClientRect()
+      const tabs = element.querySelector('.goal-tabs')
+      const addButton = element.querySelector('.goal-tabs-add')
+      const tabsBox = tabs.getBoundingClientRect()
       const buttonBox = addButton.getBoundingClientRect()
-      const contentBox = content.getBoundingClientRect()
       return {
-        topInset: headerBox.top - sectionBox.top - Number.parseFloat(sectionStyle.borderTopWidth),
-        rightInset: sectionBox.right - buttonBox.right,
-        contentGap: contentBox.top - headerBox.bottom,
-        titleCenter: titleBox.top + titleBox.height / 2,
+        tabsFit: tabs.scrollWidth <= tabs.clientWidth,
+        tabsCenter: tabsBox.top + tabsBox.height / 2,
         buttonCenter: buttonBox.top + buttonBox.height / 2,
         buttonWidth: buttonBox.width,
         buttonHeight: buttonBox.height,
+        buttonInsideRow: buttonBox.right <= rowBox.right + 0.5,
       }
     })
-    assert.ok(Math.abs(metrics.topInset - 12) < 0.5)
-    assert.ok(Math.abs(metrics.rightInset - 8) < 0.5)
-    assert.ok(Math.abs(metrics.contentGap - 12) < 0.5)
-    assert.ok(Math.abs(metrics.titleCenter - metrics.buttonCenter) < 0.5)
+    assert.equal(metrics.tabsFit, true)
+    assert.ok(Math.abs(metrics.tabsCenter - metrics.buttonCenter) < 0.5)
+    assert.equal(metrics.buttonInsideRow, true)
     assert.equal(metrics.buttonWidth, 32)
     assert.equal(metrics.buttonHeight, 32)
+    assert.equal(await page.locator(sectionSelector).evaluate(element => getComputedStyle(element).paddingTop), '8px')
   }
   assert.equal(await milestoneTab.getAttribute('aria-selected'), 'true')
   assert.equal(await milestonePanel.isVisible(), true)
@@ -242,25 +237,25 @@ try {
     assert.ok(tabBoxes.every(box => Math.abs(box.top - tabBoxes[0].top) < 0.5
       && Math.abs(box.bottom - tabBoxes[0].bottom) < 0.5))
     assert.ok(await page.locator('.goal-tabs').evaluate(element => element.scrollWidth <= element.clientWidth))
-    await assertSubsectionHeaderLayout(milestoneTab, '#goal-milestones-1')
-    await assertSubsectionHeaderLayout(taskTab, '#goal-tasks-1')
-    await assertSubsectionHeaderLayout(habitTab, '#goal-habits-1')
+    await assertTabsActionLayout(milestoneTab, '#goal-milestones-1', 'Dodaj kamień milowy')
+    await assertTabsActionLayout(taskTab, '#goal-tasks-1', 'Przypnij zadanie')
+    await assertTabsActionLayout(habitTab, '#goal-habits-1', 'Przypnij nawyk')
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
   await taskTab.click()
-  await taskSection.getByRole('button', { name: 'Przypnij zadanie', exact: true }).click()
+  await contextualAction.click()
   const taskDialog = page.getByRole('dialog', { name: 'Przypnij zadania' })
   await taskDialog.getByRole('button', { name: 'Przypnij zadanie: Konsultacja GPT' }).click()
-  await taskSection.getByText('Zadania · 1', { exact: true }).waitFor()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('1'))
   await taskDialog.getByRole('button', { name: `Przypnij zadanie: ${longAvailableTask.title}` }).click()
-  await taskSection.getByText('Zadania · 2', { exact: true }).waitFor()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('2'))
   await taskDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('2'))
   await habitTab.click()
-  await habitSection.getByRole('button', { name: 'Przypnij nawyk', exact: true }).click()
+  await contextualAction.click()
   const habitDialog = page.getByRole('dialog', { name: 'Przypnij nawyki' })
   await habitDialog.getByRole('button', { name: `Przypnij nawyk: ${availableHabit.name}` }).click()
-  await habitSection.getByText('Nawyki · 1', { exact: true }).waitFor()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
   await habitDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
@@ -309,10 +304,10 @@ try {
   await habitTab.click()
   await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).click()
-  await habitSection.getByText('Nawyki · 0', { exact: true }).waitFor()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('0'))
   await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
   await milestoneTab.click()
-  await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
+  await contextualAction.click()
   await section.getByLabel('Nazwa kamienia milowego').fill('  Przebiegam 2 km bez przerwy  ')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
   await section.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
@@ -322,7 +317,7 @@ try {
   await section.getByRole('checkbox').check()
   await expectSummary('1/1')
   await page.waitForFunction(() => !document.querySelector('.milestone-list input').disabled)
-  await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
+  await contextualAction.click()
   await section.getByLabel('Nazwa kamienia milowego').fill('Drugi rezultat')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
   await expectSummary('1/2')
@@ -356,7 +351,7 @@ try {
   for (const width of [320, 375, 390, 1280]) {
     await page.setViewportSize({ width, height: 800 })
     await assertHeaderControlsAligned()
-    await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
+    await contextualAction.click()
     await section.getByLabel('Nazwa kamienia milowego').fill('Rezultat '.repeat(12))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
     await section.getByRole('button', { name: 'Anuluj' }).click()
@@ -530,6 +525,6 @@ try {
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
   console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')
-  console.log('PASS goal subsection header actions create a milestone and attach a task/habit at 320/375/390px')
+  console.log('PASS contextual tab action creates a milestone and attaches a task/habit at 320/375/390px')
   console.log('PASS compact linked task/habit rows show metadata, wrap on mobile and preserve checkbox/menu actions')
 } finally { await browser.close() }
