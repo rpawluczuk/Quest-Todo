@@ -3560,8 +3560,8 @@
 .goal-tab-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .goal-tab-panel { display: contents; }
 .goal-tab-panel[hidden] { display: none; }
-.milestone-list { display: grid; gap: 8px; padding: 0; list-style: none; }
-.goal-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.milestone-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.goal-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 0 8px; }
 .goal-subsection-header h3 { min-width: 0; }
 .goal-subsection-add {
   position: relative;
@@ -3589,10 +3589,10 @@
 .milestone-form { display: grid; gap: 10px; margin-top: 12px; min-width: 0; }
 .milestone-form input { box-sizing: border-box; }
 .milestone-form .task-actions { flex-wrap: wrap; }
-.goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 10px 0 0; border-top: 1px solid #e9e5ef; }
+.goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 12px 0 0; border-top: 1px solid #e9e5ef; }
 .goal-tasks h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: #625b70; }
 .goal-tasks .empty-state { margin-top: 12px; }
-.goal-tasks .goal-linked-empty { margin: 8px 0 0; font-size: 0.875rem; line-height: 1.4; }
+.goal-tasks .goal-linked-empty { margin: 12px 0 0; font-size: 0.875rem; line-height: 1.4; }
 .goal-linked-tasks { gap: 8px; margin: 12px 0 0; }
 .goal-linked-task {
   display: grid;

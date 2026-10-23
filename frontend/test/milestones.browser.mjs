@@ -189,6 +189,36 @@ try {
   ].join(', '))
   await subsectionButtons.nth(2).waitFor({ state: 'attached' })
   assert.equal(await subsectionButtons.count(), 3)
+  async function assertSubsectionHeaderLayout(tab, sectionSelector) {
+    await tab.click()
+    const metrics = await page.locator(sectionSelector).evaluate(element => {
+      const sectionBox = element.getBoundingClientRect()
+      const sectionStyle = getComputedStyle(element)
+      const header = element.querySelector(':scope > .goal-subsection-header')
+      const title = header.querySelector('h3')
+      const addButton = header.querySelector('.goal-subsection-add')
+      const content = element.querySelector(':scope > .empty-state, :scope > .milestone-list, :scope > .goal-linked-tasks')
+      const headerBox = header.getBoundingClientRect()
+      const titleBox = title.getBoundingClientRect()
+      const buttonBox = addButton.getBoundingClientRect()
+      const contentBox = content.getBoundingClientRect()
+      return {
+        topInset: headerBox.top - sectionBox.top - Number.parseFloat(sectionStyle.borderTopWidth),
+        rightInset: sectionBox.right - buttonBox.right,
+        contentGap: contentBox.top - headerBox.bottom,
+        titleCenter: titleBox.top + titleBox.height / 2,
+        buttonCenter: buttonBox.top + buttonBox.height / 2,
+        buttonWidth: buttonBox.width,
+        buttonHeight: buttonBox.height,
+      }
+    })
+    assert.ok(Math.abs(metrics.topInset - 12) < 0.5)
+    assert.ok(Math.abs(metrics.rightInset - 8) < 0.5)
+    assert.ok(Math.abs(metrics.contentGap - 12) < 0.5)
+    assert.ok(Math.abs(metrics.titleCenter - metrics.buttonCenter) < 0.5)
+    assert.equal(metrics.buttonWidth, 32)
+    assert.equal(metrics.buttonHeight, 32)
+  }
   assert.equal(await milestoneTab.getAttribute('aria-selected'), 'true')
   assert.equal(await milestonePanel.isVisible(), true)
   assert.equal(await taskPanel.isHidden(), true)
@@ -212,6 +242,9 @@ try {
     assert.ok(tabBoxes.every(box => Math.abs(box.top - tabBoxes[0].top) < 0.5
       && Math.abs(box.bottom - tabBoxes[0].bottom) < 0.5))
     assert.ok(await page.locator('.goal-tabs').evaluate(element => element.scrollWidth <= element.clientWidth))
+    await assertSubsectionHeaderLayout(milestoneTab, '#goal-milestones-1')
+    await assertSubsectionHeaderLayout(taskTab, '#goal-tasks-1')
+    await assertSubsectionHeaderLayout(habitTab, '#goal-habits-1')
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
   await taskTab.click()
