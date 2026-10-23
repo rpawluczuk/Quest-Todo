@@ -18,7 +18,7 @@ function titleError(title: string): string {
 
 function definitionError(currentState: string, desiredOutcome: string): string {
   if (currentState.length > 2000) return 'Stan początkowy może mieć maksymalnie 2000 znaków.'
-  if (desiredOutcome.length > 2000) return 'Zamierzony efekt może mieć maksymalnie 2000 znaków.'
+  if (desiredOutcome.length > 2000) return 'Kryterium osiągnięcia celu może mieć maksymalnie 2000 znaków.'
   return ''
 }
 
@@ -197,9 +197,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
               placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
               onChange={event => setCurrentState(event.target.value)} /></label>
-          <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
+          <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
+            <small className="goal-definition-help">Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.</small>
             <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
-              placeholder="Opisz rezultat, który chcesz osiągnąć…"
+              placeholder="Opisz warunki, po których rozpoznasz sukces…"
               onChange={event => setDesiredOutcome(event.target.value)} /></label>
         </>}
         <div className="task-actions">
@@ -228,9 +229,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               <AutoResizeTextarea value={editCurrentState} maxLength={2000} disabled={pendingId !== null}
                 placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
                 onChange={event => setEditCurrentState(event.target.value)} /></label>
-            <label className="form-field goal-definition-field"><span>Zamierzony efekt <span className="field-optional">(opcjonalnie)</span></span>
+            <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
+              <small className="goal-definition-help">Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.</small>
               <AutoResizeTextarea value={editDesiredOutcome} maxLength={2000} disabled={pendingId !== null}
-                placeholder="Opisz rezultat, który chcesz osiągnąć…"
+                placeholder="Opisz warunki, po których rozpoznasz sukces…"
                 onChange={event => setEditDesiredOutcome(event.target.value)} /></label>
             <div className="task-actions">
               <button type="submit" disabled={pendingId !== null}>{pendingId === goal.id ? 'Zapisywanie…' : 'Zapisz'}</button>
@@ -282,7 +284,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               <div className="goal-definition" id={`goal-definition-${goal.id}`}
                 hidden={descriptionOpenId !== goal.id}>
                 {goal.currentState && <section><h3>Stan początkowy</h3><GoalDefinitionText text={goal.currentState} /></section>}
-                {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
+                {goal.desiredOutcome && <section><h3>Kiedy uznam cel za osiągnięty?</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
               </div>
             </>}
             {expandedId === goal.id && <>

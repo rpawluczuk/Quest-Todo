@@ -94,6 +94,25 @@ try {
   })
   await page.goto('http://127.0.0.1:5186')
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
+  async function expectSuccessCriterionField(form) {
+    const field = form.locator('.goal-definition-field').filter({ hasText: 'Kiedy uznam cel za osiągnięty?' })
+    await field.waitFor()
+    await field.getByText('Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.',
+      { exact: true }).waitFor()
+    return field
+  }
+  await page.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  const createGoalForm = page.locator('.goal-form').filter({ has: page.getByRole('button', { name: 'Dodaj cel', exact: true }) })
+  await createGoalForm.getByRole('button', { name: '+ Doprecyzuj cel', exact: true }).click()
+  await expectSuccessCriterionField(createGoalForm)
+  await createGoalForm.getByRole('button', { name: 'Anuluj', exact: true }).click()
+  const firstGoalCard = page.locator('.goal-card').first()
+  await firstGoalCard.locator('.task-menu-trigger').click()
+  await page.getByRole('menuitem', { name: 'Edytuj', exact: true }).click()
+  const editGoalForm = firstGoalCard.locator('.goal-edit-form')
+  const editSuccessField = await expectSuccessCriterionField(editGoalForm)
+  assert.equal(await editSuccessField.locator('textarea').inputValue(), longDesiredOutcome)
+  await editGoalForm.getByRole('button', { name: 'Anuluj', exact: true }).click()
   const summary = page.locator('.goal-milestone-summary')
   const expectSummary = value => summary.getByText(`${value} kamieni milowych`, { exact: true }).waitFor()
   const assertHeaderControlsAligned = async () => {
@@ -143,7 +162,9 @@ try {
   await descriptionToggle.click()
   const goalDefinition = goalCard.locator('.goal-definition')
   await goalDefinition.getByRole('heading', { name: 'Stan początkowy', exact: true }).waitFor()
+  await goalDefinition.getByRole('heading', { name: 'Kiedy uznam cel za osiągnięty?', exact: true }).waitFor()
   assert.equal(await goalDefinition.getByRole('heading', { name: 'Stan obecny', exact: true }).count(), 0)
+  assert.equal(await goalDefinition.getByRole('heading', { name: 'Zamierzony efekt', exact: true }).count(), 0)
   const definitionSections = goalDefinition.locator('section')
   const definitionButtons = goalDefinition.locator('.goal-definition-expand')
   await definitionButtons.nth(1).waitFor()

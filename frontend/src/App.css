@@ -3397,6 +3397,7 @@
 .reward-one-time-label { display: block; margin-top: 4px; }
 .goal-definition-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .field-optional { color: #767080; font-weight: 400; }
+.goal-definition-help { color: #625b70; font-size: 0.8rem; font-weight: 400; line-height: 1.4; }
 .goal-list { margin-top: 16px; }
 .goal-card {
   grid-template-columns: minmax(0, 1fr) auto;
