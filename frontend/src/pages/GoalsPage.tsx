@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
-import { createGoal, deleteGoal, getGoals, updateGoal } from '../api/goalApi'
+import { Flag } from 'lucide-react'
+import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
@@ -24,6 +25,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [goals, setGoals] = useState<Goal[]>([])
+  const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -44,7 +46,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
 
   useEffect(() => {
     const controller = new AbortController()
-    getGoals(controller.signal).then(setGoals).catch(failure => {
+    getGoals(controller.signal).then(loadedGoals => {
+      setGoals(loadedGoals)
+      loadedGoals.forEach(goal => {
+        getMilestones(goal.id, controller.signal).then(items => {
+          setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))
+        }).catch(() => undefined)
+      })
+    }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać celów.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -160,7 +169,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
         </form>}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => <li key={goal.id} className="task-card goal-card">
+      {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => {
+        const milestones = milestonesByGoal[goal.id]
+        const completedMilestones = milestones?.filter(item => item.completed).length ?? 0
+        return <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu</span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
@@ -181,9 +193,18 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             </div>
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
+              aria-label={goal.title}
+              aria-describedby={milestones?.length ? `goal-milestone-summary-${goal.id}` : undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
-              <span>{goal.title}</span>
+              <span className="goal-title-content">
+                <span>{goal.title}</span>
+                {!!milestones?.length && <span className="goal-milestone-summary"
+                  id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
+                  <Flag size={15} strokeWidth={2} aria-hidden="true" />
+                  <span>{completedMilestones}/{milestones.length} kamieni milowych</span>
+                </span>}
+              </span>
               <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
             </button>
@@ -199,12 +220,13 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 {goal.currentState && <section><h3>Stan obecny</h3><p>{goal.currentState}</p></section>}
                 {goal.desiredOutcome && <section><h3>Zamierzony efekt</h3><p>{goal.desiredOutcome}</p></section>}
               </div>}
-            {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id} />}
+            {expandedId === goal.id && <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id}
+              onItemsChange={items => setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))} />}
             {expandedId === goal.id && <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps} />}
             {expandedId === goal.id && <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
               onGoalLinksChanged={onHabitGoalLinksChanged} />}
           </>}
-        </li>)}</ul>}
+        </li>})}</ul>}
     </>}
   </section>
 }

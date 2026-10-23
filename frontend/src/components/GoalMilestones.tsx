@@ -6,7 +6,10 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 
-export default function GoalMilestones({ goalId }: { goalId: number }) {
+export default function GoalMilestones({ goalId, onItemsChange }: {
+  goalId: number
+  onItemsChange?: (items: Milestone[]) => void
+}) {
   const [items, setItems] = useState<Milestone[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -26,10 +29,15 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
   const [ordering, setOrdering] = useState(false)
   const [orderError, setOrderError] = useState('')
   const orderBusy = useRef(false)
+  const onItemsChangeRef = useRef(onItemsChange)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
   const mutationsDisabled = dragging || ordering
+  useEffect(() => { onItemsChangeRef.current = onItemsChange }, [onItemsChange])
+  useEffect(() => {
+    if (!loading && !loadError) onItemsChangeRef.current?.(items)
+  }, [items, loading, loadError])
   async function finishDrag({ active, over }: DragEndEvent) {
     setDragging(false)
     if (!over || active.id === over.id || orderBusy.current) return
@@ -130,9 +138,6 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
     aria-labelledby={`milestones-heading-${goalId}`}>
     <div className="milestone-heading">
       <h3 id={`milestones-heading-${goalId}`}>Kamienie milowe</h3>
-      {items.length > 0 && <span className="task-section-count" aria-live="polite">
-        {items.filter(item => item.completed).length}/{items.length}
-      </span>}
     </div>
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
