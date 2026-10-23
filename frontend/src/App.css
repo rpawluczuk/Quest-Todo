@@ -3399,12 +3399,21 @@
 .field-optional { color: #767080; font-weight: 400; }
 .goal-list { margin-top: 16px; }
 .goal-card {
-  grid-template-columns: minmax(0, 1fr) 40px;
-  grid-template-areas: 'title menu';
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'title actions';
+  column-gap: 6px;
 }
 .goal-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
-.goal-title-content { display: grid; gap: 5px; min-width: 0; }
+.goal-title-text {
+  grid-area: name;
+  min-width: 0;
+  padding: 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
 .goal-milestone-summary {
+  grid-area: summary;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3415,10 +3424,11 @@
 }
 .goal-milestone-summary svg { flex: 0 0 15px; color: var(--color-primary); }
 .goal-details-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-areas: 'name' 'summary';
+  align-items: start;
+  align-content: start;
+  gap: 5px;
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -3429,9 +3439,29 @@
   cursor: pointer;
 }
 .goal-details-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.goal-details-toggle { font-size: 18px; font-weight: 650; }
-.goal-chevron { width: 20px; height: 20px; flex-shrink: 0; color: #625b70; }
-.goal-details-toggle[aria-expanded='true'] .goal-chevron { transform: rotate(180deg); }
+.goal-header-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.goal-chevron-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #625b70;
+  cursor: pointer;
+}
+.goal-chevron-button:hover,
+.goal-chevron-button[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-primary); }
+.goal-chevron-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.goal-chevron { width: 20px; height: 20px; }
+.goal-chevron-button[aria-expanded='true'] .goal-chevron { transform: rotate(180deg); }
 .goal-definition {
   grid-column: 1 / -1;
   display: grid;
@@ -4041,8 +4071,8 @@
   }
 
   .goal-card {
-    grid-template-columns: minmax(0, 1fr) 40px;
-    grid-template-areas: 'title menu';
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'title actions';
   }
 
   .task-card-check {

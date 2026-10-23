@@ -197,24 +197,29 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               aria-describedby={milestones?.length ? `goal-milestone-summary-${goal.id}` : undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
-              <span className="goal-title-content">
-                <span>{goal.title}</span>
-                {!!milestones?.length && <span className="goal-milestone-summary"
-                  id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
-                  <Flag size={15} strokeWidth={2} aria-hidden="true" />
-                  <span>{completedMilestones}/{milestones.length} kamieni milowych</span>
-                </span>}
-              </span>
-              <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+              <span className="goal-title-text">{goal.title}</span>
+              {!!milestones?.length && <span className="goal-milestone-summary"
+                id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
+                <Flag size={15} strokeWidth={2} aria-hidden="true" />
+                <span>{completedMilestones}/{milestones.length} kamieni milowych</span>
+              </span>}
             </button>
-            <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
-              { label: 'Edytuj', onSelect: () => {
-                setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
-                setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
-              } },
-              { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
-            ]} />
+            <div className="goal-header-actions">
+              <button type="button" className="goal-chevron-button" aria-expanded={expandedId === goal.id}
+                aria-label={`${expandedId === goal.id ? 'Zwiń' : 'Rozwiń'} cel „${goal.title}”`}
+                aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
+                onClick={() => setExpandedId(current => current === goal.id ? null : goal.id)}>
+                <svg className="goal-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+                  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+              </button>
+              <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
+                { label: 'Edytuj', onSelect: () => {
+                  setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
+                  setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
+                } },
+                { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
+              ]} />
+            </div>
             {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) &&
               <div className="goal-definition" id={`goal-definition-${goal.id}`}>
                 {goal.currentState && <section><h3>Stan obecny</h3><p>{goal.currentState}</p></section>}
