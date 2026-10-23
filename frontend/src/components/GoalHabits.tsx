@@ -133,7 +133,7 @@ export default function GoalHabits({ goalId, goalTitle, onGoalLinksChanged }: {
         setLoading(true); setRetry(value => value + 1)
       }}>Spróbuj ponownie</button>
     </> : <>
-      {attached.length === 0 && <p className="empty-state">Przypnij nawyki, które pomogą Ci osiągnąć ten cel.</p>}
+      {attached.length === 0 && <p className="empty-state goal-linked-empty">Brak przypisanych nawyków</p>}
       {attached.length > 0 && <ul className="task-list goal-linked-tasks">
         {attached.map(habit => {
           const details = detailsById.get(habit.id)

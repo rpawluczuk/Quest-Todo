@@ -55,6 +55,7 @@ try {
     else if (path === '/api/goals/1/habits') body = attachedHabits
     else if (path === '/api/goals/1/habits/201') {
       if (route.request().method() === 'PUT' && attachedHabits.length === 0) attachedHabits.push(availableHabit)
+      if (route.request().method() === 'DELETE') attachedHabits.splice(0, attachedHabits.length)
     }
     else if (path === '/api/goals/1/milestones/order') {
       orderWrites++
@@ -159,6 +160,7 @@ try {
   ].join(', '))
   await subsectionButtons.nth(2).waitFor()
   assert.equal(await subsectionButtons.count(), 3)
+  await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 })
     const boxes = await subsectionButtons.evaluateAll(elements => elements.map(element => {
@@ -214,8 +216,9 @@ try {
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
   await page.keyboard.press('Escape')
   await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
-  await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
-  await page.keyboard.press('Escape')
+  await page.getByRole('menuitem', { name: 'Odepnij od celu' }).click()
+  await habitSection.getByText('Nawyki · 0', { exact: true }).waitFor()
+  await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
   await section.getByRole('button', { name: 'Dodaj kamień milowy' }).click()
   await section.getByLabel('Nazwa kamienia milowego').fill('  Przebiegam 2 km bez przerwy  ')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()

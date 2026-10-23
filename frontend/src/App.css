@@ -3533,6 +3533,7 @@
 .goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 10px 0 0; border-top: 1px solid #e9e5ef; }
 .goal-tasks h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: #625b70; }
 .goal-tasks .empty-state { margin-top: 12px; }
+.goal-tasks .goal-linked-empty { margin: 8px 0 0; font-size: 0.875rem; line-height: 1.4; }
 .goal-linked-tasks { gap: 8px; margin: 12px 0 0; }
 .goal-linked-task {
   display: grid;
