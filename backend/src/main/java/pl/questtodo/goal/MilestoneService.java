@@ -33,14 +33,29 @@ public class MilestoneService {
     public Milestone setCompleted(long goalId, long milestoneId, boolean completed) {
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId())
                 .orElseThrow(MilestoneService::notFound);
-        MilestoneEntity milestone = goal.getMilestones().stream()
-                .filter(item -> item.getId() == milestoneId).findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kamień milowy nie istnieje."));
+        MilestoneEntity milestone = findMilestone(goal, milestoneId);
         milestone.setCompleted(completed);
         return milestone.toMilestone();
     }
 
     private static ResponseStatusException notFound() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje.");
+    }
+
+    public Milestone rename(long goalId, long milestoneId, String title) {
+        GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        MilestoneEntity milestone = findMilestone(goal, milestoneId);
+        milestone.rename(title.strip());
+        return milestone.toMilestone();
+    }
+
+    public void delete(long goalId, long milestoneId) {
+        GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        goal.removeMilestone(findMilestone(goal, milestoneId));
+    }
+
+    private static MilestoneEntity findMilestone(GoalEntity goal, long id) {
+        return goal.getMilestones().stream().filter(item -> item.getId() == id).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kamień milowy nie istnieje."));
     }
 }

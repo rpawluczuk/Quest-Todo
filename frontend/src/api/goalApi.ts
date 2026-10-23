@@ -4,6 +4,19 @@ import type { Task } from '../types/Task'
 
 export type Milestone = { id: number; title: string; completed: boolean; position: number }
 
+export async function renameMilestone(goalId: number, id: number, title: string): Promise<Milestone> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }),
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać nazwy kamienia milowego'))
+  return response.json()
+}
+
+export async function deleteMilestone(goalId: number, id: number): Promise<void> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones/${id}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się usunąć kamienia milowego'))
+}
+
 export async function setMilestoneCompleted(goalId: number, id: number, completed: boolean): Promise<Milestone> {
   const response = await apiFetch(`/api/goals/${goalId}/milestones/${id}/completion`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed }),

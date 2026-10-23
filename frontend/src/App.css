@@ -3435,7 +3435,9 @@
 .goal-definition p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .milestone-list { display: grid; gap: 8px; padding: 0; list-style: none; }
 .milestone-heading { display: flex; align-items: center; gap: 8px; }
-.milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; line-height: 26px; }
+.milestone-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 32px; gap: 10px; align-items: start; line-height: 26px; }
+.milestone-row > .task-menu { grid-area: auto; }
+.milestone-edit-form { margin-top: 0; }
 .milestone-row .milestone-check { grid-area: auto; position: relative; align-self: start; }
 .milestone-completed { text-decoration: line-through; color: #625b70; }
 .milestone-list li { padding: 10px 12px; border: 1px solid var(--color-primary-border); border-radius: 8px; overflow-wrap: anywhere; }

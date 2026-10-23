@@ -12,6 +12,16 @@ public class MilestoneController {
     public MilestoneController(MilestoneService milestones) { this.milestones = milestones; }
     @GetMapping
     public List<Milestone> list(@PathVariable long goalId) { return milestones.list(goalId); }
+    @PatchMapping("/{milestoneId}")
+    public Milestone rename(@PathVariable long goalId, @PathVariable long milestoneId,
+            @Valid @RequestBody MilestoneRequest request) {
+        return milestones.rename(goalId, milestoneId, request.title());
+    }
+    @DeleteMapping("/{milestoneId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable long goalId, @PathVariable long milestoneId) {
+        milestones.delete(goalId, milestoneId);
+    }
     @PatchMapping("/{milestoneId}/completion")
     public Milestone setCompleted(@PathVariable long goalId, @PathVariable long milestoneId,
             @Valid @RequestBody MilestoneCompletionRequest request) {

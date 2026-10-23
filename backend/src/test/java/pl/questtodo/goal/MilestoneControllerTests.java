@@ -134,4 +134,46 @@ class MilestoneControllerTests {
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM milestones WHERE goal_id = 1001", Integer.class));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM milestones WHERE goal_id = 2001", Integer.class));
     }
+
+    @Test
+    void editsAndDeletesBothStatesPreservingOrderAndGoal() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position, completed) VALUES (8001, 1001, 'First', 0, false), (8002, 1001, 'Second', 1, true), (8003, 1001, 'Third', 2, false)");
+        jdbc.update("INSERT INTO tasks(id, user_id, title, points, goal_id) VALUES (9001, 1, 'Task', 10, 1001)");
+        for (long id : new long[]{8001, 8002}) {
+            mvc.perform(patch("/api/goals/1001/milestones/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"title\":\"  Renamed  \"}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Renamed"))
+                    .andExpect(jsonPath("$.completed").value(id == 8002))
+                    .andExpect(jsonPath("$.position").value(id == 8002 ? 1 : 0));
+            entityManager.flush();
+            entityManager.clear();
+            mvc.perform(delete("/api/goals/1001/milestones/{id}", id)).andExpect(status().isNoContent());
+            entityManager.flush();
+            entityManager.clear();
+        }
+        mvc.perform(get("/api/goals/1001/milestones")).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(8003)).andExpect(jsonPath("$[0].position").value(2));
+        mvc.perform(post("/api/goals/1001/milestones").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Next\"}")).andExpect(status().isCreated()).andExpect(jsonPath("$.position").value(3));
+        assertEquals("Own", jdbc.queryForObject("SELECT title FROM goals WHERE id = 1001", String.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 9001 AND goal_id = 1001", Integer.class));
+    }
+
+    @Test
+    void editingAndDeletionValidateOwnershipGoalAndTitle() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position) VALUES (8001, 1001, 'Own', 0), (8002, 2001, 'Other', 0)");
+        for (String path : new String[]{"2001/milestones/8002", "1001/milestones/8002", "1001/milestones/9999", "9999/milestones/8001"}) {
+            mvc.perform(patch("/api/goals/" + path).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"title\":\"Changed\"}")).andExpect(status().isNotFound());
+            mvc.perform(delete("/api/goals/" + path)).andExpect(status().isNotFound());
+        }
+        for (String body : new String[]{"{}", "{\"title\":null}", "{\"title\":\"\"}", "{\"title\":\"   \"}",
+                "{\"title\":\"" + "x".repeat(121) + "\"}"}) {
+            mvc.perform(patch("/api/goals/1001/milestones/8001").contentType(MediaType.APPLICATION_JSON)
+                    .content(body)).andExpect(status().isBadRequest());
+        }
+        entityManager.flush();
+        assertEquals("Own", jdbc.queryForObject("SELECT title FROM milestones WHERE id = 8001", String.class));
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM milestones", Integer.class));
+    }
 }

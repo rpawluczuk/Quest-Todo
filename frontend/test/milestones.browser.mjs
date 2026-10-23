@@ -7,6 +7,7 @@ try {
   page.on('pageerror', error => console.error(error.message))
   const milestones = []
   let failCompletion = false
+  let failChange = false
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const path = new URL(route.request().url()).pathname
     let body = []
@@ -20,6 +21,16 @@ try {
       const item = milestones.find(value => value.id === Number(path.split('/')[5]))
       item.completed = route.request().postDataJSON().completed
       body = item
+    }
+    else if (/^\/api\/goals\/1\/milestones\/\d+$/.test(path)) {
+      if (failChange) return route.fulfill({ status: 503, json: { detail: 'Nie udało się zapisać zmiany.' } })
+      const index = milestones.findIndex(value => value.id === Number(path.split('/')[5]))
+      if (route.request().method() === 'DELETE') {
+        milestones.splice(index, 1)
+        return route.fulfill({ status: 204 })
+      }
+      milestones[index].title = route.request().postDataJSON().title
+      body = milestones[index]
     }
     else if (path === '/api/goals/1/milestones') {
       if (route.request().method() === 'POST') {
@@ -77,5 +88,53 @@ try {
   await page.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
   await page.getByText('1/2', { exact: true }).waitFor()
   assert.equal(await page.getByRole('checkbox').nth(1).isChecked(), true)
+  const rows = section.locator('.milestone-list > li')
+  async function edit(index) {
+    await rows.nth(index).getByRole('button', { name: /Więcej opcji/ }).click()
+    await page.getByRole('menuitem', { name: 'Edytuj', exact: true }).click()
+  }
+  await edit(0)
+  await rows.first().getByLabel('Nazwa kamienia milowego').fill('Anulowana nazwa')
+  await rows.first().getByRole('button', { name: 'Anuluj' }).click()
+  assert.equal(await rows.first().locator('.milestone-row > span').textContent(), 'Przebiegam 2 km bez przerwy')
+  for (const index of [0, 1]) {
+    await edit(index)
+    const field = rows.nth(index).getByLabel('Nazwa kamienia milowego')
+    await field.fill(' ')
+    await rows.nth(index).getByRole('button', { name: 'Zapisz' }).click()
+    await rows.nth(index).getByRole('alert').waitFor()
+    await field.fill('Nowa nazwa ' + index)
+    failChange = true
+    await rows.nth(index).getByRole('button', { name: 'Zapisz' }).click()
+    await rows.nth(index).getByText('Nie udało się zapisać zmiany.').waitFor()
+    assert.equal(await field.inputValue(), 'Nowa nazwa ' + index)
+    failChange = false
+    await rows.nth(index).getByRole('button', { name: 'Zapisz' }).click()
+    await rows.nth(index).getByRole('checkbox').waitFor()
+    assert.equal(await rows.nth(index).getByRole('checkbox').isChecked(), index === 1)
+  }
+  async function removeFirst(accept) {
+    page.once('dialog', dialog => {
+      assert.ok(dialog.message().includes('kamień milowy'))
+      return accept ? dialog.accept() : dialog.dismiss()
+    })
+    await rows.first().getByRole('button', { name: /Więcej opcji/ }).click()
+    await page.getByRole('menuitem', { name: 'Usuń', exact: true }).click()
+  }
+  await removeFirst(false)
+  assert.equal(await rows.count(), 2)
+  failChange = true
+  await removeFirst(true)
+  await rows.first().getByText('Nie udało się zapisać zmiany.').waitFor()
+  assert.equal(await rows.count(), 2)
+  failChange = false
+  await removeFirst(true)
+  await section.getByText('1/1', { exact: true }).waitFor()
+  assert.equal(await rows.first().locator('.milestone-row > span').textContent(), 'Nowa nazwa 1')
+  await removeFirst(true)
+  await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
+  assert.equal(await section.locator('.task-section-count').count(), 0)
+  await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).waitFor()
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
+  console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
 } finally { await browser.close() }

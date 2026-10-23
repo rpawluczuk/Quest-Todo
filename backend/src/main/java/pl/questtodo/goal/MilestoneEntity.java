@@ -25,6 +25,8 @@ public class MilestoneEntity {
     }
     public int getPosition() { return position; }
     public long getId() { return id; }
+    public void rename(String title) { this.title = title; }
+    void detach() { this.goal = null; }
     public void setCompleted(boolean completed) { this.completed = completed; }
     public Milestone toMilestone() { return new Milestone(id, title, completed, position); }
 }

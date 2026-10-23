@@ -11,7 +11,7 @@ type TaskMenuAction = {
 
 type TaskActionsMenuProps = {
   readonly itemTitle: string
-  readonly itemType?: 'zadania' | 'nagrody' | 'nawyku' | 'celu'
+  readonly itemType?: 'zadania' | 'nagrody' | 'nawyku' | 'celu' | 'kamienia milowego'
   readonly disabled: boolean
   readonly actions: readonly TaskMenuAction[]
 }

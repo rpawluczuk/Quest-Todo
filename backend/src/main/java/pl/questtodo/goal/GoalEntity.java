@@ -25,6 +25,9 @@ public class GoalEntity {
     private List<MilestoneEntity> milestones = new ArrayList<>();
 
     public List<MilestoneEntity> getMilestones() { return Collections.unmodifiableList(milestones); }
+    public void removeMilestone(MilestoneEntity milestone) {
+        if (milestones.remove(milestone)) milestone.detach();
+    }
 
     public MilestoneEntity addMilestone(String title) {
         int position = milestones.stream().mapToInt(MilestoneEntity::getPosition).max().orElse(-1) + 1;
