@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
-import { createMilestone, getMilestones, type Milestone } from '../api/goalApi'
+import { createMilestone, getMilestones, setMilestoneCompleted, type Milestone } from '../api/goalApi'
 
 export default function GoalMilestones({ goalId }: { goalId: number }) {
   const [items, setItems] = useState<Milestone[]>([])
@@ -10,6 +10,9 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
   const [title, setTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const sending = useRef(false)
+  const pending = useRef(new Set<number>())
+  const [pendingIds, setPendingIds] = useState(new Set<number>())
+  const [completionErrors, setCompletionErrors] = useState<Record<number, string>>({})
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const controller = new AbortController()
@@ -35,14 +38,49 @@ export default function GoalMilestones({ goalId }: { goalId: number }) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać kamienia milowego.')
     } finally { sending.current = false; setSaving(false) }
   }
+  async function toggle(item: Milestone) {
+    if (pending.current.has(item.id)) return
+    pending.current.add(item.id)
+    setPendingIds(new Set(pending.current))
+    setCompletionErrors(current => ({ ...current, [item.id]: '' }))
+    setItems(current => current.map(value => value.id === item.id ? { ...value, completed: !item.completed } : value))
+    try {
+      const updated = await setMilestoneCompleted(goalId, item.id, !item.completed)
+      setItems(current => current.map(value => value.id === item.id ? updated : value))
+    } catch (failure) {
+      setItems(current => current.map(value => value.id === item.id ? item : value))
+      setCompletionErrors(current => ({ ...current, [item.id]: failure instanceof Error
+        ? failure.message : 'Nie udało się zapisać ukończenia kamienia milowego.' }))
+    } finally {
+      pending.current.delete(item.id)
+      setPendingIds(new Set(pending.current))
+    }
+  }
   return <section className="goal-tasks goal-milestones" id={`goal-milestones-${goalId}`}
     aria-labelledby={`milestones-heading-${goalId}`}>
-    <h3 id={`milestones-heading-${goalId}`}>Kamienie milowe</h3>
+    <div className="milestone-heading">
+      <h3 id={`milestones-heading-${goalId}`}>Kamienie milowe</h3>
+      {items.length > 0 && <span className="task-section-count" aria-live="polite">
+        {items.filter(item => item.completed).length}/{items.length}
+      </span>}
+    </div>
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
     {!loading && !loadError && <>
       {items.length === 0 ? <p className="empty-state">Nie masz jeszcze kamieni milowych dla tego celu.</p>
-        : <ol className="milestone-list">{items.map(item => <li key={item.id}>{item.title}</li>)}</ol>}
+        : <ol className="milestone-list">{items.map(item => <li key={item.id}>
+          <div className="milestone-row">
+            <label className="task-card-check milestone-check">
+              <input type="checkbox" checked={item.completed} disabled={pendingIds.has(item.id)}
+                aria-label={item.title} aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
+                onChange={() => void toggle(item)} />
+            </label>
+            <span className={item.completed ? 'milestone-completed' : undefined}>{item.title}</span>
+          </div>
+          {completionErrors[item.id] && <p id={`milestone-error-${item.id}`} className="form-error" role="alert">
+            {completionErrors[item.id]}
+          </p>}
+        </li>)}</ol>}
       {open ? <form className="milestone-form" onSubmit={submit}>
         <label className="form-field"><span>Nazwa kamienia milowego</span>
           <input ref={input} required maxLength={120} value={title} disabled={saving}

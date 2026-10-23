@@ -4,6 +4,14 @@ import type { Task } from '../types/Task'
 
 export type Milestone = { id: number; title: string; completed: boolean; position: number }
 
+export async function setMilestoneCompleted(goalId: number, id: number, completed: boolean): Promise<Milestone> {
+  const response = await apiFetch(`/api/goals/${goalId}/milestones/${id}/completion`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed }),
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać ukończenia kamienia milowego'))
+  return response.json()
+}
+
 export async function getMilestones(goalId: number, signal?: AbortSignal): Promise<Milestone[]> {
   const response = await apiFetch(`/api/goals/${goalId}/milestones`, { signal })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać kamieni milowych'))

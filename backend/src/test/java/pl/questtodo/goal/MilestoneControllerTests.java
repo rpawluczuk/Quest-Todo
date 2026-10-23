@@ -87,6 +87,45 @@ class MilestoneControllerTests {
     }
 
     @Test
+    void completionIsPersistentReversibleAndIdempotentWithoutChangingGoalOrBalance() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position) VALUES (8001, 1001, 'First', 0), (8002, 1001, 'Second', 1)");
+        long balance = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class);
+        for (boolean completed : new boolean[]{true, true, false, false, true}) {
+            mvc.perform(patch("/api/goals/1001/milestones/8002/completion")
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"completed\":" + completed + "}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.completed").value(completed));
+            entityManager.flush();
+            entityManager.clear();
+            mvc.perform(get("/api/goals/1001/milestones"))
+                    .andExpect(jsonPath("$[0].id").value(8001))
+                    .andExpect(jsonPath("$[0].completed").value(false))
+                    .andExpect(jsonPath("$[1].id").value(8002))
+                    .andExpect(jsonPath("$[1].completed").value(completed));
+        }
+        mvc.perform(patch("/api/goals/1001/milestones/8001/completion")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"completed\":true}"))
+                .andExpect(status().isOk());
+        entityManager.flush();
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM milestones WHERE goal_id = 1001 AND completed = true", Integer.class));
+        assertEquals("Own", jdbc.queryForObject("SELECT title FROM goals WHERE id = 1001", String.class));
+        assertEquals(balance, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
+    }
+
+    @Test
+    void completionRejectsForeignMissingAndMismatchedMilestonesAndInvalidPayloads() throws Exception {
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, position) VALUES (8001, 1001, 'Own', 0), (8002, 2001, 'Private', 0)");
+        for (String path : new String[]{"2001/milestones/8002", "1001/milestones/8002", "2001/milestones/8001", "1001/milestones/9999", "9999/milestones/8001"}) {
+            mvc.perform(patch("/api/goals/" + path + "/completion").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"completed\":true}")).andExpect(status().isNotFound());
+        }
+        for (String body : new String[]{"{}", "{\"completed\":null}"}) {
+            mvc.perform(patch("/api/goals/1001/milestones/8001/completion").contentType(MediaType.APPLICATION_JSON)
+                    .content(body)).andExpect(status().isBadRequest());
+        }
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM milestones WHERE completed = true", Integer.class));
+    }
+
+    @Test
     void deletingGoalDeletesItsMilestonesOnly() throws Exception {
         jdbc.update("INSERT INTO milestones(goal_id, title, position) VALUES (1001, 'Own', 0), (2001, 'Other', 0)");
         mvc.perform(delete("/api/goals/1001")).andExpect(status().isNoContent());

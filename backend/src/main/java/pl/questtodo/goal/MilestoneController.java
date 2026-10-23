@@ -12,6 +12,11 @@ public class MilestoneController {
     public MilestoneController(MilestoneService milestones) { this.milestones = milestones; }
     @GetMapping
     public List<Milestone> list(@PathVariable long goalId) { return milestones.list(goalId); }
+    @PatchMapping("/{milestoneId}/completion")
+    public Milestone setCompleted(@PathVariable long goalId, @PathVariable long milestoneId,
+            @Valid @RequestBody MilestoneCompletionRequest request) {
+        return milestones.setCompleted(goalId, milestoneId, request.completed());
+    }
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Milestone create(@PathVariable long goalId, @Valid @RequestBody MilestoneRequest request) {

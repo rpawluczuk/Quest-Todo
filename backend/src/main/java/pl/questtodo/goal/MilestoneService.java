@@ -30,6 +30,16 @@ public class MilestoneService {
         goals.flush();
         return milestone.toMilestone();
     }
+    public Milestone setCompleted(long goalId, long milestoneId, boolean completed) {
+        GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId())
+                .orElseThrow(MilestoneService::notFound);
+        MilestoneEntity milestone = goal.getMilestones().stream()
+                .filter(item -> item.getId() == milestoneId).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kamień milowy nie istnieje."));
+        milestone.setCompleted(completed);
+        return milestone.toMilestone();
+    }
+
     private static ResponseStatusException notFound() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje.");
     }
