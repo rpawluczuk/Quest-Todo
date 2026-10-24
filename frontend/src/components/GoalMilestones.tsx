@@ -6,6 +6,13 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+
+const COMPACT_MILESTONE_LIMIT = 3
+
+function nextCompactIds(items: Milestone[]) {
+  return items.filter(item => !item.completed).slice(0, COMPACT_MILESTONE_LIMIT).map(item => item.id)
+}
 
 const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   goalId: number
@@ -30,7 +37,10 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const [dragging, setDragging] = useState(false)
   const [ordering, setOrdering] = useState(false)
   const [orderError, setOrderError] = useState('')
+  const [showAll, setShowAll] = useState(false)
+  const [compactIds, setCompactIds] = useState<number[]>([])
   const orderBusy = useRef(false)
+  const itemsRef = useRef<Milestone[]>([])
   const onItemsChangeRef = useRef(onItemsChange)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
@@ -39,11 +49,16 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const actionDisabled = loading || !!loadError || mutationsDisabled || open
   useImperativeHandle(ref, () => ({
     activate: () => { if (!actionDisabled) setOpen(true) },
+    resetView: () => {
+      setShowAll(false)
+      setCompactIds(nextCompactIds(itemsRef.current))
+    },
   }), [actionDisabled])
   useEffect(() => {
     onActionDisabledChange?.(goalId, 'milestones', actionDisabled)
   }, [actionDisabled, goalId, onActionDisabledChange])
   useEffect(() => { onItemsChangeRef.current = onItemsChange }, [onItemsChange])
+  useEffect(() => { itemsRef.current = items }, [items])
   useEffect(() => {
     if (!loading && !loadError) onItemsChangeRef.current?.(items)
   }, [items, loading, loadError])
@@ -61,7 +76,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     } catch (failure) {
       setItems(previous)
       if (failure instanceof MilestoneOrderConflict) {
-        try { setItems(await getMilestones(goalId)) }
+        try {
+          const refreshed = await getMilestones(goalId)
+          setItems(refreshed)
+          setCompactIds(nextCompactIds(refreshed))
+        }
         catch { setOrderError('Nie udało się odświeżyć listy po konflikcie. Otwórz cel ponownie.'); return }
       }
       setOrderError(failure instanceof Error ? failure.message : 'Nie udało się zapisać kolejności.')
@@ -72,7 +91,10 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   }
   useEffect(() => {
     const controller = new AbortController()
-    getMilestones(goalId, controller.signal).then(setItems).catch(failure => {
+    getMilestones(goalId, controller.signal).then(loaded => {
+      setItems(loaded)
+      setCompactIds(nextCompactIds(loaded))
+    }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać kamieni milowych.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -93,7 +115,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     try {
       if (remove) {
         await deleteMilestone(goalId, item.id)
-        setItems(current => current.filter(value => value.id !== item.id))
+        setItems(current => {
+          const next = current.filter(value => value.id !== item.id)
+          setCompactIds(nextCompactIds(next))
+          return next
+        })
       } else {
         const updated = await renameMilestone(goalId, item.id, editTitle.trim())
         setItems(current => current.map(value => value.id === item.id ? updated : value))
@@ -117,7 +143,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     setError('')
     try {
       const item = await createMilestone(goalId, title.trim())
-      setItems(current => [...current, item].sort((a, b) => a.position - b.position))
+      setItems(current => {
+        const next = [...current, item].sort((a, b) => a.position - b.position)
+        setCompactIds(nextCompactIds(next))
+        return next
+      })
       setTitle('')
       setOpen(false)
     } catch (failure) {
@@ -143,6 +173,14 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
       setPendingIds(new Set(pending.current))
     }
   }
+  const compactIdSet = new Set(compactIds)
+  const displayedItems = showAll ? items : items.filter(item => compactIdSet.has(item.id))
+  const allCompleted = items.length > 0 && items.every(item => item.completed)
+  const hasHiddenItems = items.some(item => !compactIdSet.has(item.id))
+  function toggleFullList() {
+    if (showAll) setCompactIds(nextCompactIds(items))
+    setShowAll(current => !current)
+  }
   return <section className="goal-tasks goal-milestones" id={`goal-milestones-${goalId}`}
     aria-label="Kamienie milowe">
     {loading && <p role="status">Ładowanie kamieni milowych…</p>}
@@ -150,6 +188,8 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     {orderError && <p className="form-error" role="alert">{orderError}</p>}
     {!loading && !loadError && <>
       {items.length === 0 ? <p className="empty-state">Nie masz jeszcze kamieni milowych dla tego celu.</p>
+        : !showAll && allCompleted && displayedItems.length === 0
+          ? <p className="milestone-complete-state">Wszystkie kamienie milowe ukończone</p>
         : <DndContext sensors={sensors} collisionDetection={closestCenter}
           onDragStart={() => { setDragging(true); setOrderError('') }}
           onDragCancel={() => setDragging(false)} onDragEnd={event => void finishDrag(event)}
@@ -162,9 +202,9 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
               onDragCancel: () => 'Anulowano przenoszenie.',
             },
           }}>
-          <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-          <ol className="milestone-list">{items.map(item => <SortableMilestone key={item.id} id={item.id}
-            title={item.title} disabled={orderDisabled}>{handle => <>
+          <SortableContext items={displayedItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+          <ol className="milestone-list">{displayedItems.map(item => <SortableMilestone key={item.id} id={item.id}
+            title={item.title} disabled={!showAll || orderDisabled}>{handle => <>
           {editingId === item.id ? <form className="milestone-form milestone-edit-form"
             onSubmit={event => { event.preventDefault(); void changeItem(item, false) }}>
             <label className="form-field"><span>Nazwa kamienia milowego</span>
@@ -175,14 +215,14 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
               <button type="button" className="secondary-button" disabled={pendingIds.has(item.id)}
                 onClick={() => { setEditingId(null); setCompletionErrors(current => ({ ...current, [item.id]: '' })) }}>Anuluj</button>
             </div>
-          </form> : <div className="milestone-row">
+          </form> : <div className={`milestone-row${showAll ? '' : ' milestone-row-compact'}`}>
             <label className="task-card-check milestone-check">
               <input type="checkbox" checked={item.completed} disabled={pendingIds.has(item.id) || mutationsDisabled}
                 aria-label={item.title} aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
                 onChange={() => void toggle(item)} />
             </label>
             <span className={`milestone-title${item.completed ? ' milestone-completed' : ''}`}>{item.title}</span>
-            {handle}
+            {showAll ? handle : null}
             <TaskActionsMenu itemTitle={item.title} itemType="kamienia milowego"
               disabled={pendingIds.has(item.id) || editingId !== null || mutationsDisabled} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => {
@@ -198,6 +238,12 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         </>}</SortableMilestone>)}</ol>
           </SortableContext>
         </DndContext>}
+      {items.length > 0 && (showAll || hasHiddenItems) && <button type="button"
+        className="milestone-list-toggle" aria-expanded={showAll} onClick={toggleFullList}>
+        <span>{showAll ? 'Pokaż mniej' : `Pokaż wszystkie (${items.length})`}</span>
+        {showAll ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
+          : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
+      </button>}
       {open ? <form className="milestone-form" onSubmit={submit}>
         <label className="form-field"><span>Nazwa kamienia milowego</span>
           <input ref={input} required maxLength={120} value={title} disabled={saving}

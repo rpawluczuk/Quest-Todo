@@ -92,6 +92,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
     setExpandedId(current => current === goalId ? null : goalId)
   }
 
+  function selectGoalTab(goalId: number, tab: GoalTab) {
+    if (tab !== 'milestones') sectionActions.current.get(`${goalId}:milestones`)?.resetView?.()
+    setActiveTabByGoal(current => ({ ...current, [goalId]: tab }))
+  }
+
   function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, goalId: number) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
     const tabs = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? [])
@@ -101,7 +106,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
     const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
       : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
     const nextTab = ['milestones', 'tasks', 'habits'][nextIndex] as GoalTab
-    setActiveTabByGoal(current => ({ ...current, [goalId]: nextTab }))
+    selectGoalTab(goalId, nextTab)
     tabs[nextIndex]?.focus()
   }
 
@@ -282,19 +287,19 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 <button type="button" role="tab" id={`goal-tab-milestones-${goal.id}`}
                   aria-selected={activeTab === 'milestones'} aria-controls={`goal-panel-milestones-${goal.id}`}
                   tabIndex={activeTab === 'milestones' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
-                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'milestones' }))}>
+                  onClick={() => selectGoalTab(goal.id, 'milestones')}>
                   <span>Kamienie</span><span className="goal-tab-count">{completedMilestones}/{milestones?.length ?? 0}</span>
                 </button>
                 <button type="button" role="tab" id={`goal-tab-tasks-${goal.id}`}
                   aria-selected={activeTab === 'tasks'} aria-controls={`goal-panel-tasks-${goal.id}`}
                   tabIndex={activeTab === 'tasks' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
-                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'tasks' }))}>
+                  onClick={() => selectGoalTab(goal.id, 'tasks')}>
                   <span>Zadania</span><span className="goal-tab-count">{taskCountByGoal[goal.id] ?? 0}</span>
                 </button>
                 <button type="button" role="tab" id={`goal-tab-habits-${goal.id}`}
                   aria-selected={activeTab === 'habits'} aria-controls={`goal-panel-habits-${goal.id}`}
                   tabIndex={activeTab === 'habits' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
-                  onClick={() => setActiveTabByGoal(current => ({ ...current, [goal.id]: 'habits' }))}>
+                  onClick={() => selectGoalTab(goal.id, 'habits')}>
                   <span>Nawyki</span><span className="goal-tab-count">{habitCountByGoal[goal.id] ?? 0}</span>
                 </button>
               </div>

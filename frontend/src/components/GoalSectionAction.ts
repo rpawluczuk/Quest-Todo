@@ -4,6 +4,7 @@ export type GoalSection = 'milestones' | 'tasks' | 'habits'
 
 export type GoalSectionActionHandle = {
   activate: () => void
+  resetView?: () => void
 }
 
 export type GoalSectionActionProps = {

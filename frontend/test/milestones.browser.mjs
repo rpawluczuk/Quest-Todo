@@ -342,6 +342,7 @@ try {
   await section.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
   assert.equal(milestones[0].title, 'Przebiegam 2 km bez przerwy')
   await expectSummary('0/1')
+  assert.equal(await section.locator('.milestone-list-toggle').count(), 0)
   await assertHeaderControlsAligned()
   await section.getByRole('checkbox').check()
   await expectSummary('1/1')
@@ -350,9 +351,14 @@ try {
   await section.getByLabel('Nazwa kamienia milowego').fill('Drugi rezultat')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
   await expectSummary('1/2')
-  await section.getByRole('checkbox').nth(1).check()
+  await section.getByRole('checkbox').first().check()
   await expectSummary('2/2')
   await page.waitForFunction(() => [...document.querySelectorAll('.milestone-list input')].every(input => !input.disabled))
+  assert.deepEqual(await section.locator('.milestone-row > span').allTextContents(), ['Drugi rezultat'])
+  await taskTab.click()
+  await milestoneTab.click()
+  await section.getByText('Wszystkie kamienie milowe ukończone', { exact: true }).waitFor()
+  await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   assert.deepEqual(await section.locator('.milestone-row > span').allTextContents(),
     ['Przebiegam 2 km bez przerwy', 'Drugi rezultat'])
   await section.getByRole('checkbox').first().uncheck()
@@ -375,7 +381,8 @@ try {
   await section.getByRole('checkbox').first().check()
   await section.getByRole('alert').getByText('Nie udało się zapisać ukończenia.').waitFor()
   assert.equal(await section.getByRole('checkbox').first().isChecked(), false)
-  assert.equal(await section.getByRole('checkbox').nth(1).isChecked(), true)
+  assert.equal(await section.getByRole('checkbox').count(), 1)
+  assert.equal(milestones.find(item => item.title === 'Drugi rezultat').completed, true)
   await expectSummary('1/2')
   failCompletion = false
   for (const width of [320, 375, 390, 1280]) {
@@ -391,7 +398,8 @@ try {
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
   await page.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
   await expectSummary('1/2')
-  assert.equal(await page.getByRole('checkbox').nth(1).isChecked(), true)
+  await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
+  assert.equal(await section.getByRole('checkbox').nth(1).isChecked(), true)
   const rows = section.locator('.milestone-list > li')
   async function moveFirstDown() {
     await page.waitForTimeout(350)
@@ -416,6 +424,7 @@ try {
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
   await expectSummary('1/2')
+  await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
   await moveFirstDown()
   orderFailure = 503
@@ -471,6 +480,7 @@ try {
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
   await expectSummary('1/2')
+  await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   async function edit(index) {
     await rows.nth(index).getByRole('button', { name: /Więcej opcji/ }).click()
     await page.getByRole('menuitem', { name: 'Edytuj', exact: true }).click()
@@ -527,7 +537,20 @@ try {
   await page.reload()
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
+  await section.locator('.milestone-list > li').nth(2).waitFor()
+  assert.deepEqual(await section.locator('.milestone-row > span').allTextContents(), [
+    'Krótki rezultat',
+    'Dłuższa nazwa rezultatu, która naturalnie zawija się na kilka linii',
+    'Czwarty rezultat',
+  ])
+  assert.equal(await section.locator('.milestone-grip').count(), 0)
+  await section.getByRole('button', { name: 'Pokaż wszystkie (5)', exact: true }).click()
   await section.locator('.milestone-list > li').nth(4).waitFor()
+  assert.equal(await section.locator('.milestone-grip').count(), 5)
+  await section.getByRole('button', { name: 'Pokaż mniej', exact: true }).click()
+  assert.equal(await section.locator('.milestone-list > li').count(), 3)
+  assert.equal(await section.locator('.milestone-grip').count(), 0)
+  await section.getByRole('button', { name: 'Pokaż wszystkie (5)', exact: true }).click()
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 })
     const compactRows = section.locator('.milestone-list > li')
@@ -554,7 +577,7 @@ try {
   console.log('PASS goal tabs switch with pointer/keyboard, keep one panel visible and fit at 320/375/390px')
   console.log('PASS editing both states, validation, cancel, failed edit/delete, confirmed deletion and counters')
   console.log('PASS reorder via keyboard/touch at 320/390px, reload, cancellation, rollback and conflict refresh')
-  console.log('PASS compact five-row milestone list with short, wrapped and completed items at 320/375/390px')
+  console.log('PASS compact three-item milestone preview and full five-row list at 320/375/390px')
   console.log('PASS contextual tab action creates a milestone and attaches a task/habit at 320/375/390px')
   console.log('PASS compact linked task/habit rows show metadata, wrap on mobile and preserve checkbox/menu actions')
 } finally { await browser.close() }
