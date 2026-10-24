@@ -114,7 +114,14 @@ try {
   assert.equal(await editSuccessField.locator('textarea').inputValue(), longDesiredOutcome)
   await editGoalForm.getByRole('button', { name: 'Anuluj', exact: true }).click()
   const summary = page.locator('.goal-milestone-summary')
-  const expectSummary = value => summary.getByText(`${value} kamieni milowych`, { exact: true }).waitFor()
+  const expectMilestoneCount = async value => {
+    if (await goalToggle.getAttribute('aria-expanded') === 'true') {
+      await milestoneTab.locator('.goal-tab-count').getByText(value, { exact: true }).waitFor()
+      assert.equal(await goalCard.locator('.goal-milestone-summary').count(), 0)
+    } else {
+      await summary.getByText(`${value} kamieni milowych`, { exact: true }).waitFor()
+    }
+  }
   const assertHeaderControlsAligned = async () => {
     const cards = page.locator('.goal-card')
     for (let index = 0; index < await cards.count(); index++) {
@@ -341,18 +348,18 @@ try {
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
   await section.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
   assert.equal(milestones[0].title, 'Przebiegam 2 km bez przerwy')
-  await expectSummary('0/1')
+  await expectMilestoneCount('0/1')
   assert.equal(await section.locator('.milestone-list-toggle').count(), 0)
   await assertHeaderControlsAligned()
   await section.getByRole('checkbox').check()
-  await expectSummary('1/1')
+  await expectMilestoneCount('1/1')
   await page.waitForFunction(() => !document.querySelector('.milestone-list input').disabled)
   await contextualAction.click()
   await section.getByLabel('Nazwa kamienia milowego').fill('Drugi rezultat')
   await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   await section.getByRole('checkbox').first().check()
-  await expectSummary('2/2')
+  await expectMilestoneCount('2/2')
   await page.waitForFunction(() => [...document.querySelectorAll('.milestone-list input')].every(input => !input.disabled))
   assert.deepEqual(await section.locator('.milestone-row > span').allTextContents(), ['Drugi rezultat'])
   await taskTab.click()
@@ -362,11 +369,11 @@ try {
   assert.deepEqual(await section.locator('.milestone-row > span').allTextContents(),
     ['Przebiegam 2 km bez przerwy', 'Drugi rezultat'])
   await section.getByRole('checkbox').first().uncheck()
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   await page.waitForFunction(() => !document.querySelector('.milestone-list input').disabled)
   await goalToggle.click()
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'false')
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 800 })
     await assertHeaderControlsAligned()
@@ -383,7 +390,7 @@ try {
   assert.equal(await section.getByRole('checkbox').first().isChecked(), false)
   assert.equal(await section.getByRole('checkbox').count(), 1)
   assert.equal(milestones.find(item => item.title === 'Drugi rezultat').completed, true)
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   failCompletion = false
   for (const width of [320, 375, 390, 1280]) {
     await page.setViewportSize({ width, height: 800 })
@@ -397,7 +404,7 @@ try {
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
   await page.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   assert.equal(await section.getByRole('checkbox').nth(1).isChecked(), true)
   const rows = section.locator('.milestone-list > li')
@@ -423,7 +430,7 @@ try {
   await page.reload()
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   assert.deepEqual(await rows.locator('.milestone-row > span').allTextContents(), [...originalNames].reverse())
   await moveFirstDown()
@@ -473,13 +480,13 @@ try {
   milestones.push({ id: 99, title: 'Dodany w innej sesji', completed: false, position: 2 })
   await moveFirstDown()
   await section.getByText('Dodany w innej sesji', { exact: true }).waitFor()
-  await expectSummary('1/3')
+  await expectMilestoneCount('1/3')
   orderFailure = 0
   milestones.pop()
   await page.reload()
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: 'Przebiegam 5 km', exact: true }).click()
-  await expectSummary('1/2')
+  await expectMilestoneCount('1/2')
   await section.getByRole('button', { name: 'Pokaż wszystkie (2)', exact: true }).click()
   async function edit(index) {
     await rows.nth(index).getByRole('button', { name: /Więcej opcji/ }).click()
@@ -521,7 +528,7 @@ try {
   assert.equal(await rows.count(), 2)
   failChange = false
   await removeFirst(true)
-  await expectSummary('1/1')
+  await expectMilestoneCount('1/1')
   assert.equal(await rows.first().locator('.milestone-row > span').textContent(), 'Nowa nazwa 1')
   await removeFirst(true)
   await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()

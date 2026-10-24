@@ -248,11 +248,12 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
               aria-label={goal.title}
-              aria-describedby={milestones?.length ? `goal-milestone-summary-${goal.id}` : undefined}
+              aria-describedby={expandedId !== goal.id && milestones?.length
+                ? `goal-milestone-summary-${goal.id}` : undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => toggleGoal(goal.id)}>
               <span className="goal-title-text">{goal.title}</span>
-              {!!milestones?.length && <span className="goal-milestone-summary"
+              {expandedId !== goal.id && !!milestones?.length && <span className="goal-milestone-summary"
                 id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
                 <Flag size={15} strokeWidth={2} aria-hidden="true" />
                 <span>{completedMilestones}/{milestones.length} kamieni milowych</span>
