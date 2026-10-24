@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 const COMPACT_MILESTONE_LIMIT = 3
 
@@ -23,6 +23,7 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [saving, setSaving] = useState(false)
@@ -46,7 +47,7 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
   const mutationsDisabled = dragging || ordering
-  const actionDisabled = loading || !!loadError || mutationsDisabled || open
+  const actionDisabled = loading || !!loadError || mutationsDisabled
   useImperativeHandle(ref, () => ({
     activate: () => { if (!actionDisabled) setOpen(true) },
     resetView: () => {
@@ -101,6 +102,17 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   }, [goalId])
   useEffect(() => { if (open) input.current?.focus() }, [open])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
+  useEffect(() => {
+    if (!success) return
+    const timer = window.setTimeout(() => setSuccess(''), 4000)
+    return () => window.clearTimeout(timer)
+  }, [success])
+  function closeCreateForm() {
+    setOpen(false)
+    setTitle('')
+    setError('')
+    requestAnimationFrame(() => actionTriggerRef?.current?.focus())
+  }
   async function changeItem(item: Milestone, remove: boolean) {
     if (orderBusy.current || dragging) return
     if (pending.current.has(item.id)) return
@@ -150,6 +162,8 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
       })
       setTitle('')
       setOpen(false)
+      setShowAll(true)
+      setSuccess('Dodano kamień milowy.')
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać kamienia milowego.')
     } finally { sending.current = false; setSaving(false) }
@@ -187,6 +201,22 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
     {orderError && <p className="form-error" role="alert">{orderError}</p>}
     {!loading && !loadError && <>
+      {open && <form className="task-form milestone-create-form" onSubmit={submit}
+        onKeyDown={event => { if (event.key === 'Escape' && !saving) { event.preventDefault(); closeCreateForm() } }}>
+        <h3>Nowy kamień milowy</h3>
+        <label className="form-field">
+          <span className="visually-hidden">Nazwa kamienia milowego</span>
+          <input ref={input} required maxLength={120} value={title} disabled={saving}
+            placeholder="Np. Przebiegnę 2 km bez przerwy" onChange={event => setTitle(event.target.value)} />
+        </label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="task-actions milestone-create-actions">
+          <button type="button" className="secondary-button" disabled={saving} onClick={closeCreateForm}>Anuluj</button>
+          <button type="submit" disabled={saving || mutationsDisabled || !title.trim()}>
+            {saving ? 'Dodawanie…' : 'Dodaj'}
+          </button>
+        </div>
+      </form>}
       {items.length === 0 ? <p className="empty-state">Nie masz jeszcze kamieni milowych dla tego celu.</p>
         : !showAll && allCompleted && displayedItems.length === 0
           ? <p className="milestone-complete-state">Wszystkie kamienie milowe ukończone</p>
@@ -244,21 +274,13 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         {showAll ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
           : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
       </button>}
-      {open ? <form className="milestone-form" onSubmit={submit}>
-        <label className="form-field"><span>Nazwa kamienia milowego</span>
-          <input ref={input} required maxLength={120} value={title} disabled={saving}
-            placeholder="Np. Przebiegam 2 km bez przerwy" onChange={event => setTitle(event.target.value)} /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="task-actions">
-          <button type="submit" disabled={saving || mutationsDisabled}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
-          <button type="button" className="secondary-button" disabled={saving}
-            onClick={() => {
-              setOpen(false); setTitle(''); setError('')
-              requestAnimationFrame(() => actionTriggerRef?.current?.focus())
-            }}>Anuluj</button>
-        </div>
-      </form> : null}
     </>}
+    {success && <div className="habit-toast-region">
+      <div className="habit-toast milestone-success-toast">
+        <CheckCircle size={20} strokeWidth={2} aria-hidden="true" />
+        <span role="status">{success}</span>
+      </div>
+    </div>}
   </section>
 })
 

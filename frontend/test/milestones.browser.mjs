@@ -6,6 +6,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 320, height: 800 } })
   page.on('pageerror', error => console.error(error.message))
   const milestones = []
+  let failCreate = false
   let failCompletion = false
   let failChange = false
   let orderFailure = 0
@@ -84,6 +85,7 @@ try {
     }
     else if (path === '/api/goals/1/milestones') {
       if (route.request().method() === 'POST') {
+        if (failCreate) return route.fulfill({ status: 503, json: { detail: 'Nie udało się dodać kamienia milowego.' } })
         const { title } = route.request().postDataJSON()
         body = { id: milestones.length + 1, title, completed: false, position: milestones.length }
         milestones.push(body)
@@ -344,20 +346,53 @@ try {
   await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
   await milestoneTab.click()
   await contextualAction.click()
-  await section.getByLabel('Nazwa kamienia milowego').fill('  Przebiegam 2 km bez przerwy  ')
-  await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
+  let createMilestoneForm = section.locator('.milestone-create-form')
+  let createMilestoneInput = createMilestoneForm.getByLabel('Nazwa kamienia milowego')
+  await createMilestoneForm.waitFor()
+  assert.equal(await createMilestoneInput.evaluate(element => element === document.activeElement), true)
+  assert.equal(await createMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true }).isDisabled(), true)
+  const emptyStateBox = await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').boundingBox()
+  const initialFormBox = await createMilestoneForm.boundingBox()
+  assert.ok(initialFormBox && emptyStateBox && initialFormBox.y < emptyStateBox.y)
+  await createMilestoneInput.fill('Anulowany rezultat')
+  await createMilestoneInput.press('Escape')
+  await createMilestoneForm.waitFor({ state: 'hidden' })
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Dodaj kamień milowy')
+  assert.equal(await contextualAction.evaluate(element => element === document.activeElement), true)
+  await contextualAction.click()
+  createMilestoneForm = section.locator('.milestone-create-form')
+  createMilestoneInput = createMilestoneForm.getByLabel('Nazwa kamienia milowego')
+  await createMilestoneInput.fill('Zapis po błędzie')
+  failCreate = true
+  await createMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await createMilestoneForm.getByRole('alert').waitFor()
+  assert.equal(await createMilestoneInput.inputValue(), 'Zapis po błędzie')
+  failCreate = false
+  await createMilestoneInput.fill('  Przebiegam 2 km bez przerwy  ')
+  await createMilestoneInput.press('Enter')
   await section.getByText('Przebiegam 2 km bez przerwy', { exact: true }).waitFor()
+  await page.getByRole('status').getByText('Dodano kamień milowy.', { exact: true }).waitFor()
   assert.equal(milestones[0].title, 'Przebiegam 2 km bez przerwy')
   await expectMilestoneCount('0/1')
+  await section.getByRole('button', { name: 'Pokaż mniej', exact: true }).waitFor()
+  assert.equal(await section.locator('.milestone-grip').count(), 1)
+  await section.getByRole('button', { name: 'Pokaż mniej', exact: true }).click()
   assert.equal(await section.locator('.milestone-list-toggle').count(), 0)
   await assertHeaderControlsAligned()
   await section.getByRole('checkbox').check()
   await expectMilestoneCount('1/1')
   await page.waitForFunction(() => !document.querySelector('.milestone-list input').disabled)
   await contextualAction.click()
-  await section.getByLabel('Nazwa kamienia milowego').fill('Drugi rezultat')
-  await section.getByRole('button', { name: 'Zapisz', exact: true }).click()
+  createMilestoneForm = section.locator('.milestone-create-form')
+  const listBox = await section.locator('.milestone-list').boundingBox()
+  const formBox = await createMilestoneForm.boundingBox()
+  assert.ok(formBox && listBox && formBox.y < listBox.y)
+  await createMilestoneForm.getByLabel('Nazwa kamienia milowego').fill('Drugi rezultat')
+  await createMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true }).click()
   await expectMilestoneCount('1/2')
+  assert.equal(await section.locator('.milestone-list > li').count(), 2)
+  assert.equal(await section.locator('.milestone-grip').count(), 2)
+  await section.getByRole('button', { name: 'Pokaż mniej', exact: true }).click()
   await section.getByRole('checkbox').first().check()
   await expectMilestoneCount('2/2')
   await page.waitForFunction(() => [...document.querySelectorAll('.milestone-list input')].every(input => !input.disabled))
