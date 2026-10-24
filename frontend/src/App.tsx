@@ -11,6 +11,7 @@ import type { TaskSectionData } from './types/TaskSectionData'
 import TaskSection from './components/TaskSection'
 import Header from './components/Header'
 import CreateTaskForm, { type CreateTaskFormHandle } from './components/CreateTaskForm'
+import type { CreateHabitFormHandle } from './components/CreateHabitForm'
 import CompletionNotice from './components/CompletionNotice'
 import { getTaskEmptyStates } from './taskEmptyState'
 import { sortActiveTasks } from './taskSorting'
@@ -32,6 +33,7 @@ type AppProps = {
 
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
   const createTaskForm = useRef<CreateTaskFormHandle>(null)
+  const createHabitForm = useRef<CreateHabitFormHandle>(null)
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
@@ -251,6 +253,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
     categoryId: number | null, goalId: number | null, inFocus: boolean) {
     const task = await createTask(title, taskPoints, description, dueDate, dueTime, categoryId, goalId, inFocus)
     setTasks((currentTasks) => [...currentTasks, task])
+    setTaskRevision(value => value + 1)
   }
 
   function synchronizeExternalState() {
@@ -444,6 +447,11 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
         <HabitsPage goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
+          createHabitForm={createHabitForm}
+          onHabitCreated={() => {
+            setHabitGoalRevision(value => value + 1)
+            setHabitSyncRevision(value => value + 1)
+          }}
           syncRevision={habitSyncRevision} onPointsChanged={balance => {
           accountRequest.current++
           setPoints(balance)
@@ -452,6 +460,11 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
       <div id="goals-page" hidden={activePage !== 'goals'}>
         <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
           onGoalLinksChanged={refreshTaskGoalLinks}
+          habitRevision={habitGoalRevision}
+          onCreateTask={(goalId, trigger, onCreated) =>
+            createTaskForm.current?.open(trigger, 'backlog', goalId, () => onCreated())}
+          onCreateHabit={(goalId, trigger, onCreated) =>
+            createHabitForm.current?.open(trigger, goalId, () => onCreated())}
           onHabitGoalLinksChanged={() => setHabitGoalRevision(value => value + 1)} />
       </div>
       <div id="rewards-page" hidden={activePage !== 'rewards'}>

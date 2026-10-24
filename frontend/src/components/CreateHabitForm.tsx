@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type SubmitEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { Category } from '../types/Category'
 import type { HabitSchedule } from '../types/Habit'
 import { habitFormChanged, type HabitFormValues } from '../habitFormState'
@@ -12,7 +13,8 @@ import HabitPointsField from './HabitPointsField'
 import HabitTargetField from './HabitTargetField'
 
 export type CreateHabitFormHandle = {
-  open: (trigger?: HTMLButtonElement) => void
+  open: (trigger?: HTMLButtonElement, initialGoalId?: number | null,
+    onCreated?: (goalIds: number[]) => void) => void
 }
 
 function defaultSchedule(startDate: string): HabitSchedule {
@@ -23,7 +25,8 @@ function defaultSchedule(startDate: string): HabitSchedule {
 const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
     categoryId: number | null, goalIds: number[]) => Promise<void>
-}>(function CreateHabitForm({ onAdd }, ref) {
+  onCreated?: () => void
+}>(function CreateHabitForm({ onAdd, onCreated }, ref) {
   const [open, setOpen] = useState(false)
   const [activeView, setActiveView] = useState<'habit' | 'category'>('habit')
   const [initialStartDate, setInitialStartDate] = useState(() => habitToday())
@@ -33,6 +36,7 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   const [description, setDescription] = useState('')
   const [schedule, setSchedule] = useState<HabitSchedule>(() => defaultSchedule(initialStartDate))
   const [goalIds, setGoalIds] = useState<number[]>([])
+  const [initialGoalIds, setInitialGoalIds] = useState<number[]>([])
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -42,21 +46,23 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   const dialog = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const wasOpen = useRef(false)
+  const createdCallback = useRef<((goalIds: number[]) => void) | null>(null)
   const dialogTitleId = useId()
 
   const currentValues: HabitFormValues = { name, targetDays, rewardPoints, description, schedule, categoryId, goalIds }
   const initialValues: HabitFormValues = { name: '', targetDays: 7, rewardPoints: '1', description: '',
-    schedule: defaultSchedule(initialStartDate), categoryId: null, goalIds: [] }
+    schedule: defaultSchedule(initialStartDate), categoryId: null, goalIds: initialGoalIds }
   const hasUnsavedChanges = habitFormChanged(currentValues, initialValues)
 
-  function resetForm(startDate = habitToday()) {
+  function resetForm(startDate = habitToday(), selectedGoalIds: number[] = []) {
     setInitialStartDate(startDate)
     setName('')
     setTargetDays(7)
     setRewardPoints('1')
     setDescription('')
     setSchedule(defaultSchedule(startDate))
-    setGoalIds([])
+    setGoalIds(selectedGoalIds)
+    setInitialGoalIds(selectedGoalIds)
     setCategoryId(null)
     setError('')
     setActiveView('habit')
@@ -64,6 +70,7 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
 
   function closeForm() {
     resetForm()
+    createdCallback.current = null
     setDiscardDialogOpen(false)
     setOpen(false)
   }
@@ -75,10 +82,11 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   }
 
   useImperativeHandle(ref, () => ({
-    open(trigger) {
+    open(trigger, initialGoalId = null, onFormCreated) {
       const startDate = habitToday()
       returnFocus.current = trigger ?? null
-      resetForm(startDate)
+      resetForm(startDate, initialGoalId === null ? [] : [initialGoalId])
+      createdCallback.current = onFormCreated ?? null
       setOpen(true)
     },
   }), [])
@@ -111,6 +119,8 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
     setError('')
     try {
       await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule, categoryId, goalIds)
+      onCreated?.()
+      createdCallback.current?.(goalIds)
       closeForm()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać nawyku.')
@@ -120,7 +130,7 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   }
 
   return <>
-    {open && <dialog ref={dialog}
+    {open && createPortal(<dialog ref={dialog}
       className="password-dialog change-password-dialog create-task-dialog habit-form-dialog"
       aria-labelledby={dialogTitleId} onCancel={event => {
         event.preventDefault()
@@ -173,9 +183,9 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
         <CategoryCreateForm className="category-create-dialog-form" onCreated={categoryCreated}
           onCancel={() => setActiveView('habit')} onBusyChange={setCategorySaving} popoverAppearance />
       </>}
-    </dialog>}
-    {discardDialogOpen && <DiscardTaskChangesDialog onContinue={() => setDiscardDialogOpen(false)}
-      onDiscard={closeForm} />}
+    </dialog>, document.body)}
+    {discardDialogOpen && createPortal(<DiscardTaskChangesDialog onContinue={() => setDiscardDialogOpen(false)}
+      onDiscard={closeForm} />, document.body)}
   </>
 })
 

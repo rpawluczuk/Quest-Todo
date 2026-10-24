@@ -3573,6 +3573,42 @@
   margin-top: 8px;
   padding-right: 6px;
 }
+.goal-add-menu {
+  position: fixed;
+  z-index: 1200;
+  display: grid;
+  visibility: hidden;
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 30px #29194224;
+}
+.goal-add-menu button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #332d3f;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.goal-add-menu button + button { border-top: 1px solid #e9e5ef; border-radius: 0 0 7px 7px; }
+.goal-add-menu button:hover { background: var(--color-primary-soft); }
+.goal-add-menu button:active { background: var(--color-primary-soft); }
+.goal-add-menu button:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.goal-add-menu button > svg { width: 19px; height: 19px; color: var(--color-primary); }
+.goal-add-menu button > span { display: grid; gap: 2px; min-width: 0; }
+.goal-add-menu strong { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
+.goal-add-menu small { color: #625b70; font-size: 0.75rem; line-height: 1.35; overflow-wrap: anywhere; }
 .goal-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

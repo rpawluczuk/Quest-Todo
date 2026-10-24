@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
+import { createPortal } from 'react-dom'
 import TaskNoteField from './TaskNoteField'
 import SingleGoalPicker from './SingleGoalPicker'
 import CategoryPicker from './CategoryPicker'
@@ -15,7 +16,8 @@ type CreateTaskFormProps = {
 }
 
 export type CreateTaskFormHandle = {
-  readonly open: (trigger?: HTMLButtonElement, targetList?: 'focus' | 'backlog') => void
+  readonly open: (trigger?: HTMLButtonElement, targetList?: 'focus' | 'backlog', initialGoalId?: number | null,
+    onCreated?: (goalId: number | null) => void) => void
 }
 
 const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(function CreateTaskForm(
@@ -30,6 +32,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
   const [goalId, setGoalId] = useState<number | null>(null)
+  const [initialGoalId, setInitialGoalId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; points?: string }>({})
   const [formError, setFormError] = useState('')
@@ -44,20 +47,22 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   const pointsInput = useRef<HTMLInputElement>(null)
   const dueDateInput = useRef<HTMLInputElement>(null)
   const wasExpanded = useRef(false)
+  const createdCallback = useRef<((goalId: number | null) => void) | null>(null)
   const titleErrorId = useId()
   const pointsErrorId = useId()
   const dialogTitleId = useId()
 
   const hasUnsavedChanges = newTitle !== '' || newPoints !== '10' || description !== '' || dueDate !== '' ||
-    dueTime !== '' || goalId !== null || categoryId !== null
+    dueTime !== '' || goalId !== initialGoalId || categoryId !== null
 
-  function resetForm() {
+  function resetForm(selectedGoalId: number | null = null) {
     setNewTitle('')
     setNewPoints('10')
     setDescription('')
     setDueDate('')
     setDueTime('')
-    setGoalId(null)
+    setGoalId(selectedGoalId)
+    setInitialGoalId(selectedGoalId)
     setCategoryId(null)
     setFieldErrors({})
     setFormError('')
@@ -66,6 +71,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
 
   function closeForm() {
     resetForm()
+    createdCallback.current = null
     setDiscardDialogOpen(false)
     setIsExpanded(false)
   }
@@ -77,9 +83,11 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   }
 
   useImperativeHandle(ref, () => ({
-    open(trigger, target = 'backlog') {
+    open(trigger, target = 'backlog', selectedGoalId = null, onCreated) {
+      resetForm(selectedGoalId)
       setTargetList(target)
       returnFocus.current = trigger ?? null
+      createdCallback.current = onCreated ?? null
       setActiveView('task')
       setIsExpanded(true)
     },
@@ -129,6 +137,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
     setFormError('')
     try {
       await onAddTask(title, taskPoints, description.trim(), dueDate, dueTime, categoryId, goalId, targetList === 'focus')
+      createdCallback.current?.(goalId)
       closeForm()
     } catch {
       setFormError('Nie udało się zapisać zadania. Sprawdź połączenie z backendem i spróbuj ponownie.')
@@ -138,7 +147,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
   }
 
   return <>
-    {isExpanded && <dialog ref={dialog} className="password-dialog change-password-dialog create-task-dialog"
+    {isExpanded && createPortal(<dialog ref={dialog} className="password-dialog change-password-dialog create-task-dialog"
       aria-labelledby={dialogTitleId} onCancel={event => {
         event.preventDefault()
         if (activeView === 'category') {
@@ -239,7 +248,7 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
         <CategoryCreateForm className="category-create-dialog-form" onCreated={categoryCreated}
           onCancel={() => setActiveView('task')} onBusyChange={setCategorySaving} popoverAppearance />
       </>}
-    </dialog>}
+    </dialog>, document.body)}
     {!isExpanded && !hideTrigger && <button ref={addButton} type="button"
       className={`${isFirstTask ? 'empty-state-primary-button' : 'secondary-button'} add-task-toggle`}
       onClick={(event) => {
@@ -250,8 +259,8 @@ const CreateTaskForm = forwardRef<CreateTaskFormHandle, CreateTaskFormProps>(fun
       }}>
       {isFirstTask ? '+ Dodaj pierwsze zadanie' : '+ Dodaj zadanie'}
     </button>}
-    {discardDialogOpen && <DiscardTaskChangesDialog onContinue={() => setDiscardDialogOpen(false)}
-      onDiscard={closeForm} />}
+    {discardDialogOpen && createPortal(<DiscardTaskChangesDialog onContinue={() => setDiscardDialogOpen(false)}
+      onDiscard={closeForm} />, document.body)}
   </>
 })
 

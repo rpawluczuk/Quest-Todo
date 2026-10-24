@@ -18,8 +18,10 @@ const displayDate = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' })
 type AwardNotice = HabitAward & { habitId: number; name: string }
 type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
-export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision }: {
+export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision,
+  createHabitForm, onHabitCreated }: {
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
+  createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
 }) {
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
@@ -29,7 +31,6 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   const nextBonusNoticeId = useRef(0)
   const [refresh, setRefresh] = useState(0)
   const undoing = useRef(false)
-  const createHabitForm = useRef<CreateHabitFormHandle>(null)
 
   function completionSaved(result: HabitCompletionResult, previous?: Habit) {
     if (result.balance !== null) onPointsChanged(result.balance)
@@ -88,7 +89,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
     </div>
     <HabitDayList key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
-      onCompletionSaved={completionSaved} createHabitForm={createHabitForm} />
+      onCompletionSaved={completionSaved} createHabitForm={createHabitForm} onHabitCreated={onHabitCreated} />
     <div className="habit-toast-region">
       {notices.map(notice => <HabitAwardToast key={notice.id} notice={notice} disabled={busy}
         onUndo={() => undo(notice)} onDismiss={() => setNotices(current => current.filter(item => item.id !== notice.id))} />)}
@@ -99,10 +100,12 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 }
 
 // A separate instance per day keeps delayed requests from changing another day's list.
-function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision }: {
+function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
+  onHabitCreated }: {
   date: string; today: string; busy: boolean; onBusy: (busy: boolean) => void
   onCompletionSaved: (result: HabitCompletionResult, previous?: Habit) => void
   createHabitForm: RefObject<CreateHabitFormHandle | null>
+  onHabitCreated: () => void
   syncRevision: number
 }) {
   const savingCompletion = useRef(false)
@@ -262,7 +265,7 @@ function HabitDayList({ date, today, busy, onBusy, onCompletionSaved, createHabi
           </span>
           <p className="empty-state">Nie masz jeszcze nawyków. Dodaj pierwszy i zacznij budować regularność!</p>
         </div>}
-        <CreateHabitForm ref={createHabitForm} onAdd={add} />
+        <CreateHabitForm ref={createHabitForm} onAdd={add} onCreated={onHabitCreated} />
         {habits.length === 0 && allHabitIds.length > 0 && <p className="empty-state">Brak zaplanowanych nawyków na ten dzień.</p>}
         {groups.map(group => {
           const items = sortHabitsForDay(habits.filter(habit => habit.status === group.status

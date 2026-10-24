@@ -9,9 +9,10 @@ import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSect
 
 const GoalHabits = forwardRef<GoalSectionActionHandle, {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
+  revision: number
   onCountChange?: (goalId: number, count: number) => void
 } & GoalSectionActionProps>(function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange,
-  actionTriggerRef, onActionDisabledChange }, ref) {
+  revision, actionTriggerRef, onActionDisabledChange }, ref) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
   const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -42,7 +43,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
       if (!controller.signal.aborted) setDetailsById(new Map(habits.map(habit => [habit.id, habit])))
     }).catch(() => undefined)
     return () => controller.abort()
-  }, [goalId, retry])
+  }, [goalId, retry, revision])
 
   useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
 

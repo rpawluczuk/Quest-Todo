@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from 'react'
-import { ChevronDown, ChevronRight, Flag, History, Plus, Target } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
+import { CheckCircle2, ChevronDown, ChevronRight, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
@@ -24,8 +24,12 @@ function definitionError(currentState: string, desiredOutcome: string): string {
 
 type GoalTab = GoalSection
 
-export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: GoalTasksProps & {
+export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCreateHabit, habitRevision,
+  ...taskProps }: GoalTasksProps & {
   onHabitGoalLinksChanged: () => void
+  onCreateTask: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
+  onCreateHabit: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
+  habitRevision: number
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [initialStateOpenId, setInitialStateOpenId] = useState<number | null>(null)
@@ -33,6 +37,9 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
   const [habitCountByGoal, setHabitCountByGoal] = useState<Record<number, number>>({})
   const [sectionActionDisabled, setSectionActionDisabled] = useState<Record<string, boolean>>({})
+  const [actionMenu, setActionMenu] = useState<{ goalId: number; tab: 'tasks' | 'habits' } | null>(null)
+  const [actionMenuPosition, setActionMenuPosition] = useState<CSSProperties | undefined>()
+  const [creationNotice, setCreationNotice] = useState('')
   const [goals, setGoals] = useState<Goal[]>([])
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -54,6 +61,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   const sending = useRef(false)
   const sectionActions = useRef(new Map<string, GoalSectionActionHandle>())
   const sectionActionTrigger = useRef<HTMLButtonElement>(null)
+  const actionMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -72,6 +80,56 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
 
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
+  useEffect(() => {
+    if (!actionMenu) return
+    const closeOnPointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Node) || actionMenuRef.current?.contains(target)
+        || sectionActionTrigger.current?.contains(target)) return
+      setActionMenu(null)
+    }
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setActionMenu(null)
+      sectionActionTrigger.current?.focus()
+    }
+    document.addEventListener('pointerdown', closeOnPointerDown)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [actionMenu])
+  useLayoutEffect(() => {
+    if (!actionMenu) return
+    const placeMenu = () => {
+      const trigger = sectionActionTrigger.current
+      const menu = actionMenuRef.current
+      if (!trigger || !menu) return
+      const triggerBox = trigger.getBoundingClientRect()
+      const width = Math.min(300, window.innerWidth - 24)
+      const height = menu.offsetHeight
+      const opensBelow = window.innerHeight - triggerBox.bottom - 12 >= height || triggerBox.top < height + 12
+      setActionMenuPosition({
+        width,
+        left: Math.max(12, Math.min(triggerBox.right - width, window.innerWidth - width - 12)),
+        top: opensBelow ? triggerBox.bottom + 6 : triggerBox.top - height - 6,
+        visibility: 'visible',
+      })
+    }
+    placeMenu()
+    window.addEventListener('resize', placeMenu)
+    window.addEventListener('scroll', placeMenu, true)
+    return () => {
+      window.removeEventListener('resize', placeMenu)
+      window.removeEventListener('scroll', placeMenu, true)
+    }
+  }, [actionMenu])
+  useEffect(() => {
+    if (!creationNotice) return
+    const timer = window.setTimeout(() => setCreationNotice(''), 4000)
+    return () => window.clearTimeout(timer)
+  }, [creationNotice])
 
   const updateTaskCount = useCallback((goalId: number, count: number) => {
     setTaskCountByGoal(current => current[goalId] === count ? current : { ...current, [goalId]: count })
@@ -87,12 +145,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   }, [])
 
   function toggleGoal(goalId: number) {
+    setActionMenu(null)
     setInitialStateOpenId(null)
     if (expandedId !== goalId) setActiveTabByGoal(current => ({ ...current, [goalId]: 'milestones' }))
     setExpandedId(current => current === goalId ? null : goalId)
   }
 
   function selectGoalTab(goalId: number, tab: GoalTab) {
+    setActionMenu(null)
     if (tab !== 'milestones') sectionActions.current.get(`${goalId}:milestones`)?.resetView?.()
     setActiveTabByGoal(current => ({ ...current, [goalId]: tab }))
   }
@@ -108,6 +168,18 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
     const nextTab = ['milestones', 'tasks', 'habits'][nextIndex] as GoalTab
     selectGoalTab(goalId, nextTab)
     tabs[nextIndex]?.focus()
+  }
+
+  function handleActionMenuKey(event: KeyboardEvent<HTMLDivElement>) {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+    if (!items.length) return
+    event.preventDefault()
+    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement)
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+      : event.key === 'ArrowDown' ? (currentIndex + 1 + items.length) % items.length
+        : (currentIndex - 1 + items.length) % items.length
+    items[nextIndex]?.focus()
   }
 
   async function add(event: SubmitEvent<HTMLFormElement>) {
@@ -224,7 +296,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
         const activeTab = activeTabByGoal[goal.id] ?? 'milestones'
         const activeActionKey = `${goal.id}:${activeTab}`
         const actionLabel = activeTab === 'milestones' ? 'Dodaj kamień milowy'
-          : activeTab === 'tasks' ? 'Przypnij zadanie' : 'Przypnij nawyk'
+          : activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'
         return <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu</span>
@@ -307,11 +379,56 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               <button ref={sectionActionTrigger} type="button"
                 className="add-task-header-button goal-subsection-add goal-tabs-add"
                 aria-label={actionLabel} title={actionLabel}
-                aria-controls={`goal-panel-${activeTab}-${goal.id}`}
+                aria-haspopup={activeTab === 'milestones' ? undefined : 'menu'}
+                aria-expanded={activeTab === 'milestones' ? undefined : actionMenu?.goalId === goal.id
+                  && actionMenu.tab === activeTab}
+                aria-controls={activeTab === 'milestones' ? `goal-panel-${activeTab}-${goal.id}`
+                  : `goal-add-menu-${goal.id}`}
                 disabled={sectionActionDisabled[activeActionKey] ?? true}
-                onClick={() => sectionActions.current.get(activeActionKey)?.activate()}>
+                onKeyDown={event => {
+                  if (activeTab === 'milestones' || event.key !== 'ArrowDown') return
+                  event.preventDefault()
+                  setActionMenu({ goalId: goal.id, tab: activeTab })
+                  requestAnimationFrame(() => actionMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus())
+                }}
+                onClick={() => {
+                  if (activeTab === 'milestones') {
+                    sectionActions.current.get(activeActionKey)?.activate()
+                    return
+                  }
+                  setActionMenu(current => current?.goalId === goal.id && current.tab === activeTab
+                    ? null : { goalId: goal.id, tab: activeTab })
+                }}>
                 <Plus aria-hidden="true" />
               </button>
+              {actionMenu?.goalId === goal.id && actionMenu.tab === activeTab && <div ref={actionMenuRef}
+                className="goal-add-menu" id={`goal-add-menu-${goal.id}`} role="menu"
+                style={actionMenuPosition}
+                onKeyDown={handleActionMenuKey}
+                aria-label={activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'}>
+                <button type="button" role="menuitem" onClick={() => {
+                  setActionMenu(null)
+                  const trigger = sectionActionTrigger.current
+                  if (!trigger) return
+                  if (activeTab === 'tasks') onCreateTask(goal.id, trigger,
+                    () => setCreationNotice('Utworzono nowe zadanie.'))
+                  else onCreateHabit(goal.id, trigger, () => setCreationNotice('Utworzono nowy nawyk.'))
+                }}>
+                  <PlusCircle aria-hidden="true" />
+                  <span><strong>{activeTab === 'tasks' ? 'Utwórz nowe zadanie' : 'Utwórz nowy nawyk'}</strong>
+                    <small>{activeTab === 'tasks' ? 'Nowe zadanie przypisane do tego celu'
+                      : 'Nowy nawyk przypisany do tego celu'}</small></span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setActionMenu(null)
+                  sectionActions.current.get(activeActionKey)?.activate()
+                }}>
+                  <Link2 aria-hidden="true" />
+                  <span><strong>Przypnij istniejące</strong>
+                    <small>{activeTab === 'tasks' ? 'Wybierz zadanie ze swojej listy'
+                      : 'Wybierz nawyk ze swojej listy'}</small></span>
+                </button>
+              </div>}
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-milestones-${goal.id}`}
                 aria-labelledby={`goal-tab-milestones-${goal.id}`} hidden={activeTab !== 'milestones'}>
@@ -337,6 +454,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-habits-${goal.id}`}
                 aria-labelledby={`goal-tab-habits-${goal.id}`} hidden={activeTab !== 'habits'}>
                 <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
+                  revision={habitRevision}
                   actionTriggerRef={sectionActionTrigger}
                   ref={action => {
                     if (action) sectionActions.current.set(`${goal.id}:habits`, action)
@@ -366,6 +484,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
             </>}
           </>}
         </li>})}</ul>}
+      {creationNotice && <div className="habit-toast-region">
+        <div className="habit-toast milestone-success-toast">
+          <CheckCircle2 aria-hidden="true" /><span role="status">{creationNotice}</span>
+        </div>
+      </div>}
     </>}
   </section>
 }

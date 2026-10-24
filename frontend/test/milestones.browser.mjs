@@ -26,6 +26,9 @@ try {
   }
   const attachedTasks = []
   const attachedHabits = []
+  const createdTasks = []
+  const createdHabits = []
+  let lastCreatedHabitGoalIds = []
   const longGoalTitle = 'Bardzo długi cel, którego nazwa zawija się na kilku liniach na małym ekranie telefonu'
   const longCurrentState = 'To jest długi opis obecnej sytuacji. '.repeat(18)
   const longDesiredOutcome = 'To jest szczegółowy opis zamierzonego rezultatu. '.repeat(18)
@@ -33,13 +36,30 @@ try {
     const path = new URL(route.request().url()).pathname
     let body = []
     if (path === '/api/users/me') body = { id: 1, login: 'test', points: 0, theme: 'PURPLE' }
-    else if (path === '/api/tasks/overview') body = { tasks: [], completedCount: 0 }
+    else if (path === '/api/tasks/overview') body = { tasks: createdTasks, completedCount: 0 }
+    else if (path === '/api/tasks' && route.request().method() === 'POST') {
+      const request = route.request().postDataJSON()
+      body = { id: 103 + createdTasks.length, ...request, completed: false, completedAt: null,
+        dueDate: request.dueDate, dueTime: request.dueTime, category: null,
+        goalTitle: request.goalId === 1 ? 'Przebiegam 5 km' : null }
+      createdTasks.push(body)
+      if (request.goalId === 1) attachedTasks.push(body)
+    }
     else if (path === '/api/tasks/101') body = availableTask
     else if (path === '/api/tasks/101/completion') {
       availableTask.completed = route.request().postDataJSON().completed
       body = availableTask
     }
-    else if (path === '/api/habits') body = [availableHabit]
+    else if (path === '/api/habits' && route.request().method() === 'POST') {
+      const request = route.request().postDataJSON()
+      lastCreatedHabitGoalIds = request.goalIds
+      body = { ...availableHabit, id: 202 + createdHabits.length, ...request,
+        weeklyCompletedDays: 0, totalCompletions: 0, status: 'ACTIVE', completed: false,
+        target: { targetDays: request.targetDays, effectiveFrom: request.startDate } }
+      createdHabits.push(body)
+      if (request.goalIds.includes(1)) attachedHabits.push({ id: body.id, name: body.name })
+    }
+    else if (path === '/api/habits') body = [availableHabit, ...createdHabits]
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path.includes('email')) body = { verifiedEmail: null }
     else if (path === '/api/goals') body = [
@@ -277,12 +297,30 @@ try {
       && Math.abs(box.bottom - tabBoxes[0].bottom) < 0.5))
     assert.ok(await page.locator('.goal-tabs').evaluate(element => element.scrollWidth <= element.clientWidth))
     await assertTabsActionLayout(milestoneTab, '#goal-milestones-1', 'Dodaj kamień milowy')
-    await assertTabsActionLayout(taskTab, '#goal-tasks-1', 'Przypnij zadanie')
-    await assertTabsActionLayout(habitTab, '#goal-habits-1', 'Przypnij nawyk')
+    await assertTabsActionLayout(taskTab, '#goal-tasks-1', 'Dodaj zadanie do celu')
+    await assertTabsActionLayout(habitTab, '#goal-habits-1', 'Dodaj nawyk do celu')
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
   await taskTab.click()
   await contextualAction.click()
+  let addMenu = page.getByRole('menu', { name: 'Dodaj zadanie do celu' })
+  await addMenu.getByRole('menuitem', { name: /Utwórz nowe zadanie/ }).waitFor()
+  await addMenu.getByRole('menuitem', { name: /Przypnij istniejące/ }).waitFor()
+  assert.ok((await addMenu.boundingBox()).width <= 300)
+  assert.ok(await addMenu.evaluate(element => {
+    const box = element.getBoundingClientRect()
+    return box.left >= 0 && box.right <= innerWidth
+  }))
+  await page.keyboard.press('Escape')
+  await addMenu.waitFor({ state: 'hidden' })
+  await contextualAction.focus()
+  await page.keyboard.press('ArrowDown')
+  addMenu = page.getByRole('menu', { name: 'Dodaj zadanie do celu' })
+  assert.equal(await addMenu.getByRole('menuitem').first().evaluate(element => element === document.activeElement), true)
+  await page.keyboard.press('Escape')
+  await contextualAction.click()
+  addMenu = page.getByRole('menu', { name: 'Dodaj zadanie do celu' })
+  await addMenu.getByRole('menuitem', { name: /Przypnij istniejące/ }).click()
   const taskDialog = page.getByRole('dialog', { name: 'Przypnij zadania' })
   const availableTaskRows = taskDialog.locator('.goal-available-task')
   assert.equal(await taskDialog.getByRole('heading', { name: 'Moje priorytety' }).count(), 1)
@@ -308,18 +346,58 @@ try {
   await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('2'))
   await taskDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('2'))
+  await contextualAction.click()
+  addMenu = page.getByRole('menu', { name: 'Dodaj zadanie do celu' })
+  await addMenu.getByRole('menuitem', { name: /Utwórz nowe zadanie/ }).click()
+  const createTaskDialog = page.getByRole('dialog', { name: 'Nowe zadanie' })
+  const taskGoalTrigger = createTaskDialog.locator('.goal-select-trigger')
+  await taskGoalTrigger.getByText('Przebiegam 5 km', { exact: true }).waitFor()
+  await taskGoalTrigger.click()
+  await page.getByRole('option', { name: 'Bez celu', exact: true }).click()
+  assert.equal(await taskGoalTrigger.textContent(), 'Bez celu')
+  await taskGoalTrigger.click()
+  await page.getByRole('option', { name: 'Przebiegam 5 km', exact: true }).click()
+  await createTaskDialog.getByLabel('Nazwa zadania').fill('Zadanie utworzone w celu')
+  await createTaskDialog.getByRole('button', { name: 'Dodaj zadanie', exact: true }).click()
+  await createTaskDialog.waitFor({ state: 'hidden' })
+  await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('3'))
+  await page.getByRole('status').filter({ hasText: 'Utworzono nowe zadanie.' }).waitFor()
   await habitTab.click()
   await contextualAction.click()
+  addMenu = page.getByRole('menu', { name: 'Dodaj nawyk do celu' })
+  await addMenu.getByRole('menuitem', { name: /Utwórz nowy nawyk/ }).waitFor()
+  await contextualAction.click()
+  await addMenu.waitFor({ state: 'hidden' })
+  await contextualAction.click()
+  addMenu = page.getByRole('menu', { name: 'Dodaj nawyk do celu' })
+  await addMenu.getByRole('menuitem', { name: /Przypnij istniejące/ }).click()
   const habitDialog = page.getByRole('dialog', { name: 'Przypnij nawyki' })
   await habitDialog.getByRole('button', { name: `Przypnij nawyk: ${availableHabit.name}` }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
   await habitDialog.getByRole('button', { name: 'Gotowe', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
+  await contextualAction.click()
+  addMenu = page.getByRole('menu', { name: 'Dodaj nawyk do celu' })
+  await addMenu.getByRole('menuitem', { name: /Utwórz nowy nawyk/ }).click()
+  const createHabitDialog = page.getByRole('dialog', { name: 'Nowy nawyk' })
+  const habitGoalTrigger = createHabitDialog.locator('.goal-multiselect-trigger')
+  await habitGoalTrigger.getByText('Przebiegam 5 km', { exact: true }).waitFor()
+  await habitGoalTrigger.click()
+  const goalPicker = page.getByRole('dialog', { name: 'Wybierz cele' })
+  assert.equal(await goalPicker.getByRole('checkbox', { name: 'Przebiegam 5 km' }).isChecked(), true)
+  await goalPicker.getByRole('checkbox', { name: longGoalTitle }).check()
+  await page.keyboard.press('Escape')
+  await createHabitDialog.getByLabel('Nazwa nawyku').fill('Nawyk utworzony w celu')
+  await createHabitDialog.getByRole('button', { name: 'Zapisz', exact: true }).click()
+  await createHabitDialog.waitFor({ state: 'hidden' })
+  assert.deepEqual(lastCreatedHabitGoalIds.sort((a, b) => a - b), [1, 2])
+  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('2'))
+  await page.getByRole('status').filter({ hasText: 'Utworzono nowy nawyk.' }).waitFor()
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
   assert.equal(await page.getByText('+ Przypnij zadanie', { exact: true }).count(), 0)
   assert.equal(await page.getByText('+ Przypnij nawyk', { exact: true }).count(), 0)
   const linkedTaskRows = taskSection.locator('.goal-linked-task')
-  const linkedHabitRow = habitSection.locator('.goal-linked-habit')
+  const linkedHabitRow = habitSection.locator('.goal-linked-habit').first()
   await linkedTaskRows.nth(1).waitFor({ state: 'attached' })
   await linkedHabitRow.waitFor({ state: 'attached' })
   await taskTab.click()
@@ -355,15 +433,14 @@ try {
     linkedTaskRows.first().getByRole('checkbox').click(),
   ])
   assert.equal(availableTask.completed, true)
-  assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '2')
+  assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '3')
   await linkedTaskRows.first().getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
   await page.keyboard.press('Escape')
   await habitTab.click()
   await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).click()
-  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('0'))
-  await habitSection.getByText('Brak przypisanych nawyków', { exact: true }).waitFor()
+  await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
   await milestoneTab.click()
   await contextualAction.click()
   let createMilestoneForm = section.locator('.milestone-create-form')
