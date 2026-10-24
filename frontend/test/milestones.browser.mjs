@@ -94,7 +94,7 @@ try {
     await route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200,
       contentType: 'application/json', body: JSON.stringify(body) })
   })
-  await page.goto('http://127.0.0.1:5186')
+  await page.goto(process.env.MILESTONES_TEST_URL ?? 'http://127.0.0.1:5186')
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
   async function expectSuccessCriterionField(form) {
     const field = form.locator('.goal-definition-field').filter({ hasText: 'Kiedy uznam cel za osiągnięty?' })
@@ -351,8 +351,31 @@ try {
   let createMilestoneForm = section.locator('.milestone-create-form')
   let createMilestoneInput = createMilestoneForm.getByLabel('Nazwa kamienia milowego')
   await createMilestoneForm.waitFor()
+  assert.equal(await createMilestoneForm.getByRole('heading').count(), 0)
   assert.equal(await createMilestoneInput.evaluate(element => element === document.activeElement), true)
-  assert.equal(await createMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true }).isDisabled(), true)
+  const createCancel = createMilestoneForm.getByRole('button', { name: 'Anuluj', exact: true })
+  const createSubmit = createMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true })
+  assert.equal(await createSubmit.isDisabled(), true)
+  assert.equal(await createSubmit.locator('svg').count(), 1)
+  const formStyles = await createMilestoneForm.evaluate(element => {
+    const style = getComputedStyle(element)
+    return {
+      border: style.borderTopWidth,
+      padding: style.paddingTop,
+      background: style.backgroundColor,
+      rowGap: style.rowGap,
+      marginBottom: style.marginBottom,
+    }
+  })
+  assert.equal(formStyles.border, '0px')
+  assert.equal(formStyles.padding, '0px')
+  assert.equal(formStyles.background, 'rgba(0, 0, 0, 0)')
+  assert.equal(formStyles.rowGap, '7px')
+  assert.equal(formStyles.marginBottom, '10px')
+  assert.equal(await createSubmit.evaluate(element => getComputedStyle(element).opacity), '0.58')
+  const [cancelBox, submitBox] = await Promise.all([createCancel.boundingBox(), createSubmit.boundingBox()])
+  assert.ok(cancelBox && submitBox && cancelBox.height >= 40 && submitBox.height >= 40)
+  assert.ok(Math.abs(cancelBox.y - submitBox.y) < 0.5)
   const emptyStateBox = await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').boundingBox()
   const initialFormBox = await createMilestoneForm.boundingBox()
   assert.ok(initialFormBox && emptyStateBox && initialFormBox.y < emptyStateBox.y)

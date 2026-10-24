@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
-import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 const COMPACT_MILESTONE_LIMIT = 3
 
@@ -203,7 +203,6 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     {!loading && !loadError && <>
       {open && <form className="task-form milestone-create-form" onSubmit={submit}
         onKeyDown={event => { if (event.key === 'Escape' && !saving) { event.preventDefault(); closeCreateForm() } }}>
-        <h3>Nowy kamień milowy</h3>
         <label className="form-field">
           <span className="visually-hidden">Nazwa kamienia milowego</span>
           <input ref={input} required maxLength={120} value={title} disabled={saving}
@@ -211,9 +210,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         </label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="task-actions milestone-create-actions">
-          <button type="button" className="secondary-button" disabled={saving} onClick={closeCreateForm}>Anuluj</button>
-          <button type="submit" disabled={saving || mutationsDisabled || !title.trim()}>
-            {saving ? 'Dodawanie…' : 'Dodaj'}
+          <button type="button" className="milestone-create-cancel" disabled={saving} onClick={closeCreateForm}>Anuluj</button>
+          <button type="submit" className="milestone-create-submit"
+            disabled={saving || mutationsDisabled || !title.trim()}>
+            <Check size={16} strokeWidth={2.2} aria-hidden="true" />
+            <span>{saving ? 'Dodawanie…' : 'Dodaj'}</span>
           </button>
         </div>
       </form>}

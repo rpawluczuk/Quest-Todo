@@ -1325,7 +1325,7 @@
 .habit-card-associations {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -3658,18 +3658,45 @@
 .milestone-list-toggle:hover { background: var(--color-primary-soft); }
 .milestone-list-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .milestone-create-form {
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 7px;
   margin: 0 0 10px;
-  padding: 12px;
-  border: 1px solid var(--color-primary-border);
-  border-radius: 10px;
-  background: #fff;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
-.milestone-create-form h3 { margin: 0; font-size: 0.9rem; font-weight: 600; line-height: 1.35; }
 .milestone-create-form input { box-sizing: border-box; width: 100%; }
 .milestone-create-form .form-error { margin: 0; }
-.milestone-create-actions { justify-content: flex-end; flex-wrap: nowrap; }
-.milestone-create-actions button { min-height: 40px; }
+.milestone-create-actions {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.milestone-create-actions .milestone-create-cancel,
+.milestone-create-actions .milestone-create-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.milestone-create-actions .milestone-create-cancel { color: #625b70; font-weight: 500; }
+.milestone-create-actions .milestone-create-submit { color: var(--color-primary); font-weight: 600; }
+.milestone-create-actions .milestone-create-cancel:hover:not(:disabled),
+.milestone-create-actions .milestone-create-submit:hover:not(:disabled) { background: var(--color-primary-soft); }
+.milestone-create-actions .milestone-create-cancel:focus-visible,
+.milestone-create-actions .milestone-create-submit:focus-visible { outline-offset: 1px; }
+.milestone-create-actions button:disabled { background: transparent; opacity: 0.58; cursor: not-allowed; }
 .milestone-success-toast svg { flex: 0 0 20px; }
 .milestone-form { display: grid; gap: 10px; margin-top: 12px; min-width: 0; }
 .milestone-form input { box-sizing: border-box; }
