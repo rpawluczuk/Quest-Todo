@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from 'react'
-import { ChevronDown, ChevronRight, FileText, Flag, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Flag, History, Plus, Target } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
@@ -28,7 +28,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   onHabitGoalLinksChanged: () => void
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [descriptionOpenId, setDescriptionOpenId] = useState<number | null>(null)
+  const [initialStateOpenId, setInitialStateOpenId] = useState<number | null>(null)
   const [activeTabByGoal, setActiveTabByGoal] = useState<Record<number, GoalTab>>({})
   const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
   const [habitCountByGoal, setHabitCountByGoal] = useState<Record<number, number>>({})
@@ -87,7 +87,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
   }, [])
 
   function toggleGoal(goalId: number) {
-    setDescriptionOpenId(null)
+    setInitialStateOpenId(null)
     if (expandedId !== goalId) setActiveTabByGoal(current => ({ ...current, [goalId]: 'milestones' }))
     setExpandedId(current => current === goalId ? null : goalId)
   }
@@ -269,25 +269,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                 { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
               ]} />
             </div>
-            {expandedId === goal.id && (goal.currentState || goal.desiredOutcome) && <>
-              <button type="button" className="goal-description-toggle"
-                aria-expanded={descriptionOpenId === goal.id} aria-controls={`goal-definition-${goal.id}`}
-                onClick={() => setDescriptionOpenId(current => current === goal.id ? null : goal.id)}>
-                <span className="goal-description-toggle-label">
-                  <FileText size={18} strokeWidth={1.8} aria-hidden="true" />
-                  <span>Opis celu</span>
-                </span>
-                {descriptionOpenId === goal.id
-                  ? <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />
-                  : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
-              </button>
-              <div className="goal-definition" id={`goal-definition-${goal.id}`}
-                hidden={descriptionOpenId !== goal.id}>
-                {goal.currentState && <section><h3>Stan początkowy</h3><GoalDefinitionText text={goal.currentState} /></section>}
-                {goal.desiredOutcome && <section><h3>Kiedy uznam cel za osiągnięty?</h3><GoalDefinitionText text={goal.desiredOutcome} /></section>}
-              </div>
-            </>}
             {expandedId === goal.id && <>
+              {goal.desiredOutcome ? <section className="goal-success-criterion" aria-labelledby={`goal-success-heading-${goal.id}`}>
+                <h3 id={`goal-success-heading-${goal.id}`}>
+                  <Target size={17} strokeWidth={2} aria-hidden="true" />
+                  <span>Kiedy uznam cel za osiągnięty?</span>
+                </h3>
+                <GoalDefinitionText text={goal.desiredOutcome} maxLines={2} />
+              </section> : <p className="goal-success-empty">Nie określono kryterium osiągnięcia celu</p>}
               <div className="goal-tabs-row">
               <div className="goal-tabs" role="tablist" aria-label={`Elementy celu „${goal.title}”`}>
                 <button type="button" role="tab" id={`goal-tab-milestones-${goal.id}`}
@@ -351,6 +340,23 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                   onGoalLinksChanged={onHabitGoalLinksChanged}
                   onCountChange={updateHabitCount} />
               </div>
+              {goal.currentState && <>
+                <button type="button" className="goal-initial-state-toggle"
+                  aria-expanded={initialStateOpenId === goal.id} aria-controls={`goal-initial-state-${goal.id}`}
+                  onClick={() => setInitialStateOpenId(current => current === goal.id ? null : goal.id)}>
+                  <span className="goal-initial-state-label">
+                    <History size={18} strokeWidth={1.8} aria-hidden="true" />
+                    <span>Stan początkowy</span>
+                  </span>
+                  {initialStateOpenId === goal.id
+                    ? <ChevronDown size={18} strokeWidth={2} aria-hidden="true" />
+                    : <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />}
+                </button>
+                <div className="goal-initial-state" id={`goal-initial-state-${goal.id}`}
+                  hidden={initialStateOpenId !== goal.id}>
+                  <GoalDefinitionText text={goal.currentState} />
+                </div>
+              </>}
             </>}
           </>}
         </li>})}</ul>}
