@@ -289,7 +289,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, ...taskProps }: Goa
                   aria-selected={activeTab === 'milestones'} aria-controls={`goal-panel-milestones-${goal.id}`}
                   tabIndex={activeTab === 'milestones' ? 0 : -1} onKeyDown={event => handleTabKey(event, goal.id)}
                   onClick={() => selectGoalTab(goal.id, 'milestones')}>
-                  <span>Kamienie</span><span className="goal-tab-count">{completedMilestones}/{milestones?.length ?? 0}</span>
+                  <span>Kamienie</span><span className="goal-tab-count">{milestones?.length ?? 0}</span>
                 </button>
                 <button type="button" role="tab" id={`goal-tab-tasks-${goal.id}`}
                   aria-selected={activeTab === 'tasks'} aria-controls={`goal-panel-tasks-${goal.id}`}

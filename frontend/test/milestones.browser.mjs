@@ -118,7 +118,8 @@ try {
   const summary = page.locator('.goal-milestone-summary')
   const expectMilestoneCount = async value => {
     if (await goalToggle.getAttribute('aria-expanded') === 'true') {
-      await milestoneTab.locator('.goal-tab-count').getByText(value, { exact: true }).waitFor()
+      const total = value.includes('/') ? value.split('/')[1] : value
+      await milestoneTab.locator('.goal-tab-count').getByText(total, { exact: true }).waitFor()
       assert.equal(await goalCard.locator('.goal-milestone-summary').count(), 0)
     } else {
       await summary.getByText(`${value} kamieni milowych`, { exact: true }).waitFor()
@@ -336,6 +337,7 @@ try {
     linkedTaskRows.first().getByRole('checkbox').click(),
   ])
   assert.equal(availableTask.completed, true)
+  assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '2')
   await linkedTaskRows.first().getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
   await page.keyboard.press('Escape')
