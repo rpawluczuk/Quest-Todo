@@ -209,7 +209,7 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
           }]} />
         </li>})}
       </ul>}
-      {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog" aria-labelledby="goal-picker-title"
+      {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog goal-task-picker-dialog" aria-labelledby="goal-picker-title"
         onCancel={event => { event.preventDefault(); closePicker() }}>
         <div className="goal-picker-header">
         <button type="button" className="password-dialog-close" aria-label="Zamknij" disabled={busy || pageLoading} onClick={closePicker}>

@@ -13,12 +13,12 @@ try {
   let orderWrites = 0
   const availableTask = {
     id: 101, title: 'Konsultacja GPT', description: null, points: 5, completed: false,
-    completedAt: null, inFocus: false, dueDate: '2026-10-30', dueTime: '21:52', category: null,
+    completedAt: null, inFocus: true, dueDate: '2026-10-30', dueTime: '21:52', category: null,
     goalId: null, goalTitle: null,
   }
   const longAvailableTask = {
     ...availableTask, id: 102, title: 'Bardzo długie zadanie przypięte do celu, które zawija się naturalnie na małym ekranie telefonu',
-    points: 1000, dueDate: null, dueTime: null,
+    points: 1000, inFocus: false, dueDate: null, dueTime: null,
   }
   const availableHabit = {
     id: 201, name: 'Bardzo długi nawyk przypięty do celu, którego nazwa zawija się na telefonie',
@@ -284,6 +284,24 @@ try {
   await taskTab.click()
   await contextualAction.click()
   const taskDialog = page.getByRole('dialog', { name: 'Przypnij zadania' })
+  const availableTaskRows = taskDialog.locator('.goal-available-task')
+  assert.equal(await taskDialog.getByRole('heading', { name: 'Moje priorytety' }).count(), 1)
+  assert.equal(await taskDialog.getByRole('heading', { name: 'Pozostałe zadania' }).count(), 1)
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    const shortRow = availableTaskRows.filter({ hasText: 'Konsultacja GPT' })
+    const longRow = availableTaskRows.filter({ hasText: longAvailableTask.title })
+    const [shortBox, longBox, attachBox] = await Promise.all([
+      shortRow.boundingBox(),
+      longRow.boundingBox(),
+      shortRow.getByRole('button').boundingBox(),
+    ])
+    assert.ok(shortBox && shortBox.height >= 52 && shortBox.height <= 56)
+    assert.ok(longBox && shortBox && longBox.height > shortBox.height)
+    assert.ok(attachBox && attachBox.width >= 44 && attachBox.height >= 44)
+    assert.equal(await shortRow.evaluate(element => getComputedStyle(element).borderBottomWidth), '1px')
+    assert.ok(await taskDialog.evaluate(element => element.scrollWidth <= element.clientWidth))
+  }
   await taskDialog.getByRole('button', { name: 'Przypnij zadanie: Konsultacja GPT' }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-tasks-1')?.textContent?.includes('1'))
   await taskDialog.getByRole('button', { name: `Przypnij zadanie: ${longAvailableTask.title}` }).click()

@@ -3749,6 +3749,11 @@
 }
 .goal-available-task-title small { color: #625b70; font-size: 0.76rem; }
 .goal-available-task button { min-height: 44px; flex: 0 0 auto; }
+.goal-task-picker-dialog .goal-available-list { gap: 0; }
+.goal-task-picker-dialog .goal-available-task { gap: 6px; padding-block: 4px; }
+.goal-task-picker-dialog .goal-available-task-title { line-height: 1.4; }
+.goal-task-picker-dialog .goal-available-section h4 { margin: 2px 0 4px; }
+.goal-task-picker-dialog .goal-picker-results .goal-available-section + .goal-available-section { margin-top: 14px; }
 .goal-picker-link {
   justify-self: center;
   min-height: 44px;
