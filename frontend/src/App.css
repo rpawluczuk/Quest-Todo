@@ -3774,6 +3774,50 @@
 .goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 8px 0 0; }
 .goal-tasks .empty-state { margin-top: 0; }
 .goal-tasks .goal-linked-empty { margin: 0; font-size: 0.875rem; line-height: 1.4; }
+.goal-task-group { min-width: 0; }
+.goal-task-todo > h3 {
+  margin: 0 0 8px;
+  color: #514b5d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.goal-task-todo > h3 span { color: #767080; font-variant-numeric: tabular-nums; }
+.goal-task-all-completed {
+  margin: 0;
+  color: #767080;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.goal-task-completed {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #e9e5ef;
+}
+.goal-task-completed-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #625b70;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.goal-task-completed-label { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.goal-task-completed-toggle svg { flex: 0 0 17px; }
+.goal-task-completed-toggle:hover { color: var(--color-primary); }
+.goal-task-completed-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.goal-task-completed-toggle + div { padding-top: 6px; }
+.goal-task-completed-toggle + div[hidden] { display: none; }
 .goal-linked-tasks { gap: 8px; margin: 0; }
 .goal-linked-task {
   display: grid;

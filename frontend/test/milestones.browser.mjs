@@ -45,10 +45,16 @@ try {
       createdTasks.push(body)
       if (request.goalId === 1) attachedTasks.push(body)
     }
-    else if (path === '/api/tasks/101') body = availableTask
-    else if (path === '/api/tasks/101/completion') {
-      availableTask.completed = route.request().postDataJSON().completed
-      body = availableTask
+    else if (/^\/api\/tasks\/\d+$/.test(path)) {
+      const taskId = Number(path.split('/').at(-1))
+      body = [availableTask, longAvailableTask, ...createdTasks].find(task => task.id === taskId)
+    }
+    else if (/^\/api\/tasks\/\d+\/completion$/.test(path)) {
+      const taskId = Number(path.split('/').at(-2))
+      const task = [availableTask, longAvailableTask, ...createdTasks].find(task => task.id === taskId)
+      task.completed = route.request().postDataJSON().completed
+      task.completedAt = task.completed ? '2026-10-25T12:00:00Z' : null
+      body = task
     }
     else if (path === '/api/habits' && route.request().method() === 'POST') {
       const request = route.request().postDataJSON()
@@ -447,6 +453,8 @@ try {
   await taskSection.getByText('30 paź, 21:52', { exact: true }).waitFor()
   await taskSection.getByText('5 pkt', { exact: true }).waitFor()
   await taskSection.getByText('1000 pkt', { exact: true }).waitFor()
+  await taskSection.getByRole('heading', { name: 'Do zrobienia · 3', exact: true }).waitFor()
+  assert.equal(await taskSection.getByRole('button', { name: /^Ukończone/ }).count(), 0)
   await habitTab.click()
   await habitSection.getByText('1/3 dni w tygodniu', { exact: true }).waitFor()
   await habitSection.getByText('2 pkt', { exact: true }).waitFor()
@@ -471,19 +479,60 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
   await taskTab.click()
+  const todoGroup = taskSection.locator('.goal-task-todo')
   await Promise.all([
     page.waitForResponse(response => response.url().endsWith('/api/tasks/101/completion')),
-    linkedTaskRows.first().getByRole('checkbox').click(),
+    todoGroup.locator('.goal-linked-task').first().getByRole('checkbox').click(),
   ])
   assert.equal(availableTask.completed, true)
+  await taskSection.getByRole('heading', { name: 'Do zrobienia · 2', exact: true }).waitFor()
   assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '3')
-  await linkedTaskRows.first().getByRole('button', { name: /Więcej opcji/ }).click()
+  const completedToggle = taskSection.getByRole('button', { name: 'Ukończone (1)', exact: true })
+  await completedToggle.waitFor()
+  assert.equal(await completedToggle.getAttribute('aria-expanded'), 'false')
+  const completedGroup = taskSection.locator('.goal-task-completed')
+  assert.equal(await completedGroup.locator('.goal-linked-task').isVisible(), false)
+  await completedToggle.click()
+  assert.equal(await completedToggle.getAttribute('aria-expanded'), 'true')
+  const completedRow = completedGroup.locator('.goal-linked-task').first()
+  assert.equal(await completedRow.getByRole('checkbox').isChecked(), true)
+  await completedRow.getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).waitFor()
   await page.keyboard.press('Escape')
+  await Promise.all([
+    page.waitForResponse(response => response.url().endsWith('/api/tasks/101/completion')),
+    completedRow.getByRole('checkbox').click(),
+  ])
+  await taskSection.getByRole('heading', { name: 'Do zrobienia · 3', exact: true }).waitFor()
+  assert.equal(availableTask.completed, false)
+  assert.equal(await taskSection.getByRole('button', { name: /^Ukończone/ }).count(), 0)
+
+  for (let remaining = 3; remaining > 0; remaining--) {
+    await Promise.all([
+      page.waitForResponse(response => /\/api\/tasks\/\d+\/completion$/.test(new URL(response.url()).pathname)),
+      todoGroup.locator('.goal-linked-task').first().getByRole('checkbox').click(),
+    ])
+    await taskSection.getByRole('heading', { name: `Do zrobienia · ${remaining - 1}`, exact: true }).waitFor()
+  }
+  await taskSection.getByText('Wszystkie zadania ukończone', { exact: true }).waitFor()
+  const allCompletedToggle = taskSection.getByRole('button', { name: 'Ukończone (3)', exact: true })
+  assert.equal(await allCompletedToggle.getAttribute('aria-expanded'), 'false')
+  assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '3')
+  await allCompletedToggle.click()
+  const firstCompletedCheckbox = completedGroup.locator('.goal-linked-task').first().getByRole('checkbox')
+  await Promise.all([
+    page.waitForResponse(response => /\/api\/tasks\/\d+\/completion$/.test(new URL(response.url()).pathname)),
+    firstCompletedCheckbox.click(),
+  ])
+  await taskSection.getByRole('heading', { name: 'Do zrobienia · 1', exact: true }).waitFor()
+  assert.equal(await taskSection.getByRole('button', { name: 'Ukończone (2)', exact: true }).getAttribute('aria-expanded'), 'true')
+  assert.equal(await taskTab.locator('.goal-tab-count').textContent(), '3')
   await habitTab.click()
   await linkedHabitRow.getByRole('button', { name: /Więcej opcji/ }).click()
   await page.getByRole('menuitem', { name: 'Odepnij od celu' }).click()
   await page.waitForFunction(() => document.querySelector('#goal-tab-habits-1')?.textContent?.includes('1'))
+  await taskTab.click()
+  assert.equal(await taskSection.getByRole('button', { name: 'Ukończone (2)', exact: true }).getAttribute('aria-expanded'), 'true')
   await milestoneTab.click()
   await contextualAction.click()
   let createMilestoneForm = section.locator('.milestone-create-form')

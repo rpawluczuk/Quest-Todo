@@ -4,6 +4,7 @@ import type { Task } from '../types/Task'
 import TaskActionsMenu from './TaskActionsMenu'
 import { getTaskDuePresentation } from '../taskDue'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
+import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -26,6 +27,7 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [completedOpen, setCompletedOpen] = useState(false)
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
   const [active, setActive] = useState<Task[]>([])
@@ -45,7 +47,10 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   useEffect(() => {
     const controller = new AbortController()
     getGoalTasks(goalId, controller.signal).then(loaded => {
-      if (!controller.signal.aborted) setAttached(loaded)
+      if (!controller.signal.aborted) {
+        setAttached(loaded)
+        if (!loaded.some(task => task.completed)) setCompletedOpen(false)
+      }
     }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać zadań celu.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
@@ -105,6 +110,8 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   }, [actionDisabled, goalId, onActionDisabledChange])
   const priorityTasks = active.filter(task => task.inFocus)
   const backlogTasks = active.filter(task => !task.inFocus)
+  const todoTasks = attached.filter(task => !task.completed)
+  const completedTasks = attached.filter(task => task.completed)
 
   async function run(action: () => Promise<void>) {
     if (sending.current || tasksDisabled) return
@@ -183,32 +190,55 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
     </li>)}</ul>
   }
 
+  function linkedTask(task: Task) {
+    const due = getTaskDuePresentation(task)
+    return <li key={task.id} className="goal-linked-task">
+      <input type="checkbox" checked={task.completed} disabled={disabled}
+        aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
+          await onToggleTask(task.id)
+        })} />
+      <span className={`goal-linked-item-title${task.completed ? ' goal-task-completed' : ''}`}>{task.title}</span>
+      <div className="goal-linked-item-meta">
+        {due && <span className={`goal-linked-task-due${due.overdue ? ' task-card-due-overdue' : ''}`}>{due.label}</span>}
+        <span className="task-points task-card-points">{task.points} pkt</span>
+      </div>
+      <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
+        label: 'Odepnij od celu', onSelect: () => void run(async () => {
+          await setGoalTask(goalId, task.id, false)
+          setAttached(current => current.filter(item => item.id !== task.id))
+          onGoalLinksChanged()
+        }),
+      }]} />
+    </li>
+  }
+
   return <div className="goal-tasks" id={`goal-tasks-${goalId}`}>
     {loading ? <p role="status">Ładowanie zadań…</p> : loadError ?
       <p className="form-error" role="alert">{loadError}</p> : <>
       {attached.length === 0 && <p className="empty-state">Przypnij zadania, które pomogą Ci osiągnąć ten cel.</p>}
-      {attached.length > 0 && <ul className="task-list goal-linked-tasks">
-        {attached.map(task => {
-          const due = getTaskDuePresentation(task)
-          return <li key={task.id} className="goal-linked-task">
-          <input type="checkbox" checked={task.completed} disabled={disabled}
-            aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
-              await onToggleTask(task.id)
-            })} />
-          <span className={`goal-linked-item-title${task.completed ? ' goal-task-completed' : ''}`}>{task.title}</span>
-          <div className="goal-linked-item-meta">
-            {due && <span className={`goal-linked-task-due${due.overdue ? ' task-card-due-overdue' : ''}`}>{due.label}</span>}
-            <span className="task-points task-card-points">{task.points} pkt</span>
+      {attached.length > 0 && <>
+        <section className="goal-task-group goal-task-todo" aria-labelledby={`goal-task-todo-title-${goalId}`}>
+          <h3 id={`goal-task-todo-title-${goalId}`}>Do zrobienia <span>· {todoTasks.length}</span></h3>
+          {todoTasks.length > 0
+            ? <ul className="task-list goal-linked-tasks">{todoTasks.map(linkedTask)}</ul>
+            : <p className="goal-task-all-completed">Wszystkie zadania ukończone</p>}
+        </section>
+        {completedTasks.length > 0 && <section className="goal-task-group goal-task-completed">
+          <button type="button" className="goal-task-completed-toggle" aria-expanded={completedOpen}
+            aria-controls={`goal-task-completed-list-${goalId}`}
+            onClick={() => setCompletedOpen(current => !current)}>
+            <span className="goal-task-completed-label">
+              <Check size={17} strokeWidth={2.2} aria-hidden="true" />
+              <span>Ukończone ({completedTasks.length})</span>
+            </span>
+            {completedOpen ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
+              : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
+          </button>
+          <div id={`goal-task-completed-list-${goalId}`} hidden={!completedOpen}>
+            <ul className="task-list goal-linked-tasks">{completedTasks.map(linkedTask)}</ul>
           </div>
-          <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
-            label: 'Odepnij od celu', onSelect: () => void run(async () => {
-              await setGoalTask(goalId, task.id, false)
-              setAttached(current => current.filter(item => item.id !== task.id))
-              onGoalLinksChanged()
-            }),
-          }]} />
-        </li>})}
-      </ul>}
+        </section>}
+      </>}
       {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog goal-task-picker-dialog" aria-labelledby="goal-picker-title"
         onCancel={event => { event.preventDefault(); closePicker() }}>
         <div className="goal-picker-header">
