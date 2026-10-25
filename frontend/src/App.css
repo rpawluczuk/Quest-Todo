@@ -3669,7 +3669,18 @@
 .milestone-list .milestone-dragging { position: relative; z-index: 5; background: var(--color-primary-soft); outline: 2px solid var(--color-primary); user-select: none; }
 .milestone-dragging .milestone-grip { cursor: grabbing; }
 .milestone-row > .task-menu { grid-area: auto; }
-.milestone-edit-form { margin-top: 0; }
+.milestone-edit-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.milestone-edit-form input { box-sizing: border-box; width: 100%; }
+.milestone-edit-form .form-error { margin: 0; }
+.milestone-list li:has(.milestone-edit-form) { padding: 8px 10px; }
 .milestone-row .milestone-check { grid-area: auto; position: relative; align-self: start; display: grid; place-items: center; width: 26px; height: 32px; }
 .milestone-completed { text-decoration: line-through; color: #625b70; }
 .milestone-list li { padding: 6px 8px; border: 1px solid var(--color-primary-border); border-radius: 8px; overflow-wrap: anywhere; }
@@ -3704,15 +3715,15 @@
 }
 .milestone-create-form input { box-sizing: border-box; width: 100%; }
 .milestone-create-form .form-error { margin: 0; }
-.milestone-create-actions {
+.milestone-inline-actions {
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 6px;
   margin: 0;
   padding: 0;
 }
-.milestone-create-actions .milestone-create-cancel,
-.milestone-create-actions .milestone-create-submit {
+.milestone-inline-actions .milestone-inline-cancel,
+.milestone-inline-actions .milestone-inline-submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3726,17 +3737,14 @@
   font-size: 0.84rem;
   cursor: pointer;
 }
-.milestone-create-actions .milestone-create-cancel { color: #625b70; font-weight: 500; }
-.milestone-create-actions .milestone-create-submit { color: var(--color-primary); font-weight: 600; }
-.milestone-create-actions .milestone-create-cancel:hover:not(:disabled),
-.milestone-create-actions .milestone-create-submit:hover:not(:disabled) { background: var(--color-primary-soft); }
-.milestone-create-actions .milestone-create-cancel:focus-visible,
-.milestone-create-actions .milestone-create-submit:focus-visible { outline-offset: 1px; }
-.milestone-create-actions button:disabled { background: transparent; opacity: 0.58; cursor: not-allowed; }
+.milestone-inline-actions .milestone-inline-cancel { color: #625b70; font-weight: 500; }
+.milestone-inline-actions .milestone-inline-submit { color: var(--color-primary); font-weight: 600; }
+.milestone-inline-actions .milestone-inline-cancel:hover:not(:disabled),
+.milestone-inline-actions .milestone-inline-submit:hover:not(:disabled) { background: var(--color-primary-soft); }
+.milestone-inline-actions .milestone-inline-cancel:focus-visible,
+.milestone-inline-actions .milestone-inline-submit:focus-visible { outline-offset: 1px; }
+.milestone-inline-actions button:disabled { background: transparent; opacity: 0.58; cursor: not-allowed; }
 .milestone-success-toast svg { flex: 0 0 20px; }
-.milestone-form { display: grid; gap: 10px; margin-top: 12px; min-width: 0; }
-.milestone-form input { box-sizing: border-box; }
-.milestone-form .task-actions { flex-wrap: wrap; }
 .goal-tasks { grid-column: 1 / -1; min-width: 0; padding: 8px 0 0; }
 .goal-tasks .empty-state { margin-top: 0; }
 .goal-tasks .goal-linked-empty { margin: 0; font-size: 0.875rem; line-height: 1.4; }

@@ -113,6 +113,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     setError('')
     requestAnimationFrame(() => actionTriggerRef?.current?.focus())
   }
+  function cancelEdit(item: Milestone) {
+    setEditTitle(item.title)
+    setEditingId(null)
+    setCompletionErrors(current => ({ ...current, [item.id]: '' }))
+  }
   async function changeItem(item: Milestone, remove: boolean) {
     if (orderBusy.current || dragging) return
     if (pending.current.has(item.id)) return
@@ -209,9 +214,9 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
             placeholder="Np. Przebiegnę 2 km bez przerwy" onChange={event => setTitle(event.target.value)} />
         </label>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="task-actions milestone-create-actions">
-          <button type="button" className="milestone-create-cancel" disabled={saving} onClick={closeCreateForm}>Anuluj</button>
-          <button type="submit" className="milestone-create-submit"
+        <div className="task-actions milestone-inline-actions">
+          <button type="button" className="milestone-inline-cancel" disabled={saving} onClick={closeCreateForm}>Anuluj</button>
+          <button type="submit" className="milestone-inline-submit"
             disabled={saving || mutationsDisabled || !title.trim()}>
             <Check size={16} strokeWidth={2.2} aria-hidden="true" />
             <span>{saving ? 'Dodawanie…' : 'Dodaj'}</span>
@@ -236,15 +241,27 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
           <SortableContext items={displayedItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
           <ol className="milestone-list">{displayedItems.map(item => <SortableMilestone key={item.id} id={item.id}
             title={item.title} disabled={!showAll || orderDisabled}>{handle => <>
-          {editingId === item.id ? <form className="milestone-form milestone-edit-form"
-            onSubmit={event => { event.preventDefault(); void changeItem(item, false) }}>
-            <label className="form-field"><span>Nazwa kamienia milowego</span>
+          {editingId === item.id ? <form className="task-form milestone-edit-form" noValidate
+            onSubmit={event => { event.preventDefault(); void changeItem(item, false) }}
+            onKeyDown={event => {
+              if (event.key === 'Escape' && !pendingIds.has(item.id)) {
+                event.preventDefault()
+                cancelEdit(item)
+              }
+            }}>
+            <label className="form-field"><span className="visually-hidden">Nazwa kamienia milowego</span>
               <input ref={editInput} value={editTitle} required maxLength={120} disabled={pendingIds.has(item.id)}
+                aria-invalid={Boolean(completionErrors[item.id])}
+                aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
                 onChange={event => setEditTitle(event.target.value)} /></label>
-            <div className="task-actions">
-              <button type="submit" disabled={pendingIds.has(item.id)}>Zapisz</button>
-              <button type="button" className="secondary-button" disabled={pendingIds.has(item.id)}
-                onClick={() => { setEditingId(null); setCompletionErrors(current => ({ ...current, [item.id]: '' })) }}>Anuluj</button>
+            <div className="task-actions milestone-inline-actions">
+              <button type="button" className="milestone-inline-cancel" disabled={pendingIds.has(item.id)}
+                onClick={() => cancelEdit(item)}>Anuluj</button>
+              <button type="submit" className="milestone-inline-submit"
+                disabled={pendingIds.has(item.id) || !editTitle.trim()}>
+                <Check size={16} strokeWidth={2.2} aria-hidden="true" />
+                <span>{pendingIds.has(item.id) ? 'Zapisywanie…' : 'Zapisz'}</span>
+              </button>
             </div>
           </form> : <div className={`milestone-row${showAll ? '' : ' milestone-row-compact'}`}>
             <label className="task-card-check milestone-check">
