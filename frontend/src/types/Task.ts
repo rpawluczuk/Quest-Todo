@@ -11,4 +11,6 @@ export type Task = {
   category: import('./Category').Category | null
   goalId: number | null
   goalTitle: string | null
+  subtaskCount: number
+  completedSubtaskCount: number
 }

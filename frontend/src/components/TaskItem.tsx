@@ -4,6 +4,7 @@ import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
 import CategoryMarker, { CategoryCardDetail } from './CategoryMarker'
 import { getTaskDuePresentation } from '../taskDue'
+import TaskSubtasks from './TaskSubtasks'
 
 type TaskItemProps = {
   readonly task: Task
@@ -160,6 +161,9 @@ function TaskItem({
             </div>}
             <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
+          {task.subtaskCount > 0 && <TaskSubtasks
+            key={`${task.id}:${task.subtaskCount}:${task.completedSubtaskCount}`}
+            taskId={task.id} total={task.subtaskCount} completed={task.completedSubtaskCount} />}
           <TaskActionsMenu
             itemTitle={task.title}
             disabled={disabled}

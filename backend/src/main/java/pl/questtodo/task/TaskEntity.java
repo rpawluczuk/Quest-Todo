@@ -132,10 +132,10 @@ public class TaskEntity {
         if (!automaticPriorityDismissed && requiresPriority(cutoff)) inFocus = true;
     }
 
-    public Task toTask() {
+    public Task toTask(long subtaskCount, long completedSubtaskCount) {
         return new Task(id, title, points, completed, inFocus, completedAt, description, dueDate, dueTime,
                 category == null ? null : category.toCategory(),
                 goal == null ? null : goal.getId(),
-                goal == null ? null : goal.getTitle());
+                goal == null ? null : goal.getTitle(), subtaskCount, completedSubtaskCount);
     }
 }

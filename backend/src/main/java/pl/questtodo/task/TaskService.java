@@ -24,16 +24,18 @@ public class TaskService {
     private final TaskPriorityService priorities;
     private final GoalRepository goals;
     private final CategoryRepository categories;
+    private final TaskResponseMapper responses;
 
     public TaskService(TaskRepository taskRepository, UserService userService, CurrentUserProvider currentUser,
                        TaskPriorityService priorities, GoalRepository goals,
-                       CategoryRepository categories) {
+                       CategoryRepository categories, TaskResponseMapper responses) {
         this.taskRepository = taskRepository;
         this.userService = userService;
         this.currentUser = currentUser;
         this.priorities = priorities;
         this.goals = goals;
         this.categories = categories;
+        this.responses = responses;
     }
 
     public List<Task> getTasks() {
@@ -50,7 +52,7 @@ public class TaskService {
         if (inFocus == null) priorities.promote(task);
         else task.setManualFocus(inFocus, priorities.today().plusDays(7));
         taskRepository.save(task);
-        return task.toTask();
+        return task.toTask(0, 0);
     }
 
     public record Overview(List<Task> tasks, long completedCount) {}
@@ -119,11 +121,11 @@ public class TaskService {
     }
 
     private Task toTask(TaskEntity entity) {
-        return entity.toTask();
+        return responses.toTask(entity);
     }
 
     private List<Task> toTasks(List<TaskEntity> entities) {
-        return entities.stream().map(TaskEntity::toTask).toList();
+        return responses.toTasks(entities);
     }
 
     private GoalEntity ownedGoal(Long goalId) {

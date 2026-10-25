@@ -17,5 +17,7 @@ public record Task(
         LocalTime dueTime,
         Category category,
         Long goalId,
-        String goalTitle
+        String goalTitle,
+        long subtaskCount,
+        long completedSubtaskCount
 ) {}

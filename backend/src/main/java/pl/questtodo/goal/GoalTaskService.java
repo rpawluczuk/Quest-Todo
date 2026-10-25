@@ -18,20 +18,23 @@ public class GoalTaskService {
     private final TaskRepository tasks;
     private final CurrentUserProvider currentUser;
     private final pl.questtodo.task.TaskPriorityService priorities;
+    private final pl.questtodo.task.TaskResponseMapper responses;
 
     public GoalTaskService(GoalRepository goals, TaskRepository tasks,
-                           CurrentUserProvider currentUser, pl.questtodo.task.TaskPriorityService priorities) {
+                           CurrentUserProvider currentUser, pl.questtodo.task.TaskPriorityService priorities,
+                           pl.questtodo.task.TaskResponseMapper responses) {
         this.goals = goals;
         this.tasks = tasks;
         this.currentUser = currentUser;
         this.priorities = priorities;
+        this.responses = responses;
     }
 
     public List<Task> getTasks(long goalId) {
         long userId = currentUser.getUserId();
         goals.findByIdAndUserId(goalId, userId).orElseThrow(GoalTaskService::notFound);
         priorities.promoteForUser(userId);
-        return tasks.findByGoalIdAndUserIdOrderByIdAsc(goalId, userId).stream().map(TaskEntity::toTask).toList();
+        return responses.toTasks(tasks.findByGoalIdAndUserIdOrderByIdAsc(goalId, userId));
     }
 
     public AvailableGoalTasks getAvailableTasks(long goalId, boolean completed, String query, int page, int size) {
@@ -44,7 +47,7 @@ public class GoalTaskService {
         String normalizedQuery = query == null ? "" : query.strip();
         var result = tasks.findAvailableForGoal(goalId, userId, completed, normalizedQuery,
                 PageRequest.of(page, size));
-        return new AvailableGoalTasks(result.getContent().stream().map(TaskEntity::toTask).toList(),
+        return new AvailableGoalTasks(responses.toTasks(result.getContent()),
                 result.hasNext());
     }
 
