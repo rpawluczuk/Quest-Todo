@@ -264,7 +264,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           <p className="empty-state">Nie masz jeszcze celów. Dodaj pierwszy, aby zacząć!</p>
         </>}
         {createOpen && <form className="task-form goal-form goal-create-form" onSubmit={add}>
-        <label className="form-field"><span>Tytuł celu</span>
+        <label className="form-field"><span>Tytuł celu <span className="required-field-marker" aria-hidden="true">*</span></span>
           <input ref={createInput} value={title} maxLength={120} required disabled={saving}
             onChange={event => setTitle(event.target.value)} placeholder="Np. Przebiec 5 km" /></label>
         <button type="button" className="goal-definition-toggle" disabled={saving}
@@ -275,11 +275,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           {!createDetailsOpen && <span className="goal-definition-toggle-optional">(opcjonalnie)</span>}
         </button>
         {createDetailsOpen && <>
-          <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
+          <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty?</span>
             <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
               placeholder="Np. Przebiegnę 5 km bez zatrzymywania się"
               onChange={event => setDesiredOutcome(event.target.value)} /></label>
-          <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
+          <label className="form-field goal-definition-field"><span>Stan początkowy</span>
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
               placeholder="Np. Obecnie jestem w stanie przebiec 2 km"
               onChange={event => setCurrentState(event.target.value)} /></label>
@@ -303,14 +303,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           : activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'
         return <li key={goal.id} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
-            <label className="form-field"><span>Tytuł celu</span>
+            <label className="form-field"><span>Tytuł celu <span className="required-field-marker" aria-hidden="true">*</span></span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
                 onChange={event => setEditTitle(event.target.value)} /></label>
-            <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
+            <label className="form-field goal-definition-field"><span>Stan początkowy</span>
               <AutoResizeTextarea value={editCurrentState} maxLength={2000} disabled={pendingId !== null}
                 placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
                 onChange={event => setEditCurrentState(event.target.value)} /></label>
-            <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
+            <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty?</span>
               <small className="goal-definition-help">Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.</small>
               <AutoResizeTextarea value={editDesiredOutcome} maxLength={2000} disabled={pendingId !== null}
                 placeholder="Opisz warunki, po których rozpoznasz sukces…"
