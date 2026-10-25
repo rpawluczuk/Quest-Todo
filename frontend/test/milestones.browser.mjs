@@ -7,6 +7,7 @@ try {
   page.on('pageerror', error => console.error(error.message))
   const milestones = []
   let failCreate = false
+  let failGoalCreate = false
   let failCompletion = false
   let failChange = false
   let orderFailure = 0
@@ -32,6 +33,13 @@ try {
   const longGoalTitle = 'Bardzo długi cel, którego nazwa zawija się na kilku liniach na małym ekranie telefonu'
   const longCurrentState = 'To jest długi opis obecnej sytuacji. '.repeat(18)
   const longDesiredOutcome = 'To jest szczegółowy opis zamierzonego rezultatu. '.repeat(18)
+  const goals = [
+    { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
+    { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
+    { id: 3, title: 'Cel bez opisu', currentState: null, desiredOutcome: null },
+  ]
+  const createdMilestones = new Map()
+  let nextGoalId = 4
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const path = new URL(route.request().url()).pathname
     let body = []
@@ -68,11 +76,16 @@ try {
     else if (path === '/api/habits') body = [availableHabit, ...createdHabits]
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path.includes('email')) body = { verifiedEmail: null }
-    else if (path === '/api/goals') body = [
-      { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
-      { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
-      { id: 3, title: 'Cel bez opisu', currentState: null, desiredOutcome: null },
-    ]
+    else if (path === '/api/goals') {
+      if (route.request().method() === 'POST') {
+        if (failGoalCreate) return route.fulfill({ status: 503, json: { detail: 'Nie udało się dodać celu.' } })
+        const request = route.request().postDataJSON()
+        body = { id: nextGoalId++, title: request.title, currentState: request.currentState,
+          desiredOutcome: request.desiredOutcome }
+        goals.push(body)
+        createdMilestones.set(body.id, [])
+      } else body = goals
+    }
     else if (path === '/api/goals/1/tasks/available') body = { tasks: [availableTask, longAvailableTask], hasMore: false }
     else if (path === '/api/goals/1/tasks') body = attachedTasks
     else if (/^\/api\/goals\/1\/tasks\/\d+$/.test(path)) {
@@ -116,6 +129,16 @@ try {
         body = { id: milestones.length + 1, title, completed: false, position: milestones.length }
         milestones.push(body)
       } else body = milestones
+    }
+    else if (/^\/api\/goals\/\d+\/milestones$/.test(path)) {
+      const goalId = Number(path.split('/')[3])
+      const items = createdMilestones.get(goalId) ?? []
+      if (route.request().method() === 'POST') {
+        const { title } = route.request().postDataJSON()
+        body = { id: 100 + items.length, title, completed: false, position: items.length }
+        items.push(body)
+        createdMilestones.set(goalId, items)
+      } else body = items
     }
     await route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200,
       contentType: 'application/json', body: JSON.stringify(body) })
@@ -293,7 +316,7 @@ try {
   assert.equal(await successExpand.getAttribute('aria-expanded'), 'true')
   assert.equal(await goalToggle.getAttribute('aria-expanded'), 'true')
   await page.locator('#goal-tab-milestones-1').click()
-  await page.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
+  await page.getByText('Zaplanuj drogę do celu', { exact: true }).waitFor()
   const section = page.getByRole('region', { name: 'Kamienie milowe' })
   const taskSection = page.locator('#goal-tasks-1')
   const habitSection = page.locator('#goal-habits-1')
@@ -574,9 +597,9 @@ try {
   const [cancelBox, submitBox] = await Promise.all([createCancel.boundingBox(), createSubmit.boundingBox()])
   assert.ok(cancelBox && submitBox && cancelBox.height >= 40 && submitBox.height >= 40)
   assert.ok(Math.abs(cancelBox.y - submitBox.y) < 0.5)
-  const emptyStateBox = await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').boundingBox()
   const initialFormBox = await createMilestoneForm.boundingBox()
-  assert.ok(initialFormBox && emptyStateBox && initialFormBox.y < emptyStateBox.y)
+  assert.ok(initialFormBox)
+  assert.equal(await section.locator('.milestone-empty-state').count(), 0)
   await createMilestoneInput.fill('Anulowany rezultat')
   await createMilestoneInput.press('Escape')
   await createMilestoneForm.waitFor({ state: 'hidden' })
@@ -812,7 +835,8 @@ try {
   await expectMilestoneCount('1/1')
   assert.equal(await rows.first().locator('.milestone-row > span').textContent(), 'Nowa nazwa 1')
   await removeFirst(true)
-  await section.getByText('Nie masz jeszcze kamieni milowych dla tego celu.').waitFor()
+  await section.getByText('Zaplanuj drogę do celu', { exact: true }).waitFor()
+  await section.getByText('Dodaj pierwszy kamień milowy lub przejdź do zadań i nawyków.', { exact: true }).waitFor()
   assert.equal(await section.locator('.task-section-count').count(), 0)
   await page.waitForFunction(() => !document.querySelector('.goal-milestone-summary'))
   milestones.push(
@@ -859,6 +883,68 @@ try {
     assert.ok(await compactRows.nth(2).locator('.milestone-title').evaluate(element => element.classList.contains('milestone-completed')))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+  await page.evaluate(() => {
+    window.__goalScrolls = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (options) {
+      window.__goalScrolls.push({ id: this.id, behavior: options?.behavior, block: options?.block })
+      return original.call(this, options)
+    }
+  })
+  await page.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  const planningForm = page.locator('.goal-create-form')
+  await planningForm.getByLabel(/Tytuł celu/).fill('Nauczyć się pływać')
+  await planningForm.getByRole('button', { name: 'Dodaj szczegóły celu (opcjonalnie)', exact: true }).click()
+  await planningForm.getByLabel(/Kiedy uznam cel za osiągnięty/).fill('Przepłynę 500 metrów bez przerwy')
+  await planningForm.getByLabel(/Stan początkowy/).fill('Nie umiem jeszcze pływać')
+  failGoalCreate = true
+  await planningForm.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  await page.getByText('Nie udało się dodać celu.', { exact: true }).waitFor()
+  assert.equal(await planningForm.getByLabel(/Tytuł celu/).inputValue(), 'Nauczyć się pływać')
+  assert.equal(await planningForm.getByLabel(/Kiedy uznam cel za osiągnięty/).inputValue(), 'Przepłynę 500 metrów bez przerwy')
+  assert.equal(await page.evaluate(() => window.__goalScrolls.length), 0)
+  failGoalCreate = false
+  await planningForm.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  const createdGoalCard = page.locator('#goal-card-4')
+  await createdGoalCard.waitFor()
+  assert.equal(await planningForm.count(), 0)
+  assert.equal(await createdGoalCard.getByRole('button', { name: 'Nauczyć się pływać', exact: true })
+    .getAttribute('aria-expanded'), 'true')
+  assert.equal(await createdGoalCard.locator('#goal-tab-milestones-4').getAttribute('aria-selected'), 'true')
+  assert.equal(await createdGoalCard.getByRole('button', { name: 'Nauczyć się pływać', exact: true })
+    .evaluate(element => element === document.activeElement), true)
+  assert.deepEqual(await page.evaluate(() => window.__goalScrolls.at(-1)),
+    { id: 'goal-card-4', behavior: 'smooth', block: 'start' })
+  const emptyMilestones = createdGoalCard.locator('.milestone-empty-state')
+  await emptyMilestones.getByText('Zaplanuj drogę do celu', { exact: true }).waitFor()
+  await emptyMilestones.getByRole('button', { name: 'Dodaj kamień milowy', exact: true }).click()
+  const firstMilestoneForm = createdGoalCard.locator('.milestone-create-form')
+  await firstMilestoneForm.getByLabel('Nazwa kamienia milowego').fill('Przepłynę pierwsze 25 metrów')
+  await firstMilestoneForm.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await createdGoalCard.getByText('Przepłynę pierwsze 25 metrów', { exact: true }).waitFor()
+  assert.equal(await createdGoalCard.locator('#goal-tab-milestones-4 .goal-tab-count').textContent(), '1')
+  await createdGoalCard.locator('#goal-tab-tasks-4').click()
+  assert.equal(await createdGoalCard.locator('#goal-panel-tasks-4').isVisible(), true)
+  await createdGoalCard.locator('#goal-tab-habits-4').click()
+  assert.equal(await createdGoalCard.locator('#goal-panel-habits-4').isVisible(), true)
+  await page.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  const titleOnlyForm = page.locator('.goal-create-form')
+  await titleOnlyForm.getByLabel(/Tytuł celu/).fill('Cel tylko z tytułem')
+  await titleOnlyForm.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
+  const titleOnlyCard = page.locator('#goal-card-5')
+  await titleOnlyCard.waitFor()
+  assert.equal(await titleOnlyCard.locator('#goal-tab-milestones-5').getAttribute('aria-selected'), 'true')
+  assert.equal(await titleOnlyCard.getByRole('button', { name: 'Cel tylko z tytułem', exact: true })
+    .getAttribute('aria-expanded'), 'true')
+  assert.equal(await createdGoalCard.getByRole('button', { name: 'Nauczyć się pływać', exact: true })
+    .getAttribute('aria-expanded'), 'false')
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    await titleOnlyCard.scrollIntoViewIfNeeded()
+    const card = await titleOnlyCard.boundingBox()
+    assert.ok(card.x >= 0 && card.x + card.width <= width)
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS success criterion clamps at two lines and initial state clamps at three lines on 320/375/390px widths')
   console.log('PASS success criterion stays visible while initial state defaults closed and empty description variants remain compact')
@@ -868,4 +954,5 @@ try {
   console.log('PASS compact three-item milestone preview and full five-row list at 320/375/390px')
   console.log('PASS contextual tab action creates a milestone and attaches a task/habit at 320/375/390px')
   console.log('PASS compact linked task/habit rows show metadata, wrap on mobile and preserve checkbox/menu actions')
+  console.log('PASS successful goal creation expands and scrolls to planning, while failures preserve the form')
 } finally { await browser.close() }

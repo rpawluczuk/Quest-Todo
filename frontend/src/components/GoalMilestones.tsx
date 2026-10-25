@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type SubmitEvent } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type SubmitEvent } from 'react'
 import { createMilestone, getMilestones, setMilestoneCompleted, renameMilestone, deleteMilestone, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from './TaskActionsMenu'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
@@ -6,7 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSo
 import SortableMilestone from './SortableMilestone'
 import { reorderMilestones, MilestoneOrderConflict } from '../api/goalApi'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
-import { Check, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, CheckCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 
 const COMPACT_MILESTONE_LIMIT = 3
 
@@ -48,13 +48,14 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
   const mutationsDisabled = dragging || ordering
   const actionDisabled = loading || !!loadError || mutationsDisabled
+  const openCreateForm = useCallback(() => { if (!actionDisabled) setOpen(true) }, [actionDisabled])
   useImperativeHandle(ref, () => ({
-    activate: () => { if (!actionDisabled) setOpen(true) },
+    activate: openCreateForm,
     resetView: () => {
       setShowAll(false)
       setCompactIds(nextCompactIds(itemsRef.current))
     },
-  }), [actionDisabled])
+  }), [openCreateForm])
   useEffect(() => {
     onActionDisabledChange?.(goalId, 'milestones', actionDisabled)
   }, [actionDisabled, goalId, onActionDisabledChange])
@@ -223,7 +224,15 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
           </button>
         </div>
       </form>}
-      {items.length === 0 ? <p className="empty-state">Nie masz jeszcze kamieni milowych dla tego celu.</p>
+      {items.length === 0 && !open ? <div className="milestone-empty-state">
+        <strong>Zaplanuj drogę do celu</strong>
+        <p>Dodaj pierwszy kamień milowy lub przejdź do zadań i nawyków.</p>
+        <button type="button" onClick={openCreateForm}>
+          <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+          <span>Dodaj kamień milowy</span>
+        </button>
+      </div>
+        : items.length === 0 ? null
         : !showAll && allCompleted && displayedItems.length === 0
           ? <p className="milestone-complete-state">Wszystkie kamienie milowe ukończone</p>
         : <DndContext sensors={sensors} collisionDetection={closestCenter}

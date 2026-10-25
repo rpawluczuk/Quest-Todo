@@ -59,6 +59,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const createInput = useRef<HTMLInputElement>(null)
   const editInput = useRef<HTMLInputElement>(null)
   const sending = useRef(false)
+  const createdGoalId = useRef<number | null>(null)
   const sectionActions = useRef(new Map<string, GoalSectionActionHandle>())
   const sectionActionTrigger = useRef<HTMLButtonElement>(null)
   const actionMenuRef = useRef<HTMLDivElement>(null)
@@ -80,6 +81,17 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
 
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
+  useLayoutEffect(() => {
+    if (createdGoalId.current === null) return
+    const card = document.getElementById(`goal-card-${createdGoalId.current}`)
+    if (!card) return
+    card.querySelector<HTMLButtonElement>('.goal-details-toggle')?.focus({ preventScroll: true })
+    card.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    })
+    createdGoalId.current = null
+  }, [goals])
   useEffect(() => {
     if (!actionMenu) return
     const closeOnPointerDown = (event: PointerEvent) => {
@@ -192,7 +204,12 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     setError('')
     try {
       const goal = await createGoal(title.trim(), currentState, desiredOutcome)
+      createdGoalId.current = goal.id
       setGoals(current => [...current, goal])
+      setMilestonesByGoal(current => ({ ...current, [goal.id]: [] }))
+      setActiveTabByGoal(current => ({ ...current, [goal.id]: 'milestones' }))
+      setExpandedId(goal.id)
+      setInitialStateOpenId(null)
       setTitle('')
       setCurrentState('')
       setDesiredOutcome('')
@@ -301,7 +318,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
         const activeActionKey = `${goal.id}:${activeTab}`
         const actionLabel = activeTab === 'milestones' ? 'Dodaj kamień milowy'
           : activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'
-        return <li key={goal.id} className="task-card goal-card">
+        return <li key={goal.id} id={`goal-card-${goal.id}`} className="task-card goal-card">
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu <span className="required-field-marker" aria-hidden="true">*</span></span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}

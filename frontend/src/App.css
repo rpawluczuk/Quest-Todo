@@ -3430,6 +3430,7 @@
   grid-template-areas: 'title actions';
   column-gap: 6px;
 }
+.goal-card[id] { scroll-margin-top: 12px; }
 .goal-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
 .goal-title-text {
   grid-area: name;
@@ -3711,6 +3712,27 @@
 .milestone-completed { text-decoration: line-through; color: #625b70; }
 .milestone-list li { padding: 6px 8px; border: 1px solid var(--color-primary-border); border-radius: 8px; overflow-wrap: anywhere; }
 .milestone-complete-state { margin: 0; color: #625b70; font-size: 0.875rem; line-height: 1.4; }
+.milestone-empty-state { display: grid; justify-items: start; gap: 4px; margin: 0; color: #625b70; }
+.milestone-empty-state strong { color: #514b5d; font-size: 0.9rem; font-weight: 600; line-height: 1.4; }
+.milestone-empty-state p { margin: 0; font-size: 0.82rem; line-height: 1.4; }
+.milestone-empty-state button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  margin-top: 2px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.milestone-empty-state button:hover { background: var(--color-primary-soft); }
+.milestone-empty-state button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .milestone-list-toggle {
   display: flex;
   align-items: center;
