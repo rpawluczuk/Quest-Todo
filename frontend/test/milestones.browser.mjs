@@ -122,11 +122,13 @@ try {
   })
   await page.goto(process.env.MILESTONES_TEST_URL ?? 'http://127.0.0.1:5186')
   await page.getByRole('button', { name: 'Cele', exact: true }).click()
-  async function expectSuccessCriterionField(form) {
+  async function expectSuccessCriterionField(form, expectHelp = true) {
     const field = form.locator('.goal-definition-field').filter({ hasText: 'Kiedy uznam cel za osiągnięty?' })
     await field.waitFor()
-    await field.getByText('Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.',
-      { exact: true }).waitFor()
+    const help = field.getByText('Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.',
+      { exact: true })
+    if (expectHelp) await help.waitFor()
+    else assert.equal(await help.count(), 0)
     return field
   }
   await page.getByRole('button', { name: 'Dodaj cel', exact: true }).click()
@@ -168,7 +170,12 @@ try {
   await detailsToggle.click()
   assert.equal(await createGoalForm.getByRole('button', { name: 'Ukryj szczegóły celu', exact: true })
     .getAttribute('aria-expanded'), 'true')
-  await expectSuccessCriterionField(createGoalForm)
+  const createFields = createGoalForm.locator('.goal-definition-field')
+  assert.equal(await createFields.nth(0).getByText('Kiedy uznam cel za osiągnięty? (opcjonalnie)', { exact: true }).count(), 1)
+  assert.equal(await createFields.nth(1).getByText('Stan początkowy (opcjonalnie)', { exact: true }).count(), 1)
+  const createSuccessField = await expectSuccessCriterionField(createGoalForm, false)
+  assert.equal(await createSuccessField.locator('textarea').getAttribute('placeholder'), 'Np. Przebiegnę 5 km bez zatrzymywania się')
+  assert.equal(await createGoalForm.getByLabel(/Stan początkowy/).getAttribute('placeholder'), 'Np. Obecnie jestem w stanie przebiec 2 km')
   await createGoalForm.getByLabel(/Stan początkowy/).fill('Początek wpisany w formularzu')
   await createGoalForm.getByLabel(/Kiedy uznam cel za osiągnięty/).fill('Kryterium wpisane w formularzu')
   await createGoalForm.getByRole('button', { name: 'Ukryj szczegóły celu', exact: true }).click()

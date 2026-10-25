@@ -275,15 +275,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           {!createDetailsOpen && <span className="goal-definition-toggle-optional">(opcjonalnie)</span>}
         </button>
         {createDetailsOpen && <>
+          <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
+            <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
+              placeholder="Np. Przebiegnę 5 km bez zatrzymywania się"
+              onChange={event => setDesiredOutcome(event.target.value)} /></label>
           <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
-              placeholder="Opisz sytuację w momencie rozpoczęcia realizacji celu…"
+              placeholder="Np. Obecnie jestem w stanie przebiec 2 km"
               onChange={event => setCurrentState(event.target.value)} /></label>
-          <label className="form-field goal-definition-field"><span>Kiedy uznam cel za osiągnięty? <span className="field-optional">(opcjonalnie)</span></span>
-            <small className="goal-definition-help">Opisz konkretny rezultat lub warunki, po których poznasz, że cel został osiągnięty.</small>
-            <AutoResizeTextarea value={desiredOutcome} maxLength={2000} disabled={saving}
-              placeholder="Opisz warunki, po których rozpoznasz sukces…"
-              onChange={event => setDesiredOutcome(event.target.value)} /></label>
         </>}
         <div className="task-actions">
           <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj cel'}</button>
