@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
-import { CheckCircle2, ChevronDown, ChevronRight, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
 import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
@@ -263,12 +263,17 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           </span>
           <p className="empty-state">Nie masz jeszcze celów. Dodaj pierwszy, aby zacząć!</p>
         </>}
-        {createOpen && <form className="task-form goal-form" onSubmit={add}>
+        {createOpen && <form className="task-form goal-form goal-create-form" onSubmit={add}>
         <label className="form-field"><span>Tytuł celu</span>
           <input ref={createInput} value={title} maxLength={120} required disabled={saving}
             onChange={event => setTitle(event.target.value)} placeholder="Np. Przebiec 5 km" /></label>
-        {!createDetailsOpen && <button type="button" className="goal-definition-toggle" disabled={saving}
-          onClick={() => setCreateDetailsOpen(true)}>+ Doprecyzuj cel</button>}
+        <button type="button" className="goal-definition-toggle" disabled={saving}
+          aria-expanded={createDetailsOpen} onClick={() => setCreateDetailsOpen(current => !current)}>
+          {createDetailsOpen ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
+            : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
+          <span>{createDetailsOpen ? 'Ukryj szczegóły celu' : 'Dodaj szczegóły celu'}</span>
+          {!createDetailsOpen && <span className="goal-definition-toggle-optional">(opcjonalnie)</span>}
+        </button>
         {createDetailsOpen && <>
           <label className="form-field goal-definition-field"><span>Stan początkowy <span className="field-optional">(opcjonalnie)</span></span>
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}

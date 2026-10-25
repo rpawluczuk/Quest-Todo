@@ -3348,19 +3348,45 @@
 }
 
 .goal-form { grid-template-columns: minmax(0, 1fr) auto; }
+.goal-create-form {
+  row-gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
 .goal-form .task-actions,
 .goal-definition-field,
 .goal-definition-toggle { grid-column: 1 / -1; }
-.goal-definition-toggle {
+.task-form .goal-definition-toggle {
+  display: inline-flex;
+  align-items: center;
   justify-self: start;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
   min-height: 44px;
   padding: 6px 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--color-primary);
   font: inherit;
+  font-size: 0.875rem;
   font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
   cursor: pointer;
+}
+.task-form .goal-definition-toggle svg { flex: 0 0 17px; }
+.goal-definition-toggle-optional {
+  color: #767080;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.task-form .goal-definition-toggle:hover:not(:disabled) {
+  background: transparent;
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .completed-toggle-label {
@@ -3395,7 +3421,7 @@
   color: #625b70; font-size: 0.8rem; font-weight: 400;
 }
 .reward-one-time-label { display: block; margin-top: 4px; }
-.goal-definition-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.task-form .goal-definition-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .field-optional { color: #767080; font-weight: 400; }
 .goal-definition-help { color: #625b70; font-size: 0.8rem; font-weight: 400; line-height: 1.4; }
 .goal-list { margin-top: 16px; }
