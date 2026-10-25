@@ -57,7 +57,8 @@ export default function SingleGoalPicker({ selectedId, onChange, disabled }: Sin
       onValueChange={value => onChange(value === noGoalValue ? null : Number(value))}
     >
       <FormSelectItem className="goal-select-item" value={noGoalValue}>Bez celu</FormSelectItem>
-      {goals.map(goal => <FormSelectItem className="goal-select-item" key={goal.id} value={String(goal.id)}>
+      {goals.filter(goal => !goal.completed || goal.id === selectedId).map(goal =>
+        <FormSelectItem className="goal-select-item" key={goal.id} value={String(goal.id)}>
         {goal.title}
       </FormSelectItem>)}
     </FormSelect>}

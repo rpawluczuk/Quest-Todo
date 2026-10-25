@@ -36,8 +36,15 @@ public class GoalService {
     }
 
     public Goal updateGoal(long id, String title, String currentState, String desiredOutcome) {
-        GoalEntity goal = findOwned(id);
+        GoalEntity goal = findOwnedForUpdate(id);
+        requireActive(goal);
         goal.updateDetails(title, optionalText(currentState), optionalText(desiredOutcome));
+        return goal.toGoal();
+    }
+
+    public Goal updateCompletion(long id, boolean completed) {
+        GoalEntity goal = findOwnedForUpdate(id);
+        goal.setCompleted(completed);
         return goal.toGoal();
     }
 
@@ -48,6 +55,18 @@ public class GoalService {
     private GoalEntity findOwned(long id) {
         return goals.findByIdAndUserId(id, currentUser.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje."));
+    }
+
+    private GoalEntity findOwnedForUpdate(long id) {
+        return goals.findForUpdate(id, currentUser.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel nie istnieje."));
+    }
+
+    static void requireActive(GoalEntity goal) {
+        if (goal.isCompleted()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Osiągnięty cel jest dostępny tylko do odczytu. Wznów cel, aby go zmieniać.");
+        }
     }
 
     private static String optionalText(String value) {

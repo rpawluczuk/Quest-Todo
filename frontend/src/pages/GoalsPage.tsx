@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
 import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
-import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, type Milestone } from '../api/goalApi'
+import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
@@ -8,6 +8,7 @@ import GoalHabits from '../components/GoalHabits'
 import GoalMilestones from '../components/GoalMilestones'
 import AutoResizeTextarea from '../components/AutoResizeTextarea'
 import GoalDefinitionText from '../components/GoalDefinitionText'
+import GoalCompletionDialog from '../components/GoalCompletionDialog'
 import type { GoalSection, GoalSectionActionHandle } from '../components/GoalSectionAction'
 
 function titleError(title: string): string {
@@ -40,6 +41,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const [actionMenu, setActionMenu] = useState<{ goalId: number; tab: 'tasks' | 'habits' } | null>(null)
   const [actionMenuPosition, setActionMenuPosition] = useState<CSSProperties | undefined>()
   const [creationNotice, setCreationNotice] = useState('')
+  const [achievedOpen, setAchievedOpen] = useState(false)
+  const [completionGoal, setCompletionGoal] = useState<Goal | null>(null)
   const [goals, setGoals] = useState<Goal[]>([])
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -254,6 +257,38 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     } finally { sending.current = false; setPendingId(null) }
   }
 
+  async function changeCompletion(goal: Goal, completed: boolean) {
+    if (sending.current) return
+    sending.current = true
+    setPendingId(goal.id)
+    setError('')
+    try {
+      const updated = await updateGoalCompletion(goal.id, completed)
+      setGoals(current => current.map(item => item.id === updated.id ? updated : item))
+      if (expandedId === goal.id) setExpandedId(null)
+      if (editingId === goal.id) setEditingId(null)
+      setCompletionGoal(null)
+      setCreationNotice(completed ? 'Cel został osiągnięty.' : 'Cel został ponownie otwarty.')
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : 'Nie udało się zmienić statusu celu.'
+      setError(message)
+      throw failure instanceof Error ? failure : new Error(message)
+    } finally {
+      sending.current = false
+      setPendingId(null)
+    }
+  }
+
+  const activeGoals = goals.filter(goal => !goal.completed)
+  const completedGoals = goals.filter(goal => goal.completed).sort((left, right) =>
+    Date.parse(right.completedAt ?? '') - Date.parse(left.completedAt ?? ''))
+  const displayedGoals = [...activeGoals, ...completedGoals]
+
+  function completedDate(value: string | null) {
+    if (!value) return ''
+    return new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
+  }
+
   return <section className="tasks-section" aria-labelledby="goals-heading">
     <div className="section-header section-header-with-action">
       <h2 id="goals-heading">Cele</h2>
@@ -311,14 +346,24 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
         </form>}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      {goals.length > 0 && <ul className="task-list goal-list">{goals.map(goal => {
+      {goals.length > 0 && <ul className="task-list goal-list">{displayedGoals.map(goal => {
         const milestones = milestonesByGoal[goal.id]
         const completedMilestones = milestones?.filter(item => item.completed).length ?? 0
         const activeTab = activeTabByGoal[goal.id] ?? 'milestones'
         const activeActionKey = `${goal.id}:${activeTab}`
         const actionLabel = activeTab === 'milestones' ? 'Dodaj kamień milowy'
           : activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'
-        return <li key={goal.id} id={`goal-card-${goal.id}`} className="task-card goal-card">
+        const isFirstCompleted = goal.completed && completedGoals[0]?.id === goal.id
+        return <Fragment key={goal.id}>
+          {isFirstCompleted && <li className="goal-achieved-section">
+            <button type="button" className="goal-achieved-toggle" aria-expanded={achievedOpen}
+              onClick={() => setAchievedOpen(current => !current)}>
+              <span><CheckCircle2 aria-hidden="true" />Osiągnięte ({completedGoals.length})</span>
+              <ChevronDown className={achievedOpen ? 'is-open' : undefined} aria-hidden="true" />
+            </button>
+          </li>}
+          {(!goal.completed || achievedOpen) && <li id={`goal-card-${goal.id}`}
+            className={`task-card goal-card${goal.completed ? ' goal-card-achieved' : ''}`}>
           {editingId === goal.id ? <form className="task-form goal-form goal-edit-form" onSubmit={save}>
             <label className="form-field"><span>Tytuł celu <span className="required-field-marker" aria-hidden="true">*</span></span>
               <input ref={editInput} value={editTitle} maxLength={120} required disabled={pendingId !== null}
@@ -341,12 +386,15 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
               aria-label={goal.title}
-              aria-describedby={expandedId !== goal.id && milestones?.length
+              aria-describedby={!goal.completed && expandedId !== goal.id && milestones?.length
                 ? `goal-milestone-summary-${goal.id}` : undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => toggleGoal(goal.id)}>
               <span className="goal-title-text">{goal.title}</span>
-              {expandedId !== goal.id && !!milestones?.length && <span className="goal-milestone-summary"
+              {goal.completed ? <span className="goal-completion-summary">
+                <CheckCircle2 size={15} strokeWidth={2} aria-hidden="true" />
+                <span>Osiągnięty{goal.completedAt ? ` ${completedDate(goal.completedAt)}` : ''}</span>
+              </span> : expandedId !== goal.id && !!milestones?.length && <span className="goal-milestone-summary"
                 id={`goal-milestone-summary-${goal.id}`} aria-live="polite">
                 <Flag size={15} strokeWidth={2} aria-hidden="true" />
                 <span>{completedMilestones}/{milestones.length} kamieni milowych</span>
@@ -361,10 +409,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
               </button>
               <TaskActionsMenu itemTitle={goal.title} itemType="celu" disabled={pendingId !== null} actions={[
-                { label: 'Edytuj', onSelect: () => {
+                ...(goal.completed ? [{ label: 'Wznów cel', icon: 'rotate-ccw' as const,
+                  onSelect: () => { void changeCompletion(goal, false).catch(() => undefined) } }]
+                  : [{ label: 'Oznacz jako osiągnięty', icon: 'check-circle-2' as const,
+                    onSelect: () => setCompletionGoal(goal) },
+                  { label: 'Edytuj', icon: 'pencil' as const, onSelect: () => {
                   setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
                   setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
-                } },
+                } }]),
                 { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
               ]} />
             </div>
@@ -397,7 +449,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   <span>Nawyki</span><span className="goal-tab-count">{habitCountByGoal[goal.id] ?? 0}</span>
                 </button>
               </div>
-              <button ref={sectionActionTrigger} type="button"
+              {!goal.completed && <button ref={sectionActionTrigger} type="button"
                 className="add-task-header-button goal-subsection-add goal-tabs-add"
                 aria-label={actionLabel} title={actionLabel}
                 aria-haspopup={activeTab === 'milestones' ? undefined : 'menu'}
@@ -421,8 +473,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                     ? null : { goalId: goal.id, tab: activeTab })
                 }}>
                 <Plus aria-hidden="true" />
-              </button>
-              {actionMenu?.goalId === goal.id && actionMenu.tab === activeTab && <div ref={actionMenuRef}
+              </button>}
+              {!goal.completed && actionMenu?.goalId === goal.id && actionMenu.tab === activeTab && <div ref={actionMenuRef}
                 className="goal-add-menu" id={`goal-add-menu-${goal.id}`} role="menu"
                 style={actionMenuPosition}
                 onKeyDown={handleActionMenuKey}
@@ -453,7 +505,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-milestones-${goal.id}`}
                 aria-labelledby={`goal-tab-milestones-${goal.id}`} hidden={activeTab !== 'milestones'}>
-                <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id} actionTriggerRef={sectionActionTrigger}
+                <GoalMilestones key={`milestones-${goal.id}`} goalId={goal.id} readOnly={goal.completed}
+                  actionTriggerRef={sectionActionTrigger}
                   ref={action => {
                     if (action) sectionActions.current.set(`${goal.id}:milestones`, action)
                     else sectionActions.current.delete(`${goal.id}:milestones`)
@@ -463,7 +516,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-tasks-${goal.id}`}
                 aria-labelledby={`goal-tab-tasks-${goal.id}`} hidden={activeTab !== 'tasks'}>
-                <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} {...taskProps}
+                <GoalTasks key={goal.id} goalId={goal.id} goalTitle={goal.title} readOnly={goal.completed} {...taskProps}
                   actionTriggerRef={sectionActionTrigger}
                   ref={action => {
                     if (action) sectionActions.current.set(`${goal.id}:tasks`, action)
@@ -474,7 +527,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               </div>
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-habits-${goal.id}`}
                 aria-labelledby={`goal-tab-habits-${goal.id}`} hidden={activeTab !== 'habits'}>
-                <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title}
+                <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title} readOnly={goal.completed}
                   revision={habitRevision}
                   actionTriggerRef={sectionActionTrigger}
                   ref={action => {
@@ -504,12 +557,15 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               </>}
             </>}
           </>}
-        </li>})}</ul>}
+        </li>}
+        </Fragment>})}</ul>}
       {creationNotice && <div className="habit-toast-region">
         <div className="habit-toast milestone-success-toast">
           <CheckCircle2 aria-hidden="true" /><span role="status">{creationNotice}</span>
         </div>
       </div>}
+      {completionGoal && <GoalCompletionDialog goal={completionGoal} onClose={() => setCompletionGoal(null)}
+        onConfirm={() => changeCompletion(completionGoal, true)} />}
     </>}
   </section>
 }

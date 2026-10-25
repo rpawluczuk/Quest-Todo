@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2'
+type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw'
 
 type TaskMenuAction = {
   readonly label: string
@@ -42,6 +42,18 @@ const taskMenuIconPaths: Record<TaskMenuIconName, ReactNode> = {
       <path d="m19 6-1 14c0 1-1 2-2 2H8c-1 0-2-1-2-2L5 6" />
       <path d="M10 11v6" />
       <path d="M14 11v6" />
+    </>
+  ),
+  'check-circle-2': (
+    <>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3L22 4" />
+    </>
+  ),
+  'rotate-ccw': (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
     </>
   ),
 }

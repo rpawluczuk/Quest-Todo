@@ -8,6 +8,7 @@ try {
   const milestones = []
   let failCreate = false
   let failGoalCreate = false
+  let failGoalCompletion = false
   let failCompletion = false
   let failChange = false
   let orderFailure = 0
@@ -34,9 +35,10 @@ try {
   const longCurrentState = 'To jest długi opis obecnej sytuacji. '.repeat(18)
   const longDesiredOutcome = 'To jest szczegółowy opis zamierzonego rezultatu. '.repeat(18)
   const goals = [
-    { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome },
+    { id: 1, title: 'Przebiegam 5 km', currentState: longCurrentState, desiredOutcome: longDesiredOutcome,
+      completed: false, completedAt: null },
     { id: 2, title: longGoalTitle, currentState: 'Krótki opis.', desiredOutcome: 'Linia pierwsza\nLinia druga\nLinia trzecia' },
-    { id: 3, title: 'Cel bez opisu', currentState: null, desiredOutcome: null },
+    { id: 3, title: 'Cel bez opisu', currentState: null, desiredOutcome: null, completed: false, completedAt: null },
   ]
   const createdMilestones = new Map()
   let nextGoalId = 4
@@ -81,7 +83,7 @@ try {
         if (failGoalCreate) return route.fulfill({ status: 503, json: { detail: 'Nie udało się dodać celu.' } })
         const request = route.request().postDataJSON()
         body = { id: nextGoalId++, title: request.title, currentState: request.currentState,
-          desiredOutcome: request.desiredOutcome }
+          desiredOutcome: request.desiredOutcome, completed: false, completedAt: null }
         goals.push(body)
         createdMilestones.set(body.id, [])
       } else body = goals
@@ -105,6 +107,13 @@ try {
       const reordered = ids.map((id, position) => ({ ...milestones.find(item => item.id === id), position }))
       milestones.splice(0, milestones.length, ...reordered)
       body = milestones
+    }
+    else if (/^\/api\/goals\/\d+\/completion$/.test(path)) {
+      if (failGoalCompletion) return route.fulfill({ status: 503, json: { detail: 'Nie udało się zmienić statusu celu.' } })
+      const goal = goals.find(value => value.id === Number(path.split('/')[3]))
+      goal.completed = route.request().postDataJSON().completed
+      goal.completedAt = goal.completed ? '2026-10-25T12:00:00Z' : null
+      body = goal
     }
     else if (path.endsWith('/completion')) {
       if (failCompletion) return route.fulfill({ status: 503, json: { detail: 'Nie udało się zapisać ukończenia.' } })
@@ -945,6 +954,42 @@ try {
     assert.ok(card.x >= 0 && card.x + card.width <= width)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+  const noCriterionCard = page.locator('#goal-card-3')
+  await noCriterionCard.locator(':scope > .goal-header-actions .task-menu-trigger').click()
+  await page.getByRole('menuitem', { name: 'Oznacz jako osiągnięty' }).click()
+  let completionDialog = page.getByRole('dialog', { name: 'Cel osiągnięty?' })
+  await completionDialog.waitFor()
+  assert.equal(await completionDialog.locator('.goal-completion-criterion').count(), 0)
+  await completionDialog.getByRole('button', { name: 'Anuluj' }).click()
+
+  const completedCard = page.locator('#goal-card-1')
+  await completedCard.locator(':scope > .goal-header-actions .task-menu-trigger').click()
+  await page.getByRole('menuitem', { name: 'Oznacz jako osiągnięty' }).click()
+  completionDialog = page.getByRole('dialog', { name: 'Cel osiągnięty?' })
+  await completionDialog.locator('.goal-completion-criterion').waitFor()
+  await completionDialog.getByRole('button', { name: 'Tak, cel osiągnięty' }).click()
+  const achievedToggle = page.getByRole('button', { name: 'Osiągnięte (1)' })
+  await achievedToggle.waitFor()
+  assert.equal(await page.locator('#goal-card-1').count(), 0)
+  await achievedToggle.click()
+  await page.locator('#goal-card-1').getByText(/Osiągnięty 25 paź 2026/).waitFor()
+  await page.locator('#goal-card-1 .goal-details-toggle').click()
+  assert.equal(await page.locator('#goal-card-1 .goal-tabs-add').count(), 0)
+  await page.locator('#goal-card-1 > .goal-header-actions .task-menu-trigger').click()
+  await page.getByRole('menuitem', { name: 'Wznów cel' }).click()
+  await page.locator('#goal-card-1').waitFor()
+  assert.equal(await page.getByRole('button', { name: /Osiągnięte/ }).count(), 0)
+
+  await page.locator('#goal-card-1 > .goal-header-actions .task-menu-trigger').click()
+  await page.getByRole('menuitem', { name: 'Oznacz jako osiągnięty' }).click()
+  failGoalCompletion = true
+  completionDialog = page.getByRole('dialog', { name: 'Cel osiągnięty?' })
+  await completionDialog.getByRole('button', { name: 'Tak, cel osiągnięty' }).click()
+  await completionDialog.getByRole('alert').waitFor()
+  assert.equal(await page.locator('#goal-card-1').count(), 1)
+  failGoalCompletion = false
+  await completionDialog.getByRole('button', { name: 'Anuluj' }).click()
+
   console.log('PASS milestone completion, undo, counts, order, API error rollback, creation, reload and responsive layout (mock API)')
   console.log('PASS success criterion clamps at two lines and initial state clamps at three lines on 320/375/390px widths')
   console.log('PASS success criterion stays visible while initial state defaults closed and empty description variants remain compact')
@@ -955,4 +1000,5 @@ try {
   console.log('PASS contextual tab action creates a milestone and attaches a task/habit at 320/375/390px')
   console.log('PASS compact linked task/habit rows show metadata, wrap on mobile and preserve checkbox/menu actions')
   console.log('PASS successful goal creation expands and scrolls to planning, while failures preserve the form')
+  console.log('PASS goal completion modal, achieved section, read-only history, reopen and API error handling')
 } finally { await browser.close() }

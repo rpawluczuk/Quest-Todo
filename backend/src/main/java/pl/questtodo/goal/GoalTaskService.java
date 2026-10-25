@@ -51,13 +51,15 @@ public class GoalTaskService {
     public void attach(long goalId, long taskId) {
         long userId = currentUser.getUserId();
         var goal = goals.findForUpdate(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        GoalService.requireActive(goal);
         var task = tasks.findForUpdate(taskId, userId).orElseThrow(GoalTaskService::notFound);
         task.setGoal(goal);
     }
 
     public void detach(long goalId, long taskId) {
         long userId = currentUser.getUserId();
-        goals.findForUpdate(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        var goal = goals.findForUpdate(goalId, userId).orElseThrow(GoalTaskService::notFound);
+        GoalService.requireActive(goal);
         var task = tasks.findForUpdate(taskId, userId).orElseThrow(GoalTaskService::notFound);
         if (task.belongsToGoal(goalId)) task.setGoal(null);
     }

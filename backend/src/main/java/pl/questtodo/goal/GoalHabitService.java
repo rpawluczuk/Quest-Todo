@@ -46,13 +46,15 @@ public class GoalHabitService {
     public void attach(long goalId, long habitId) {
         long userId = currentUser.getUserId();
         var goal = goals.findForUpdate(goalId, userId).orElseThrow(GoalHabitService::notFound);
+        GoalService.requireActive(goal);
         var habit = habits.findForUpdate(habitId, userId).orElseThrow(GoalHabitService::notFound);
         if (!links.existsByGoalIdAndHabitId(goalId, habitId)) links.save(new GoalHabitEntity(goal, habit));
     }
 
     public void detach(long goalId, long habitId) {
         long userId = currentUser.getUserId();
-        goals.findForUpdate(goalId, userId).orElseThrow(GoalHabitService::notFound);
+        var goal = goals.findForUpdate(goalId, userId).orElseThrow(GoalHabitService::notFound);
+        GoalService.requireActive(goal);
         habits.findForUpdate(habitId, userId).orElseThrow(GoalHabitService::notFound);
         links.deleteByGoalIdAndHabitId(goalId, habitId);
     }
@@ -61,4 +63,3 @@ public class GoalHabitService {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Cel lub nawyk nie istnieje.");
     }
 }
-

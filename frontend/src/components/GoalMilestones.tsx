@@ -16,9 +16,10 @@ function nextCompactIds(items: Milestone[]) {
 
 const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   goalId: number
+  readOnly?: boolean
   onItemsChange?: (items: Milestone[]) => void
 } & GoalSectionActionProps>(function GoalMilestones({ goalId, onItemsChange, actionTriggerRef,
-  onActionDisabledChange }, ref) {
+  onActionDisabledChange, readOnly = false }, ref) {
   const [items, setItems] = useState<Milestone[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -45,9 +46,9 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const onItemsChangeRef = useRef(onItemsChange)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
-  const orderDisabled = ordering || saving || pendingIds.size > 0 || editingId !== null
+  const orderDisabled = readOnly || ordering || saving || pendingIds.size > 0 || editingId !== null
   const mutationsDisabled = dragging || ordering
-  const actionDisabled = loading || !!loadError || mutationsDisabled
+  const actionDisabled = readOnly || loading || !!loadError || mutationsDisabled
   const openCreateForm = useCallback(() => { if (!actionDisabled) setOpen(true) }, [actionDisabled])
   useImperativeHandle(ref, () => ({
     activate: openCreateForm,
@@ -103,6 +104,11 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   }, [goalId])
   useEffect(() => { if (open) input.current?.focus() }, [open])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
+  useEffect(() => {
+    if (!readOnly) return
+    setOpen(false)
+    setEditingId(null)
+  }, [readOnly])
   useEffect(() => {
     if (!success) return
     const timer = window.setTimeout(() => setSuccess(''), 4000)
@@ -224,7 +230,8 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
           </button>
         </div>
       </form>}
-      {items.length === 0 && !open ? <div className="milestone-empty-state">
+      {items.length === 0 && !open && readOnly ? <p className="milestone-complete-state">Brak kamieni milowych</p>
+        : items.length === 0 && !open ? <div className="milestone-empty-state">
         <strong>Zaplanuj drogę do celu</strong>
         <p>Dodaj pierwszy kamień milowy lub przejdź do zadań i nawyków.</p>
         <button type="button" onClick={openCreateForm}>
@@ -274,14 +281,14 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
             </div>
           </form> : <div className={`milestone-row${showAll ? '' : ' milestone-row-compact'}`}>
             <label className="task-card-check milestone-check">
-              <input type="checkbox" checked={item.completed} disabled={pendingIds.has(item.id) || mutationsDisabled}
+              <input type="checkbox" checked={item.completed} disabled={readOnly || pendingIds.has(item.id) || mutationsDisabled}
                 aria-label={item.title} aria-describedby={completionErrors[item.id] ? `milestone-error-${item.id}` : undefined}
                 onChange={() => void toggle(item)} />
             </label>
             <span className={`milestone-title${item.completed ? ' milestone-completed' : ''}`}>{item.title}</span>
             {showAll ? handle : null}
             <TaskActionsMenu itemTitle={item.title} itemType="kamienia milowego"
-              disabled={pendingIds.has(item.id) || editingId !== null || mutationsDisabled} actions={[
+              disabled={readOnly || pendingIds.has(item.id) || editingId !== null || mutationsDisabled} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => {
                   setEditingId(item.id); setEditTitle(item.title)
                   setCompletionErrors(current => ({ ...current, [item.id]: '' }))

@@ -9,10 +9,11 @@ import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSect
 
 const GoalHabits = forwardRef<GoalSectionActionHandle, {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
+  readOnly?: boolean
   revision: number
   onCountChange?: (goalId: number, count: number) => void
 } & GoalSectionActionProps>(function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange,
-  revision, actionTriggerRef, onActionDisabledChange }, ref) {
+  revision, actionTriggerRef, onActionDisabledChange, readOnly = false }, ref) {
   const [attached, setAttached] = useState<GoalHabit[]>([])
   const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -74,8 +75,8 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
     return () => element?.close()
   }, [pickerOpen])
 
-  const disabled = busy || pickerLoading || queryInput.trim() !== query
-  const actionDisabled = loading || !!loadError || busy || pickerOpen
+  const disabled = readOnly || busy || pickerLoading || queryInput.trim() !== query
+  const actionDisabled = readOnly || loading || !!loadError || busy || pickerOpen
   useImperativeHandle(ref, () => ({
     activate: () => {
       if (actionDisabled) return
@@ -155,7 +156,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
             </span>
             <span className="task-points task-card-points">{details.rewardPoints} pkt</span>
           </div>}
-          <TaskActionsMenu itemTitle={habit.name} itemType="nawyku" disabled={busy} actions={[{
+          <TaskActionsMenu itemTitle={habit.name} itemType="nawyku" disabled={readOnly || busy} actions={[{
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalHabit(goalId, habit.id, false)
               setAttached(current => current.filter(item => item.id !== habit.id))

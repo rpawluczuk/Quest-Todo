@@ -19,9 +19,9 @@ function mergeTasks(current: Task[], next: Task[]): Task[] {
 }
 
 const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
-  goalId: number; goalTitle: string; onCountChange?: (goalId: number, count: number) => void
+  goalId: number; goalTitle: string; readOnly?: boolean; onCountChange?: (goalId: number, count: number) => void
 } & GoalSectionActionProps>(function GoalTasks({ goalId, goalTitle, taskRevision, tasksDisabled, onToggleTask,
-  onGoalLinksChanged, onCountChange, actionTriggerRef, onActionDisabledChange }, ref) {
+  onGoalLinksChanged, onCountChange, actionTriggerRef, onActionDisabledChange, readOnly = false }, ref) {
   const [attached, setAttached] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -95,7 +95,7 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
     return () => element?.close()
   }, [pickerOpen])
 
-  const disabled = busy || tasksDisabled || pageLoading
+  const disabled = readOnly || busy || tasksDisabled || pageLoading
   const actionDisabled = loading || !!loadError || disabled || pickerOpen
   useImperativeHandle(ref, () => ({
     activate: () => {

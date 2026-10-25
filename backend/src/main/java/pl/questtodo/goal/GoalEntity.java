@@ -7,6 +7,7 @@ import jakarta.persistence.OrderBy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.time.Instant;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -53,6 +54,12 @@ public class GoalEntity {
     @Column(name = "desired_outcome", columnDefinition = "text")
     private String desiredOutcome;
 
+    @Column(nullable = false)
+    private boolean completed;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
     protected GoalEntity() {}
 
     public GoalEntity(String title, String currentState, String desiredOutcome, UserEntity user) {
@@ -68,9 +75,17 @@ public class GoalEntity {
         this.desiredOutcome = desiredOutcome;
     }
 
+    public void setCompleted(boolean completed) {
+        if (this.completed == completed) return;
+        this.completed = completed;
+        this.completedAt = completed ? Instant.now() : null;
+    }
+
+    public boolean isCompleted() { return completed; }
+
     public long getId() { return id; }
 
     public String getTitle() { return title; }
 
-    public Goal toGoal() { return new Goal(id, title, currentState, desiredOutcome); }
+    public Goal toGoal() { return new Goal(id, title, currentState, desiredOutcome, completed, completedAt); }
 }

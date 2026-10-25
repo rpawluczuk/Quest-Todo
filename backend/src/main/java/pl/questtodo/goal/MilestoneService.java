@@ -26,6 +26,7 @@ public class MilestoneService {
         // Serialize appends within a goal so concurrent requests get distinct positions.
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId())
                 .orElseThrow(MilestoneService::notFound);
+        GoalService.requireActive(goal);
         MilestoneEntity milestone = goal.addMilestone(title.strip());
         goals.flush();
         return milestone.toMilestone();
@@ -33,6 +34,7 @@ public class MilestoneService {
     public Milestone setCompleted(long goalId, long milestoneId, boolean completed) {
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId())
                 .orElseThrow(MilestoneService::notFound);
+        GoalService.requireActive(goal);
         MilestoneEntity milestone = findMilestone(goal, milestoneId);
         milestone.setCompleted(completed);
         return milestone.toMilestone();
@@ -44,6 +46,7 @@ public class MilestoneService {
 
     public Milestone rename(long goalId, long milestoneId, String title) {
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        GoalService.requireActive(goal);
         MilestoneEntity milestone = findMilestone(goal, milestoneId);
         milestone.rename(title.strip());
         return milestone.toMilestone();
@@ -51,6 +54,7 @@ public class MilestoneService {
 
     public void delete(long goalId, long milestoneId) {
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        GoalService.requireActive(goal);
         goal.removeMilestone(findMilestone(goal, milestoneId));
     }
 
@@ -61,6 +65,7 @@ public class MilestoneService {
 
     public List<Milestone> reorder(long goalId, List<Long> ids) {
         GoalEntity goal = goals.findForUpdate(goalId, currentUser.getUserId()).orElseThrow(MilestoneService::notFound);
+        GoalService.requireActive(goal);
         var byId = goal.getMilestones().stream().collect(java.util.stream.Collectors.toMap(MilestoneEntity::getId, item -> item));
         if (ids.size() != byId.size() || new java.util.HashSet<>(ids).size() != ids.size()
                 || !byId.keySet().containsAll(ids)) {

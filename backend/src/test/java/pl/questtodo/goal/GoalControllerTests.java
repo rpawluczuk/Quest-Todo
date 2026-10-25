@@ -43,7 +43,9 @@ class GoalControllerTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Przebiec 5 km"))
                 .andExpect(jsonPath("$.currentState").value("Biegam kilometr"))
-                .andExpect(jsonPath("$.desiredOutcome").value("Przebiegam pięć kilometrów"));
+                .andExpect(jsonPath("$.desiredOutcome").value("Przebiegam pięć kilometrów"))
+                .andExpect(jsonPath("$.completed").value(false))
+                .andExpect(jsonPath("$.completedAt").doesNotExist());
         long id = jdbc.queryForObject("SELECT id FROM goals WHERE user_id = 1", Long.class);
         mvc.perform(get("/api/goals"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
@@ -58,6 +60,53 @@ class GoalControllerTests {
                 .andExpect(jsonPath("$.desiredOutcome").value("Nowy efekt"));
         mvc.perform(delete("/api/goals/{id}", id)).andExpect(status().isNoContent());
         mvc.perform(get("/api/goals")).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void completesAndReopensGoalIdempotentlyWithoutChangingLinksPointsOrMilestones() throws Exception {
+        seedLinks();
+        jdbc.update("INSERT INTO milestones(id, goal_id, title, completed, position) "
+                + "VALUES (8001, 1001, 'First result', false, 0)");
+        mvc.perform(put("/api/goals/1001/tasks/1001")).andExpect(status().isNoContent());
+        long points = jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class);
+
+        mvc.perform(patch("/api/goals/1001/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completed").value(true))
+                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+        entityManager.flush();
+        var completedAt = jdbc.queryForObject("SELECT completed_at FROM goals WHERE id = 1001",
+                java.sql.Timestamp.class);
+
+        mvc.perform(patch("/api/goals/1001/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.completed").value(true));
+        assertEquals(completedAt, jdbc.queryForObject("SELECT completed_at FROM goals WHERE id = 1001",
+                java.sql.Timestamp.class));
+        assertEquals(points, jdbc.queryForObject("SELECT points FROM users WHERE id = 1", Long.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM tasks WHERE id = 1001 AND goal_id = 1001", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM milestones WHERE id = 8001 AND completed = false", Integer.class));
+
+        mvc.perform(put("/api/goals/1001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Changed\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/goals/1001/milestones").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Blocked\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(delete("/api/goals/1001/tasks/1001")).andExpect(status().isConflict());
+
+        mvc.perform(patch("/api/goals/1001/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completed").value(false))
+                .andExpect(jsonPath("$.completedAt").doesNotExist());
+        mvc.perform(patch("/api/goals/1001/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":false}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.completed").value(false));
+        mvc.perform(put("/api/goals/1001").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Changed after reopening\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Changed after reopening"));
     }
 
     @Test
@@ -91,6 +140,9 @@ class GoalControllerTests {
                         .content("{\"title\":\"Changed\"}"))
                 .andExpect(status().isNotFound());
         mvc.perform(delete("/api/goals/2001")).andExpect(status().isNotFound());
+        mvc.perform(patch("/api/goals/2001/completion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"completed\":true}"))
+                .andExpect(status().isNotFound());
         assertEquals("Other goal", jdbc.queryForObject("SELECT title FROM goals WHERE id = 2001", String.class));
         when(currentUser.getUserId()).thenReturn(2L);
         mvc.perform(get("/api/goals"))

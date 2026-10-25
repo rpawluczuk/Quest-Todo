@@ -134,6 +134,15 @@ export async function updateGoal(id: number, title: string, currentState: string
   return response.json()
 }
 
+export async function updateGoalCompletion(id: number, completed: boolean): Promise<Goal> {
+  const response = await apiFetch(`/api/goals/${id}/completion`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ completed }),
+  })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zmienić statusu celu'))
+  return response.json()
+}
+
 export async function deleteGoal(id: number): Promise<void> {
   const response = await apiFetch(`/api/goals/${id}`, { method: 'DELETE' })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się usunąć celu'))

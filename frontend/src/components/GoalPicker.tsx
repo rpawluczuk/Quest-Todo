@@ -23,6 +23,8 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
   const selectedGoals = useMemo(() => selectedIds
     .map(id => goals.find(goal => goal.id === id))
     .filter((goal): goal is Goal => goal !== undefined), [goals, selectedIds])
+  const availableGoals = useMemo(() => goals.filter(goal => !goal.completed || selectedIds.includes(goal.id)),
+    [goals, selectedIds])
   const fullSummary = selectedGoals.length === 0 ? 'Bez celów' : selectedGoals.map(goal => goal.title).join(', ')
   const firstTwo = selectedGoals.length >= 2 ? `${selectedGoals[0].title}, ${selectedGoals[1].title}` : ''
   const compactSummary = selectedGoals.length === 0
@@ -141,9 +143,9 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
       </button>
       {open && <div id={listId} className="goal-multiselect-popover"
         style={popoverStyle} role="dialog" aria-label="Wybierz cele">
-        {goals.length === 0
+        {availableGoals.length === 0
           ? <p className="goal-multiselect-empty">Nie masz jeszcze celów do przypięcia.</p>
-          : goals.map((goal, index) => {
+          : availableGoals.map((goal, index) => {
             const checked = selectedIds.includes(goal.id)
             return <label key={goal.id} className={`goal-multiselect-option${checked ? ' selected' : ''}`}>
               <input ref={index === 0 ? firstOption : undefined} type="checkbox" checked={checked}

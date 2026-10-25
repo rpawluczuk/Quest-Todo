@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +36,12 @@ public class GoalController {
     @PutMapping("/{id}")
     public Goal updateGoal(@PathVariable long id, @Valid @RequestBody GoalRequest request) {
         return goals.updateGoal(id, request.title().strip(), request.currentState(), request.desiredOutcome());
+    }
+
+    @PatchMapping("/{id}/completion")
+    public Goal updateCompletion(@PathVariable long id,
+                                 @Valid @RequestBody GoalCompletionRequest request) {
+        return goals.updateCompletion(id, request.completed());
     }
 
     @DeleteMapping("/{id}")
