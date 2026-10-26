@@ -4,6 +4,10 @@ import { getSubtasks, createSubtask, renameSubtask, deleteSubtask, setSubtaskCom
 import type { Subtask } from '../types/Subtask'
 import TaskActionsMenu from './TaskActionsMenu'
 import SubtaskTitleForm from './SubtaskTitleForm'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import SortableSubtask from './SortableSubtask'
+import { reorderSubtasks, SubtaskOrderConflict } from '../api/subtaskApi'
 
 export type TaskSubtasksHandle = { openCreate: () => void }
 type Props = {
@@ -21,6 +25,10 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const [retry, setRetry] = useState(0)
   const [editing, setEditing] = useState<number | 'new' | null>(null)
   const [busy, setBusy] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const dragActive = useRef(false)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const [success, setSuccess] = useState('')
   const [statusError, setStatusError] = useState('')
   const [savingIds, setSavingIds] = useState<Set<number>>(new Set())
@@ -33,7 +41,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const listId = useId()
 
   useImperativeHandle(ref, () => ({ openCreate() {
-    if (disabled || pending.current || pendingStatuses.current.size || editing !== null) return
+    if (disabled || dragActive.current || pending.current || pendingStatuses.current.size || editing !== null) return
     setExpanded(true); setEditing('new'); setMutationError(''); setError('')
   } }))
 
@@ -95,14 +103,14 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   }
 
   async function mutate(action: () => Promise<void>) {
-    if (pending.current || pendingStatuses.current.size || disabled) return
+    if (dragActive.current || pending.current || pendingStatuses.current.size || disabled) return
     pending.current = true; setBusy(true); onBusyChange(true)
     try { await action() }
     finally { pending.current = false; setBusy(false); onBusyChange(false) }
   }
 
   async function toggle(item: Subtask) {
-    if (disabled || pending.current || editing !== null || pendingStatuses.current.has(item.id)) return
+    if (disabled || dragActive.current || pending.current || editing !== null || pendingStatuses.current.has(item.id)) return
     pendingStatuses.current.add(item.id)
     setSavingIds(new Set(pendingStatuses.current))
     onBusyChange(true)
@@ -154,7 +162,36 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const count = items?.length ?? total
   const done = items?.filter(item => item.completed).length ?? completed
   const Chevron = expanded ? ChevronUp : ChevronDown
-  const locked = disabled || busy || savingIds.size > 0
+  const orderDisabled = disabled || busy || savingIds.size > 0 || editing !== null
+  const locked = disabled || busy || savingIds.size > 0 || dragging
+
+  function cancelDrag() {
+    dragActive.current = false; setDragging(false); onBusyChange(false)
+  }
+
+  async function finishDrag({ active, over }: DragEndEvent) {
+    cancelDrag()
+    if (!over || active.id === over.id || orderDisabled) return
+    const previous = currentItems.current
+    const from = previous.findIndex(item => item.id === active.id)
+    const to = previous.findIndex(item => item.id === over.id)
+    if (from < 0 || to < 0) return
+    await mutate(async () => {
+      setStatusError('')
+      const next = arrayMove(previous, from, to).map((item, position) => ({ ...item, position }))
+      updateItems(next)
+      try {
+        updateItems(await reorderSubtasks(taskId, next.map(item => item.id)))
+      } catch (failure) {
+        updateItems(previous)
+        setStatusError(failure instanceof Error ? failure.message : 'Nie udało się zapisać kolejności.')
+        if (failure instanceof SubtaskOrderConflict) {
+          try { updateItems(await getSubtasks(taskId)) }
+          catch { request.current = null; setItems(null); setError('Nie udało się odświeżyć podzadań. Spróbuj ponownie.') }
+        }
+      }
+    })
+  }
 
   return <div ref={root} className="task-subtasks" hidden={!count && editing === null && !success}
     onClick={event => event.stopPropagation()}>
@@ -169,22 +206,31 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
         {editing === 'new' && <button type="button" className="task-subtasks-retry" onClick={closeEditor}>Anuluj</button>}
       </div>}
       {items && <>
+        <DndContext sensors={sensors} collisionDetection={closestCenter}
+          onDragStart={() => { dragActive.current = true; setDragging(true); onBusyChange(true) }}
+          onDragCancel={cancelDrag} onDragEnd={event => void finishDrag(event)}
+          accessibility={{ screenReaderInstructions: { draggable: 'Naciśnij spację, aby podnieść podzadanie. Strzałkami zmień pozycję. Spacją zapisz, Escape anuluje.' } }}>
+        <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
         <ul className="task-subtasks-list">
-          {items.map(item => <li key={item.id} className={item.completed ? 'subtask-completed' : undefined}>
+          {items.map(item => <SortableSubtask key={item.id} id={item.id} title={item.title} completed={item.completed} disabled={orderDisabled}>
+            {handle => <>
             {editing === item.id ? <SubtaskTitleForm initialTitle={item.title} editing busy={locked} onSave={save} onCancel={closeEditor} /> : <>
               <label className="subtask-check">
                 <input type="checkbox" checked={item.completed} aria-label={`Podzadanie: ${item.title}`}
-                  disabled={disabled || busy || editing !== null || savingIds.has(item.id)}
+                  disabled={disabled || busy || dragging || editing !== null || savingIds.has(item.id)}
                   onChange={() => void toggle(item)} />
               </label>
               <span className="subtask-title">{item.title}</span>
+              {handle}
               <TaskActionsMenu itemTitle={item.title} itemType="podzadania" disabled={locked || editing !== null} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => { setEditing(item.id); setMutationError('') } },
                 { label: 'Usuń', icon: 'trash-2', destructive: true, onSelect: () => void remove(item) },
               ]} />
             </>}
-          </li>)}
+          </>}</SortableSubtask>)}
         </ul>
+        </SortableContext>
+        </DndContext>
         {editing === 'new' ? <SubtaskTitleForm busy={locked} onSave={save} onCancel={closeEditor} />
           : <button type="button" className="task-subtasks-toggle subtask-add" disabled={locked || editing !== null}
             onClick={() => { setEditing('new'); setMutationError('') }}><Plus size={16} aria-hidden="true" />Dodaj podzadanie</button>}

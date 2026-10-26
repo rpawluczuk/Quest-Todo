@@ -47,6 +47,21 @@ public class SubtaskService {
         subtasks.delete(find(taskId, id));
     }
 
+    public List<SubtaskResponse> reorder(long taskId, List<Long> ids) {
+        lockTask(taskId);
+        var byId = subtasks.findByTaskIdOrderByPositionAscIdAsc(taskId).stream()
+                .collect(java.util.stream.Collectors.toMap(SubtaskEntity::getId, item -> item));
+        if (ids.size() != byId.size() || new java.util.HashSet<>(ids).size() != ids.size()
+                || !byId.keySet().containsAll(ids)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Lista podzadań zmieniła się lub jest niepoprawna. Odśwież listę i spróbuj ponownie.");
+        }
+        // No unique position constraint: dirty checking updates only changed rows.
+        // The parent lock serializes ordering with create, delete and other writes.
+        for (int i = 0; i < ids.size(); i++) byId.get(ids.get(i)).setPosition(i);
+        return ids.stream().map(id -> byId.get(id).toResponse()).toList();
+    }
+
     // All writers lock the parent, including TaskService.deleteTask. This also
     // serializes position allocation without loading the subtask collection.
     private TaskEntity lockTask(long taskId) {

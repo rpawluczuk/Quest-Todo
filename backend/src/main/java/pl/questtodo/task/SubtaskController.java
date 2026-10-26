@@ -33,4 +33,10 @@ public class SubtaskController {
     public void delete(@PathVariable long taskId, @PathVariable long subtaskId) {
         subtasks.delete(taskId, subtaskId);
     }
+
+    @PutMapping("/order")
+    public List<SubtaskResponse> reorder(@PathVariable long taskId,
+                                         @Valid @RequestBody ReorderSubtasksRequest request) {
+        return subtasks.reorder(taskId, request.subtaskIds());
+    }
 }

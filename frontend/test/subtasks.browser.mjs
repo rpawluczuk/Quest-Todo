@@ -20,6 +20,8 @@ try {
   let fail = true
   let failWrite = false
   let nextId = 100
+  let orderFailure = 0
+  let orderWrites = 0
   const stored = new Map()
   const gates = new Map()
   let points = 0
@@ -49,6 +51,14 @@ try {
         body.completed = completed
         body.completedAt = completed ? new Date().toISOString() : null
       }
+    }
+    else if (/^\/api\/tasks\/\d+\/subtasks\/order$/.test(path)) {
+      orderWrites++
+      if (orderFailure) return route.fulfill({ status: orderFailure, json: {} })
+      const id = Number(path.split('/')[3])
+      const ids = request.postDataJSON().subtaskIds
+      body = ids.map((subtaskId, position) => ({ ...stored.get(id).find(item => item.id === subtaskId), position }))
+      stored.set(id, body)
     }
     else if (/^\/api\/tasks\/\d+\/subtasks(?:\/\d+)?$/.test(path)) {
       const id = Number(path.split('/')[3])
@@ -133,6 +143,63 @@ try {
   assert.equal(await completed.locator('.subtask-completed').count(), 4)
   assert.deepEqual(requests, [1, 3, 3, 4])
   assert.deepEqual(writes, [])
+
+  const rowTitles = () => priority.locator('.subtask-title').allTextContents()
+  const originalTitles = await rowTitles()
+  async function keyboardMove() {
+    await priority.locator('.subtask-grip').first().focus()
+    await page.keyboard.press('Space')
+    await priority.locator('.subtask-dragging').waitFor()
+    await page.keyboard.press('ArrowDown')
+    await page.waitForTimeout(250)
+    await page.keyboard.press('Space')
+    await page.waitForFunction(() => ![...document.querySelectorAll('.subtask-grip')].some(el => el.disabled))
+  }
+  await keyboardMove()
+  assert.deepEqual((await rowTitles()).slice(0, 2), ['Krok 1.2', 'Krok 1.1'])
+  assert.equal(orderWrites, 1)
+  await keyboardMove()
+  assert.deepEqual(await rowTitles(), originalTitles)
+  const beforeNoMove = orderWrites
+  await priority.locator('.subtask-grip').first().focus()
+  await page.keyboard.press('Space')
+  await priority.locator('.subtask-dragging').waitFor()
+  await page.waitForTimeout(100)
+  await page.keyboard.press('Space')
+  await priority.locator('.subtask-dragging').waitFor({ state: 'detached' })
+  assert.equal(orderWrites, beforeNoMove)
+  orderFailure = 503
+  await keyboardMove()
+  await priority.getByRole('alert').filter({ hasText: 'Nie udało się zapisać kolejności' }).waitFor()
+  assert.deepEqual(await rowTitles(), originalTitles)
+  orderFailure = 409
+  await keyboardMove()
+  await priority.getByRole('alert').filter({ hasText: 'Lista podzadań zmieniła się' }).waitFor()
+  assert.deepEqual(await rowTitles(), originalTitles)
+  orderFailure = 0
+  const client = await page.context().newCDPSession(page)
+  await client.send('Emulation.setTouchEmulationEnabled', { enabled: true })
+  await priority.locator('.subtask-grip').first().scrollIntoViewIfNeeded()
+  const start = await priority.locator('.subtask-grip').first().boundingBox()
+  const end = await priority.locator('.subtask-grip').nth(1).boundingBox()
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: start.x + 16, y: start.y + 20 }] })
+  await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + 16, y: start.y + 30 }] })
+  await page.waitForTimeout(100)
+  await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: end.x + 16, y: end.y + 20 }] })
+  await page.waitForTimeout(250)
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await page.waitForFunction(() => ![...document.querySelectorAll('.subtask-grip')].some(el => el.disabled))
+  assert.deepEqual((await rowTitles()).slice(0, 2), ['Krok 1.2', 'Krok 1.1'])
+  await client.send('Emulation.setTouchEmulationEnabled', { enabled: false })
+  const mouseStart = await priority.locator('.subtask-grip').first().boundingBox()
+  const mouseEnd = await priority.locator('.subtask-grip').nth(1).boundingBox()
+  await page.mouse.move(mouseStart.x + 16, mouseStart.y + 20)
+  await page.mouse.down()
+  await page.mouse.move(mouseStart.x + 16, mouseStart.y + 30, { steps: 3 })
+  await page.mouse.move(mouseEnd.x + 16, mouseEnd.y + 20, { steps: 8 })
+  await page.mouse.up()
+  await page.waitForFunction(() => ![...document.querySelectorAll('.subtask-grip')].some(el => el.disabled))
+  assert.deepEqual(await rowTitles(), originalTitles)
 
   // Two independent optimistic changes, responses arriving in reverse order.
   function hold(id, fail = false) {
@@ -296,6 +363,7 @@ try {
   await priority.getByRole('button', { name: '4/4 podzadań' }).click()
   await priority.locator('.subtask-check input').first().waitFor()
   assert.equal(await priority.locator('.subtask-check input:checked').count(), 4)
+  assert.deepEqual(await rowTitles(), originalTitles)
   assert.deepEqual(errors, [])
   console.log('PASS: CRUD, optimistic checkboxes, concurrent rollback, counters, parent completion confirmation/undo, persistence, mobile and desktop')
 } finally {

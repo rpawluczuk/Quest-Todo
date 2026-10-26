@@ -33,6 +33,8 @@ public class SubtaskEntity {
 
     public void setTitle(String title) { this.title = title; }
     public void setCompleted(boolean completed) { this.completed = completed; }
+    public long getId() { return id; }
+    public void setPosition(int position) { this.position = position; }
 
     public SubtaskResponse toResponse() {
         return new SubtaskResponse(id, title, completed, position);

@@ -1,6 +1,6 @@
-# Podzadania — API (etap 1)
+# Podzadania — API
 
-Wszystkie operacje wymagają istniejącej sesji użytkownika. Dla POST, PATCH i DELETE
+Wszystkie operacje wymagają istniejącej sesji użytkownika. Dla POST, PUT, PATCH i DELETE
 użyj również tokenu CSRF, tak jak w pozostałych endpointach aplikacji.
 Identyfikatory w przykładach zastąp identyfikatorami własnego zadania i podzadania.
 
@@ -53,6 +53,15 @@ podzadanie spoza zadania wskazanego w URL zwracają `404`.
 
 ## Integralność i kolejność
 
+`PUT /api/tasks/{taskId}/subtasks/order` przyjmuje `{"subtaskIds":[123,124]}`
+i zwraca `200 OK` z pełną listą DTO w nowej kolejności. Lista musi zawierać
+dokładnie wszystkie aktualne podzadania rodzica, bez powtórzeń. Niezgodność
+(w tym dodanie/usunięcie elementu w innej sesji) zwraca `409`; frontend odświeża listę.
+Brak listy lub nieprawidłowy identyfikator zwraca `400`, cudzy/nieistniejący rodzic `404`.
+Zapis pod blokadą rodzica jest atomowy i nadaje pozycje od `0`. Powtórzenie
+tej samej kolejności nie zmienia danych. Równoczesne zmiany samej kolejności
+są serializowane — obowiązuje ostatni zapis, bez wersjonowania listy.
+
 - Migracja `V44` tworzy tabelę `subtasks` i indeks `(task_id, position, id)`.
 - Usunięcie zadania usuwa podzadania przez `ON DELETE CASCADE`.
 - Zapis blokuje rekord zadania przez istniejący `findForUpdate`. Nowa pozycja
@@ -61,4 +70,5 @@ podzadanie spoza zadania wskazanego w URL zwracają `404`.
   Zmiana statusu rodzica nie zmienia podzadań.
 - Relacja JPA jest jednokierunkowa Many-to-One, bez kaskady do rodzica.
   Lista zadań nie pobiera dodatkowych kolekcji.
-- Ten etap nie obejmuje frontendu, ręcznej zmiany kolejności ani zagnieżdżeń.
+- Frontend umożliwia zmianę kolejności uchwytem, dotykiem i klawiaturą.
+  Błąd zapisu przywraca poprzednią kolejność. Podzadania nie mają zagnieżdżeń.
