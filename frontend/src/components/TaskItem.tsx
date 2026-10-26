@@ -5,6 +5,7 @@ import TaskActionsMenu from './TaskActionsMenu'
 import CategoryMarker, { CategoryCardDetail } from './CategoryMarker'
 import { getTaskDuePresentation } from '../taskDue'
 import TaskSubtasks, { type TaskSubtasksHandle } from './TaskSubtasks'
+import IncompleteSubtasksDialog from './IncompleteSubtasksDialog'
 
 type TaskItemProps = {
   readonly onSubtaskCountsChange: (taskId: number, total: number, completed: number) => void
@@ -34,6 +35,7 @@ function TaskItem({
 }: TaskItemProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [subtasksBusy, setSubtasksBusy] = useState(false)
+  const [confirmCompletion, setConfirmCompletion] = useState(false)
   const subtasks = useRef<TaskSubtasksHandle>(null)
   const [error, setError] = useState('')
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -117,7 +119,10 @@ function TaskItem({
                 aria-label={task.completed ? `Cofnij ukończenie: ${task.title}` : `Wykonane: ${task.title}`}
                 checked={task.completed}
                 disabled={disabled}
-                onChange={() => void saveChange(onToggleTask)}
+                onChange={() => {
+                  if (!task.completed && task.subtaskCount > task.completedSubtaskCount) setConfirmCompletion(true)
+                  else void saveChange(onToggleTask)
+                }}
               />
             </label>
           )}
@@ -167,7 +172,7 @@ function TaskItem({
           </div>
           <TaskSubtasks ref={subtasks} key={task.id} taskId={task.id}
             total={task.subtaskCount ?? 0} completed={task.completedSubtaskCount ?? 0}
-            disabled={isAnyTaskEditing || isSaving} onBusyChange={setSubtasksBusy} onCountsChange={onSubtaskCountsChange} />
+            disabled={isAnyTaskEditing || isSaving || confirmCompletion} onBusyChange={setSubtasksBusy} onCountsChange={onSubtaskCountsChange} />
           <TaskActionsMenu
             itemTitle={task.title}
             disabled={disabled}
@@ -190,6 +195,11 @@ function TaskItem({
       </>
       {isSaving && <span className="task-card-status" role="status">Zapisywanie…</span>}
       {error && <p className="form-error" role="alert">{error}</p>}
+      {confirmCompletion && <IncompleteSubtasksDialog completed={task.completedSubtaskCount} total={task.subtaskCount}
+        onCancel={() => setConfirmCompletion(false)} onConfirm={() => {
+          setConfirmCompletion(false)
+          void saveChange(onToggleTask)
+        }} />}
     </li>
   )
 }

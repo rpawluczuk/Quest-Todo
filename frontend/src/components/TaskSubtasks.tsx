@@ -1,6 +1,6 @@
 import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from 'react'
-import { CheckSquare, Square, ChevronDown, ChevronUp, Plus, CheckCircle } from 'lucide-react'
-import { getSubtasks, createSubtask, renameSubtask, deleteSubtask } from '../api/subtaskApi'
+import { CheckSquare, ChevronDown, ChevronUp, Plus, CheckCircle } from 'lucide-react'
+import { getSubtasks, createSubtask, renameSubtask, deleteSubtask, setSubtaskCompleted } from '../api/subtaskApi'
 import type { Subtask } from '../types/Subtask'
 import TaskActionsMenu from './TaskActionsMenu'
 import SubtaskTitleForm from './SubtaskTitleForm'
@@ -22,6 +22,10 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const [editing, setEditing] = useState<number | 'new' | null>(null)
   const [busy, setBusy] = useState(false)
   const [success, setSuccess] = useState('')
+  const [statusError, setStatusError] = useState('')
+  const [savingIds, setSavingIds] = useState<Set<number>>(new Set())
+  const pendingStatuses = useRef(new Set<number>())
+  const currentItems = useRef<Subtask[]>([])
   const pending = useRef(false)
   const root = useRef<HTMLDivElement>(null)
   const request = useRef<Promise<Subtask[]> | null>(null)
@@ -29,7 +33,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const listId = useId()
 
   useImperativeHandle(ref, () => ({ openCreate() {
-    if (disabled || pending.current || editing !== null) return
+    if (disabled || pending.current || pendingStatuses.current.size || editing !== null) return
     setExpanded(true); setEditing('new'); setMutationError(''); setError('')
   } }))
 
@@ -49,11 +53,17 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   }, [success])
 
   useEffect(() => {
+    if (!statusError) return
+    const timer = window.setTimeout(() => setStatusError(''), 5000)
+    return () => window.clearTimeout(timer)
+  }, [statusError])
+
+  useEffect(() => {
     if (!expanded || items) return
     let active = true
     request.current ??= getSubtasks(taskId)
     void request.current.then(data => {
-      if (active) setItems(data)
+      if (active) { currentItems.current = data; setItems(data) }
     }, failure => {
       request.current = null
       if (active) setError(failure instanceof Error ? failure.message : 'Nie udało się pobrać podzadań.')
@@ -62,6 +72,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   }, [expanded, items, retry, taskId])
 
   function updateItems(next: Subtask[]) {
+    currentItems.current = next
     const done = next.filter(item => item.completed).length
     knownCounts.current = `${next.length}:${done}`
     request.current = Promise.resolve(next)
@@ -84,10 +95,31 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   }
 
   async function mutate(action: () => Promise<void>) {
-    if (pending.current || disabled) return
+    if (pending.current || pendingStatuses.current.size || disabled) return
     pending.current = true; setBusy(true); onBusyChange(true)
     try { await action() }
     finally { pending.current = false; setBusy(false); onBusyChange(false) }
+  }
+
+  async function toggle(item: Subtask) {
+    if (disabled || pending.current || editing !== null || pendingStatuses.current.has(item.id)) return
+    pendingStatuses.current.add(item.id)
+    setSavingIds(new Set(pendingStatuses.current))
+    onBusyChange(true)
+    setStatusError('')
+    updateItems(currentItems.current.map(row => row.id === item.id ? { ...row, completed: !item.completed } : row))
+    try {
+      const saved = await setSubtaskCompleted(taskId, item.id, !item.completed)
+      updateItems(currentItems.current.map(row => row.id === item.id ? saved : row))
+    } catch (failure) {
+      // Roll back only this row; other in-flight rows may already have changed.
+      updateItems(currentItems.current.map(row => row.id === item.id ? { ...row, completed: item.completed } : row))
+      setStatusError(failure instanceof Error ? failure.message : 'Nie udało się zapisać statusu podzadania.')
+    } finally {
+      pendingStatuses.current.delete(item.id)
+      setSavingIds(new Set(pendingStatuses.current))
+      onBusyChange(pendingStatuses.current.size > 0)
+    }
   }
 
   async function save(title: string) {
@@ -122,7 +154,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const count = items?.length ?? total
   const done = items?.filter(item => item.completed).length ?? completed
   const Chevron = expanded ? ChevronUp : ChevronDown
-  const locked = disabled || busy
+  const locked = disabled || busy || savingIds.size > 0
 
   return <div ref={root} className="task-subtasks" hidden={!count && editing === null && !success}
     onClick={event => event.stopPropagation()}>
@@ -140,7 +172,11 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
         <ul className="task-subtasks-list">
           {items.map(item => <li key={item.id} className={item.completed ? 'subtask-completed' : undefined}>
             {editing === item.id ? <SubtaskTitleForm initialTitle={item.title} editing busy={locked} onSave={save} onCancel={closeEditor} /> : <>
-              {item.completed ? <CheckSquare size={16} aria-label="Ukończone" role="img" /> : <Square size={16} aria-label="Nieukończone" role="img" />}
+              <label className="subtask-check">
+                <input type="checkbox" checked={item.completed} aria-label={`Podzadanie: ${item.title}`}
+                  disabled={disabled || busy || editing !== null || savingIds.has(item.id)}
+                  onChange={() => void toggle(item)} />
+              </label>
               <span className="subtask-title">{item.title}</span>
               <TaskActionsMenu itemTitle={item.title} itemType="podzadania" disabled={locked || editing !== null} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => { setEditing(item.id); setMutationError('') } },
@@ -158,5 +194,6 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
     {success && <div className="habit-toast-region"><div className="habit-toast milestone-success-toast">
       <CheckCircle size={20} aria-hidden="true" /><span role="status">{success}</span>
     </div></div>}
+    {statusError && <div className="habit-toast-region"><div className="habit-toast" role="alert">{statusError}</div></div>}
   </div>
 }

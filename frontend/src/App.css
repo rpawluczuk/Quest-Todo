@@ -4150,6 +4150,10 @@
 .task-subtasks[hidden] { display: none; }
 .task-subtasks-list li { align-items: start; }
 .task-subtasks-list li > svg { margin-top: 6px; }
+.subtask-check { display: grid; place-items: center; flex: 0 0 40px; height: 40px; cursor: pointer; }
+.subtask-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-primary); cursor: pointer; }
+.subtask-check input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.subtask-check input:disabled { cursor: wait; opacity: 0.6; }
 .task-subtasks-list .subtask-title { flex: 1; padding-top: 4px; }
 .task-subtasks-list li > .task-menu { grid-area: auto; flex: 0 0 44px; }
 .task-subtasks-list .task-menu-trigger { width: 44px; height: 40px; }

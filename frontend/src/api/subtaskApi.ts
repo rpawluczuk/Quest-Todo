@@ -7,10 +7,10 @@ export async function getSubtasks(taskId: number): Promise<Subtask[]> {
   return response.json()
 }
 
-async function write(taskId: number, id: number | null, method: string, title?: string): Promise<Subtask | undefined> {
+async function write(taskId: number, id: number | null, method: string, body?: { title: string } | { completed: boolean }): Promise<Subtask | undefined> {
   const response = await apiFetch(`/api/tasks/${taskId}/subtasks${id === null ? '' : `/${id}`}`, {
     method, headers: { 'Content-Type': 'application/json' },
-    ...(title === undefined ? {} : { body: JSON.stringify({ title }) }),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   if (!response.ok) {
     let message = 'Nie udało się zapisać podzadania. Spróbuj ponownie.'
@@ -20,10 +20,13 @@ async function write(taskId: number, id: number | null, method: string, title?: 
   return method === 'DELETE' ? undefined : response.json()
 }
 export async function createSubtask(taskId: number, title: string): Promise<Subtask> {
-  return (await write(taskId, null, 'POST', title))!
+  return (await write(taskId, null, 'POST', { title }))!
 }
 export async function renameSubtask(taskId: number, id: number, title: string): Promise<Subtask> {
-  return (await write(taskId, id, 'PATCH', title))!
+  return (await write(taskId, id, 'PATCH', { title }))!
+}
+export async function setSubtaskCompleted(taskId: number, id: number, completed: boolean): Promise<Subtask> {
+  return (await write(taskId, id, 'PATCH', { completed }))!
 }
 export async function deleteSubtask(taskId: number, id: number): Promise<void> {
   await write(taskId, id, 'DELETE')

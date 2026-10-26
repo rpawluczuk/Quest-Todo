@@ -21,6 +21,15 @@ try {
   let failWrite = false
   let nextId = 100
   const stored = new Map()
+  const gates = new Map()
+  let points = 0
+  const allTasks = [...tasks, history]
+  function syncCounts(id) {
+    const task = allTasks.find(task => task.id === id)
+    const items = stored.get(id) ?? []
+    task.subtaskCount = items.length
+    task.completedSubtaskCount = items.filter(item => item.completed).length
+  }
   let release
   const heldRequest = new Promise(resolve => { release = resolve })
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
@@ -28,10 +37,19 @@ try {
     const path = new URL(request.url()).pathname
     if (request.method() !== 'GET') writes.push(path)
     let body = []
-    if (path === '/api/users/me') body = { id: 1, login: 'test', points: 0, theme: 'PURPLE' }
+    if (path === '/api/users/me') body = { id: 1, login: 'test', points, theme: 'PURPLE' }
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
-    else if (path === '/api/tasks/overview') body = { tasks, completedCount: 1 }
-    else if (path === '/api/tasks/history') body = { tasks: [history], total: 1, hasMore: false }
+    else if (path === '/api/tasks/overview') body = { tasks: allTasks.filter(task => !task.completed), completedCount: allTasks.filter(task => task.completed).length }
+    else if (path === '/api/tasks/history') body = { tasks: allTasks.filter(task => task.completed), total: allTasks.filter(task => task.completed).length, hasMore: false }
+    else if (/^\/api\/tasks\/\d+(?:\/completion)?$/.test(path)) {
+      body = allTasks.find(task => task.id === Number(path.split('/')[3]))
+      if (request.method() === 'PATCH') {
+        const completed = request.postDataJSON().completed
+        if (completed !== body.completed) points += completed ? body.points : -body.points
+        body.completed = completed
+        body.completedAt = completed ? new Date().toISOString() : null
+      }
+    }
     else if (/^\/api\/tasks\/\d+\/subtasks(?:\/\d+)?$/.test(path)) {
       const id = Number(path.split('/')[3])
       if (request.method() !== 'GET') {
@@ -43,14 +61,22 @@ try {
             position: Math.max(-1, ...items.map(item => item.position)) + 1 }
           items.push(body)
         } else if (request.method() === 'PATCH') {
-          assert.deepEqual(Object.keys(request.postDataJSON()), ['title'])
+          const payload = request.postDataJSON()
+          assert.deepEqual(Object.keys(payload), 'completed' in payload ? ['completed'] : ['title'])
+          const gate = gates.get(subtaskId)
+          if (gate) {
+            await gate.promise
+            if (gate.fail) return route.fulfill({ status: 503, json: { detail: 'Błąd statusu' } })
+          }
           body = items.find(item => item.id === subtaskId)
-          body.title = request.postDataJSON().title
+          Object.assign(body, payload)
         } else {
           stored.set(id, items.filter(item => item.id !== subtaskId))
+          syncCounts(id)
           return route.fulfill({ status: 204 })
         }
         stored.set(id, items)
+        syncCounts(id)
         return route.fulfill({ status: request.method() === 'POST' ? 201 : 200, json: body })
       }
       requests.push(id)
@@ -84,11 +110,11 @@ try {
   assert.deepEqual(await priority.locator('.task-subtasks-list .subtask-title').allTextContents(),
     ['Krok 1.1', 'Krok 1.2', 'Krok 1.3', 'Bardzo długa nazwa podzadania '.repeat(5)])
   assert.equal(await priority.locator('.subtask-completed').count(), 2)
-  assert.equal(await priority.locator('.task-subtasks input, .task-subtasks [role="checkbox"]').count(), 0)
-  assert.equal(await priority.getByRole('img', { name: 'Ukończone', exact: true }).count(), 2)
+  assert.equal(await priority.locator('.subtask-check input').count(), 4)
+  assert.equal(await priority.locator('.subtask-check input:checked').count(), 2)
   await priority.getByText('Krok 1.1', { exact: true }).click()
   assert.equal(await priority.locator('.task-card-description').isVisible(), false)
-  assert.equal(await priority.locator('input[type="checkbox"]').isChecked(), false)
+  assert.equal(await priority.locator(':scope > .task-card-check input').isChecked(), false)
   await toggle.click()
   assert.equal(await priority.getByText('Krok 1.1', { exact: true }).isVisible(), false)
   await toggle.click()
@@ -107,6 +133,39 @@ try {
   assert.equal(await completed.locator('.subtask-completed').count(), 4)
   assert.deepEqual(requests, [1, 3, 3, 4])
   assert.deepEqual(writes, [])
+
+  // Two independent optimistic changes, responses arriving in reverse order.
+  function hold(id, fail = false) {
+    let resolve
+    const promise = new Promise(done => { resolve = done })
+    gates.set(id, { promise, fail })
+    return () => { resolve(); gates.delete(id) }
+  }
+  const finishThird = hold(12, true)
+  const finishFourth = hold(13)
+  const checks = priority.locator('.subtask-check input')
+  await checks.nth(2).focus()
+  await page.keyboard.press('Space')
+  assert.equal(await checks.nth(2).isChecked(), true)
+  assert.equal(await checks.nth(2).isDisabled(), true)
+  assert.equal(await checks.nth(3).isDisabled(), false)
+  await priority.getByRole('button', { name: '3/4 podzadań' }).waitFor()
+  await checks.nth(2).evaluate(el => { el.click(); el.click() })
+  await checks.nth(3).check()
+  await priority.getByRole('button', { name: '4/4 podzadań' }).waitFor()
+  finishFourth()
+  await page.waitForFunction(() => !document.querySelectorAll('.task-card-focus .subtask-check input')[3].disabled)
+  finishThird()
+  await priority.getByRole('alert').filter({ hasText: 'Błąd statusu' }).waitFor()
+  assert.equal(await checks.nth(2).isChecked(), false)
+  assert.equal(await checks.nth(3).isChecked(), true)
+  await priority.getByRole('button', { name: '3/4 podzadań' }).waitFor()
+  assert.equal(writes.filter(path => path.endsWith('/12')).length, 1)
+  assert.equal(points, 0)
+  assert.equal(await priority.locator(':scope > .task-card-check input').isChecked(), false)
+  await checks.nth(3).uncheck()
+  await priority.getByRole('button', { name: '2/4 podzadań' }).waitFor()
+  await page.waitForFunction(() => !document.querySelectorAll('.task-card-focus .subtask-check input')[3].disabled)
 
   const empty = card('Bez podzadań')
   async function parentAdd(target) {
@@ -179,7 +238,7 @@ try {
   await completed.getByRole('textbox').press('Enter')
   await completed.locator('.subtask-title', { hasText: 'Ukończony krok po edycji' }).waitFor()
   assert.equal(await completed.locator('.subtask-completed').count(), 4)
-  assert.equal(await empty.locator('input[type="checkbox"]').isChecked(), false)
+  assert.equal(await empty.locator(':scope > .task-card-check input').isChecked(), false)
   assert.equal(await empty.locator('.task-card-description').isVisible(), false)
   assert.ok(writes.every(path => path.includes('/subtasks')))
   assert.equal(await empty.locator('.task-card-points').textContent(), '5 pkt')
@@ -199,8 +258,46 @@ try {
   }
   await page.setViewportSize({ width: 375, height: 900 })
   await priority.screenshot({ path: '../.local-backups/subtasks-card.png' })
+  await other.getByRole('button', { name: 'Anuluj', exact: true }).click()
+  const parent = priority.locator(':scope > .task-card-check input')
+  await parent.click()
+  await page.getByRole('dialog', { name: 'Nie wszystkie podzadania są ukończone' }).waitFor()
+  assert.equal(points, 0)
+  await page.getByRole('button', { name: 'Anuluj', exact: true }).click()
+  assert.equal(await parent.isChecked(), false)
+  assert.ok(writes.every(path => path.includes('/subtasks')))
+  const statuses = stored.get(1).map(item => item.completed)
+  await parent.click()
+  await page.getByRole('button', { name: 'Zakończ zadanie', exact: true }).click()
+  await page.locator('.task-card-completed').filter({ hasText: 'Priorytet z podzadaniami' }).waitFor()
+  assert.equal(points, 5)
+  assert.deepEqual(stored.get(1).map(item => item.completed), statuses)
+  await priority.getByRole('button', { name: '2/4 podzadań' }).click()
+  await priority.locator('.subtask-check input').first().waitFor()
+  await priority.locator(':scope > .task-card-check input').click()
+  await page.locator('.task-card-focus').filter({ hasText: 'Priorytet z podzadaniami' }).waitFor()
+  await page.locator('.task-card-completed').filter({ hasText: 'Priorytet z podzadaniami' }).waitFor({ state: 'detached' })
+  assert.equal(points, 0)
+  assert.deepEqual(stored.get(1).map(item => item.completed), statuses)
+  await priority.getByRole('button', { name: '2/4 podzadań' }).click()
+  await priority.locator('.subtask-check input').nth(2).check()
+  await priority.locator('.subtask-check input').nth(3).check()
+  await priority.getByRole('button', { name: '4/4 podzadań' }).waitFor()
+  await page.waitForFunction(() => !document.querySelector('.task-card-focus:has(.task-subtasks) > .task-card-check input').disabled)
+  assert.equal(points, 0)
+  await priority.locator(':scope > .task-card-check input').click()
+  await page.locator('.task-card-completed').filter({ hasText: 'Priorytet z podzadaniami' }).waitFor()
+  assert.equal(await page.getByRole('dialog').count(), 0)
+  await empty.locator(':scope > .task-card-check input').click()
+  await page.locator('.task-card-completed').filter({ hasText: 'Bez podzadań' }).waitFor()
+  assert.equal(await page.getByRole('dialog').count(), 0)
+  await page.reload()
+  await page.locator('.completed-toggle').click()
+  await priority.getByRole('button', { name: '4/4 podzadań' }).click()
+  await priority.locator('.subtask-check input').first().waitFor()
+  assert.equal(await priority.locator('.subtask-check input:checked').count(), 4)
   assert.deepEqual(errors, [])
-  console.log('PASS: CRUD, validation, Enter/Escape, confirmations, API errors, counters, lazy loading, read-only status, all sections, mobile and desktop')
+  console.log('PASS: CRUD, optimistic checkboxes, concurrent rollback, counters, parent completion confirmation/undo, persistence, mobile and desktop')
 } finally {
   await browser.close()
 }
