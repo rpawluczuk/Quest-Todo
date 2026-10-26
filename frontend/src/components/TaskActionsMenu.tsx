@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw'
+type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw' | 'list-plus'
 
 type TaskMenuAction = {
   readonly label: string
@@ -11,12 +11,13 @@ type TaskMenuAction = {
 
 type TaskActionsMenuProps = {
   readonly itemTitle: string
-  readonly itemType?: 'zadania' | 'nagrody' | 'nawyku' | 'celu' | 'kamienia milowego'
+  readonly itemType?: 'zadania' | 'podzadania' | 'nagrody' | 'nawyku' | 'celu' | 'kamienia milowego'
   readonly disabled: boolean
   readonly actions: readonly TaskMenuAction[]
 }
 
 const taskMenuIconPaths: Record<TaskMenuIconName, ReactNode> = {
+  'list-plus': <path d="M3 6h18M3 12h12M3 18h6M19 14v8M15 18h8" />,
   pencil: (
     <>
       <path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.36a.5.5 0 0 0 .62.62L7 20.66a2 2 0 0 0 .83-.5Z" />

@@ -4,9 +4,10 @@ import EditTaskForm from './EditTaskForm'
 import TaskActionsMenu from './TaskActionsMenu'
 import CategoryMarker, { CategoryCardDetail } from './CategoryMarker'
 import { getTaskDuePresentation } from '../taskDue'
-import TaskSubtasks from './TaskSubtasks'
+import TaskSubtasks, { type TaskSubtasksHandle } from './TaskSubtasks'
 
 type TaskItemProps = {
+  readonly onSubtaskCountsChange: (taskId: number, total: number, completed: number) => void
   readonly task: Task
   readonly isEditing: boolean
   readonly isAnyTaskEditing: boolean
@@ -20,6 +21,7 @@ type TaskItemProps = {
 }
 
 function TaskItem({
+  onSubtaskCountsChange,
   task,
   isEditing,
   isAnyTaskEditing,
@@ -31,6 +33,8 @@ function TaskItem({
   onDelete,
 }: TaskItemProps) {
   const [isSaving, setIsSaving] = useState(false)
+  const [subtasksBusy, setSubtasksBusy] = useState(false)
+  const subtasks = useRef<TaskSubtasksHandle>(null)
   const [error, setError] = useState('')
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const savingRef = useRef(false)
@@ -39,7 +43,7 @@ function TaskItem({
   const titleButton = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLLIElement>(null)
   const wasEditing = useRef(isEditing)
-  const disabled = isAnyTaskEditing || isSaving
+  const disabled = isAnyTaskEditing || isSaving || subtasksBusy
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
   const hasGoal = task.goalTitle != null
@@ -161,13 +165,14 @@ function TaskItem({
             </div>}
             <span className="task-points task-card-points">{task.points} pkt</span>
           </div>
-          {task.subtaskCount > 0 && <TaskSubtasks
-            key={`${task.id}:${task.subtaskCount}:${task.completedSubtaskCount}`}
-            taskId={task.id} total={task.subtaskCount} completed={task.completedSubtaskCount} />}
+          <TaskSubtasks ref={subtasks} key={task.id} taskId={task.id}
+            total={task.subtaskCount ?? 0} completed={task.completedSubtaskCount ?? 0}
+            disabled={isAnyTaskEditing || isSaving} onBusyChange={setSubtasksBusy} onCountsChange={onSubtaskCountsChange} />
           <TaskActionsMenu
             itemTitle={task.title}
             disabled={disabled}
             actions={[
+              { label: 'Dodaj podzadanie', icon: 'list-plus', onSelect: () => subtasks.current?.openCreate() },
               ...(!task.completed ? [{ label: 'Edytuj', icon: 'pencil' as const, onSelect: () => onStartEditing(task.id) }] : []),
               ...(variant === 'focus' ? [{ label: 'Do pozostałych', icon: 'arrow-down' as const, onSelect: () => void saveChange(onToggleFocus) }] : []),
               {

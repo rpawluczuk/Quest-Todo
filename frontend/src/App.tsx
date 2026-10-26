@@ -400,6 +400,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         {loadError && <p className="form-error" role="alert">{loadError}</p>}
         {!isLoading && !loadError && sections.map((section) => (
           <TaskSection
+            onSubtaskCountsChange={(id, total, completed) => setTasks(current => current.map(task => task.id === id
+              ? { ...task, subtaskCount: total, completedSubtaskCount: completed } : task))}
             key={section.id}
             section={section}
             history={section.id === 'completed' ? { count: completedCount, revision: taskRevision, onCount: setCompletedCount } : undefined}

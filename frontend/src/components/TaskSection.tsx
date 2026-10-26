@@ -5,6 +5,7 @@ import type { TaskSectionData } from '../types/TaskSectionData'
 import TaskItem from './TaskItem'
 
 type TaskSectionProps = {
+  readonly onSubtaskCountsChange: (taskId: number, total: number, completed: number) => void
   readonly history?: { count: number; revision: number; onCount: (count: number) => void }
   readonly section: TaskSectionData
   readonly editingTaskId: number | null
@@ -41,6 +42,7 @@ function EmptyStateIcon({ icon }: { icon: 'target' | 'list' }) {
 }
 
 function TaskSection({
+  onSubtaskCountsChange,
   section,
   editingTaskId,
   onToggleTask,
@@ -151,6 +153,11 @@ function TaskSection({
         <ul className={`task-list${visibleTasks.length > 0 ? ' task-list-has-items' : ''}`}>
           {visibleTasks.map((task) => (
             <TaskItem
+              onSubtaskCountsChange={(id, total, completed) => {
+                setHistoryTasks(current => current.map(task => task.id === id
+                  ? { ...task, subtaskCount: total, completedSubtaskCount: completed } : task))
+                onSubtaskCountsChange(id, total, completed)
+              }}
               key={task.id}
               task={task}
               isEditing={editingTaskId === task.id}
