@@ -1,6 +1,7 @@
+import { useSubtasks } from './SubtaskProvider'
 import { useEffect, useId, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { CheckSquare, ChevronDown, ChevronUp, Plus, CheckCircle } from 'lucide-react'
-import { getSubtasks, createSubtask, renameSubtask, deleteSubtask, setSubtaskCompleted } from '../api/subtaskApi'
+import { createSubtask, renameSubtask, deleteSubtask, setSubtaskCompleted } from '../api/subtaskApi'
 import type { Subtask } from '../types/Subtask'
 import TaskActionsMenu from './TaskActionsMenu'
 import SubtaskTitleForm from './SubtaskTitleForm'
@@ -12,14 +13,17 @@ import { reorderSubtasks, SubtaskOrderConflict } from '../api/subtaskApi'
 export type TaskSubtasksHandle = { openCreate: () => void }
 type Props = {
   taskId: number; total: number; completed: number; disabled: boolean
+  readOnly?: boolean
   ref?: Ref<TaskSubtasksHandle>
   onCountsChange: (taskId: number, total: number, completed: number) => void
   onBusyChange: (busy: boolean) => void
 }
 
-export default function TaskSubtasks({ taskId, total, completed, disabled, ref, onCountsChange, onBusyChange }: Props) {
+export default function TaskSubtasks({ taskId, total, completed, disabled: externalDisabled, readOnly = false, ref, onCountsChange, onBusyChange }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [items, setItems] = useState<Subtask[] | null>(null)
+  const { store, items, owner: busyOwner } = useSubtasks(taskId)
+  const owner = useRef(Symbol('subtask editor'))
+  const disabled = externalDisabled || readOnly || (busyOwner !== null && busyOwner !== owner.current)
   const [error, setError] = useState('')
   const [mutationError, setMutationError] = useState('')
   const [retry, setRetry] = useState(0)
@@ -36,23 +40,17 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const currentItems = useRef<Subtask[]>([])
   const pending = useRef(false)
   const root = useRef<HTMLDivElement>(null)
-  const request = useRef<Promise<Subtask[]> | null>(null)
-  const knownCounts = useRef(`${total}:${completed}`)
   const listId = useId()
+
+  useEffect(() => () => {
+    // Closing a goal during a drag must not leave its task locked in another view.
+    if (dragActive.current) store.release(taskId, owner.current)
+  }, [store, taskId])
 
   useImperativeHandle(ref, () => ({ openCreate() {
     if (disabled || dragActive.current || pending.current || pendingStatuses.current.size || editing !== null) return
     setExpanded(true); setEditing('new'); setMutationError(''); setError('')
   } }))
-
-  useEffect(() => {
-    const signature = `${total}:${completed}`
-    if (knownCounts.current !== signature) {
-      knownCounts.current = signature
-      request.current = null
-      setItems(null)
-    }
-  }, [total, completed])
 
   useEffect(() => {
     if (!success) return
@@ -69,29 +67,25 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   useEffect(() => {
     if (!expanded || items) return
     let active = true
-    request.current ??= getSubtasks(taskId)
-    void request.current.then(data => {
-      if (active) { currentItems.current = data; setItems(data) }
-    }, failure => {
-      request.current = null
+    void store.load(taskId).catch(failure => {
       if (active) setError(failure instanceof Error ? failure.message : 'Nie udało się pobrać podzadań.')
     })
     return () => { active = false }
-  }, [expanded, items, retry, taskId])
+  }, [expanded, items, retry, taskId, store])
+
+  currentItems.current = items ?? []
 
   function updateItems(next: Subtask[]) {
     currentItems.current = next
     const done = next.filter(item => item.completed).length
-    knownCounts.current = `${next.length}:${done}`
-    request.current = Promise.resolve(next)
-    setItems(next)
+    store.set(taskId, next)
     onCountsChange(taskId, next.length, done)
   }
 
   function focusControl() {
     requestAnimationFrame(() => {
       const target = root.current?.querySelector<HTMLButtonElement>('.task-subtasks-toggle, .subtask-add')
-        ?? root.current?.closest('.task-card')?.querySelector<HTMLButtonElement>(':scope > .task-menu button')
+        ?? root.current?.closest('.task-card, .goal-linked-task')?.querySelector<HTMLButtonElement>(':scope > .task-menu button')
       target?.focus()
     })
   }
@@ -104,13 +98,15 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
 
   async function mutate(action: () => Promise<void>) {
     if (dragActive.current || pending.current || pendingStatuses.current.size || disabled) return
+    if (!store.claim(taskId, owner.current)) return
     pending.current = true; setBusy(true); onBusyChange(true)
     try { await action() }
-    finally { pending.current = false; setBusy(false); onBusyChange(false) }
+    finally { pending.current = false; setBusy(false); store.release(taskId, owner.current); onBusyChange(false) }
   }
 
   async function toggle(item: Subtask) {
     if (disabled || dragActive.current || pending.current || editing !== null || pendingStatuses.current.has(item.id)) return
+    if (!store.claim(taskId, owner.current)) return
     pendingStatuses.current.add(item.id)
     setSavingIds(new Set(pendingStatuses.current))
     onBusyChange(true)
@@ -126,6 +122,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
     } finally {
       pendingStatuses.current.delete(item.id)
       setSavingIds(new Set(pendingStatuses.current))
+      if (!pendingStatuses.current.size) store.release(taskId, owner.current)
       onBusyChange(pendingStatuses.current.size > 0)
     }
   }
@@ -166,7 +163,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   const locked = disabled || busy || savingIds.size > 0 || dragging
 
   function cancelDrag() {
-    dragActive.current = false; setDragging(false); onBusyChange(false)
+    dragActive.current = false; setDragging(false); store.release(taskId, owner.current); onBusyChange(false)
   }
 
   async function finishDrag({ active, over }: DragEndEvent) {
@@ -186,8 +183,8 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
         updateItems(previous)
         setStatusError(failure instanceof Error ? failure.message : 'Nie udało się zapisać kolejności.')
         if (failure instanceof SubtaskOrderConflict) {
-          try { updateItems(await getSubtasks(taskId)) }
-          catch { request.current = null; setItems(null); setError('Nie udało się odświeżyć podzadań. Spróbuj ponownie.') }
+          try { updateItems(await store.load(taskId, true)) }
+          catch { store.set(taskId, null); setError('Nie udało się odświeżyć podzadań. Spróbuj ponownie.') }
         }
       }
     })
@@ -196,7 +193,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
   return <div ref={root} className="task-subtasks" hidden={!count && editing === null && !success}
     onClick={event => event.stopPropagation()}>
     {count > 0 && <button type="button" className="task-subtasks-toggle" aria-expanded={expanded} aria-controls={listId}
-      disabled={locked || editing !== null} onClick={() => { setError(''); setExpanded(value => !value) }}>
+      disabled={externalDisabled || busyOwner !== null || editing !== null} onClick={() => { setError(''); setExpanded(value => !value) }}>
       <CheckSquare size={16} aria-hidden="true" /><span>{done}/{count} podzadań</span><Chevron size={16} aria-hidden="true" />
     </button>}
     <div id={listId} hidden={!expanded}>
@@ -207,7 +204,7 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
       </div>}
       {items && <>
         <DndContext sensors={sensors} collisionDetection={closestCenter}
-          onDragStart={() => { dragActive.current = true; setDragging(true); onBusyChange(true) }}
+          onDragStart={() => { store.claim(taskId, owner.current); dragActive.current = true; setDragging(true); onBusyChange(true) }}
           onDragCancel={cancelDrag} onDragEnd={event => void finishDrag(event)}
           accessibility={{ screenReaderInstructions: { draggable: 'Naciśnij spację, aby podnieść podzadanie. Strzałkami zmień pozycję. Spacją zapisz, Escape anuluje.' } }}>
         <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
@@ -221,19 +218,19 @@ export default function TaskSubtasks({ taskId, total, completed, disabled, ref, 
                   onChange={() => void toggle(item)} />
               </label>
               <span className="subtask-title">{item.title}</span>
-              {handle}
-              <TaskActionsMenu itemTitle={item.title} itemType="podzadania" disabled={locked || editing !== null} actions={[
+              {!readOnly && handle}
+              {!readOnly && <TaskActionsMenu itemTitle={item.title} itemType="podzadania" disabled={locked || editing !== null} actions={[
                 { label: 'Edytuj', icon: 'pencil', onSelect: () => { setEditing(item.id); setMutationError('') } },
                 { label: 'Usuń', icon: 'trash-2', destructive: true, onSelect: () => void remove(item) },
-              ]} />
+              ]} />}
             </>}
           </>}</SortableSubtask>)}
         </ul>
         </SortableContext>
         </DndContext>
-        {editing === 'new' ? <SubtaskTitleForm busy={locked} onSave={save} onCancel={closeEditor} />
+        {!readOnly && (editing === 'new' ? <SubtaskTitleForm busy={locked} onSave={save} onCancel={closeEditor} />
           : <button type="button" className="task-subtasks-toggle subtask-add" disabled={locked || editing !== null}
-            onClick={() => { setEditing('new'); setMutationError('') }}><Plus size={16} aria-hidden="true" />Dodaj podzadanie</button>}
+            onClick={() => { setEditing('new'); setMutationError('') }}><Plus size={16} aria-hidden="true" />Dodaj podzadanie</button>)}
       </>}
       {mutationError && <p role="alert" className="form-error">{mutationError}</p>}
     </div>

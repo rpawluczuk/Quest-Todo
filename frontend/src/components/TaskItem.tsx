@@ -1,3 +1,4 @@
+import { useTaskSubtaskCounts } from './SubtaskProvider'
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { Task } from '../types/Task'
 import EditTaskForm from './EditTaskForm'
@@ -23,7 +24,7 @@ type TaskItemProps = {
 
 function TaskItem({
   onSubtaskCountsChange,
-  task,
+  task: sourceTask,
   isEditing,
   isAnyTaskEditing,
   onToggleTask,
@@ -33,6 +34,7 @@ function TaskItem({
   onCancel,
   onDelete,
 }: TaskItemProps) {
+  const { task, busy: sharedBusy } = useTaskSubtaskCounts(sourceTask)
   const [isSaving, setIsSaving] = useState(false)
   const [subtasksBusy, setSubtasksBusy] = useState(false)
   const [confirmCompletion, setConfirmCompletion] = useState(false)
@@ -45,7 +47,7 @@ function TaskItem({
   const titleButton = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLLIElement>(null)
   const wasEditing = useRef(isEditing)
-  const disabled = isAnyTaskEditing || isSaving || subtasksBusy
+  const disabled = isAnyTaskEditing || isSaving || subtasksBusy || sharedBusy
   const variant = task.completed ? 'completed' : task.inFocus ? 'focus' : 'backlog'
   const due = getTaskDuePresentation(task)
   const hasGoal = task.goalTitle != null

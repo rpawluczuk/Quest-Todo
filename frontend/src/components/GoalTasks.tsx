@@ -1,8 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi'
 import type { Task } from '../types/Task'
-import TaskActionsMenu from './TaskActionsMenu'
-import { getTaskDuePresentation } from '../taskDue'
+import GoalTaskRow from './GoalTaskRow'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -191,25 +190,13 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   }
 
   function linkedTask(task: Task) {
-    const due = getTaskDuePresentation(task)
-    return <li key={task.id} className="goal-linked-task">
-      <input type="checkbox" checked={task.completed} disabled={disabled}
-        aria-label={`Wykonane: ${task.title}`} onChange={() => void run(async () => {
-          await onToggleTask(task.id)
-        })} />
-      <span className={`goal-linked-item-title${task.completed ? ' goal-task-completed' : ''}`}>{task.title}</span>
-      <div className="goal-linked-item-meta">
-        {due && <span className={`goal-linked-task-due${due.overdue ? ' task-card-due-overdue' : ''}`}>{due.label}</span>}
-        <span className="task-points task-card-points">{task.points} pkt</span>
-      </div>
-      <TaskActionsMenu itemTitle={task.title} disabled={disabled} actions={[{
-        label: 'Odepnij od celu', onSelect: () => void run(async () => {
-          await setGoalTask(goalId, task.id, false)
-          setAttached(current => current.filter(item => item.id !== task.id))
-          onGoalLinksChanged()
-        }),
-      }]} />
-    </li>
+    return <GoalTaskRow key={task.id} task={task} disabled={disabled} readOnly={readOnly}
+      onToggle={() => void run(() => onToggleTask(task.id))}
+      onDetach={() => void run(async () => {
+        await setGoalTask(goalId, task.id, false)
+        setAttached(current => current.filter(item => item.id !== task.id))
+        onGoalLinksChanged()
+      })} />
   }
 
   return <div className="goal-tasks" id={`goal-tasks-${goalId}`}>

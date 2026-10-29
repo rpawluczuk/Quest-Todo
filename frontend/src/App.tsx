@@ -1,3 +1,4 @@
+import { SubtaskProvider } from './components/SubtaskProvider'
 import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase, type User } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
 import { createReward, deleteReward, getRewards, updateReward } from './api/rewardApi'
@@ -490,4 +491,6 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   )
 }
 
-export default App
+export default function AppWithSubtasks(props: AppProps) {
+  return <SubtaskProvider><App {...props} /></SubtaskProvider>
+}
