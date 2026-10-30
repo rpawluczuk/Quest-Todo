@@ -74,7 +74,7 @@ try {
   assert.deepEqual(await waitingPanel.locator('h3').allTextContents(), ['Wstrzymane', 'Zaplanowane'])
   assert.deepEqual(await waitingPanel.locator('.habit-waiting-title').allTextContents(), all.slice(3).map(h => h.name))
   assert.equal(await waitingPanel.getByRole('checkbox').count(), 0)
-  assert.equal(await waitingPanel.getByRole('button').count(), 2)
+  assert.equal(await waitingPanel.getByRole('button', { name: /Rozpocznij nawyk/ }).count(), 2)
   assert.equal(await waitingPanel.getByRole('button', { name: /Wznów nawyk/ }).count(), 2)
   assert.equal(await waitingPanel.locator('.habit-progress-summary,.task-points,.habit-completion-bonus').count(), 0)
   await waiting.focus(); await page.keyboard.press('ArrowLeft')

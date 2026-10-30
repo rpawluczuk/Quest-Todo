@@ -36,3 +36,14 @@ test('multiple independent status writes and resuming preserve the newest respon
   const merged = updates.merge([habit(1, 'PAUSED'), habit(2, 'ACTIVE')], read)
   assert.deepEqual(merged.map(h => h.activityStatus), ['ACTIVE', 'PAUSED'])
 })
+
+test('a read started before creation cannot remove a new planned habit or revert its later start', () => {
+  const updates = createHabitStatusUpdates()
+  const read = updates.version()
+  updates.created(habit(3, 'PLANNED'))
+  assert.deepEqual(updates.merge([], read).map(h => h.activityStatus), ['PLANNED'])
+  updates.saved(3, 'ACTIVE')
+  assert.deepEqual(updates.merge([], read).map(h => h.activityStatus), ['ACTIVE'])
+  assert.equal(updates.merge([habit(3, 'ACTIVE')], read).length, 1)
+  assert.deepEqual(updates.merge([], updates.version()), []) // A later authoritative deletion wins.
+})

@@ -110,6 +110,22 @@ class HabitWaitingRoomRewardsTests {
         assertEquals(0, snapshot(id).totalCompletions()); assertEquals(0, balance());
         complete(id, today); assertEquals(3, balance());
     }
+    @Test void plannedStartOnFridayRequiresFullWeeklyTargetAndLeavesStartWeekNeutral() {
+        long id = create(3, null, 20, MONDAY.plusDays(20), 80, HabitStatus.PLANNED);
+        at(MONDAY.plusDays(4)); change(id, HabitStatus.ACTIVE);
+        conflict(() -> complete(id, MONDAY.plusDays(3)));
+        at(MONDAY.plusDays(5)); complete(id, today);
+        at(MONDAY.plusDays(6)); complete(id, today);
+        assertEquals(2, snapshot(id).weeklyCompletedDays());
+        assertEquals(0, balance()); assertEquals(0, awards(id));
+        at(MONDAY.plusWeeks(1));
+        assertEquals(0, snapshot(id).regularity().totalWeeks());
+        for (int day = 0; day < 3; day++) { at(MONDAY.plusWeeks(1).plusDays(day)); complete(id, today); }
+        assertEquals(3, balance()); assertEquals(1, awards(id));
+        at(MONDAY.plusWeeks(2));
+        assertEquals(1, snapshot(id).regularity().totalWeeks());
+        assertEquals(1, snapshot(id).regularity().successfulWeeks());
+    }
     @Test void pastActiveDaysRemainCorrectableDuringPauseWithoutAwardingForPausedDates() {
         long id = create(2);
         complete(id, MONDAY); at(MONDAY.plusDays(2)); change(id, HabitStatus.PAUSED);

@@ -14,7 +14,7 @@ import HabitTargetField from './HabitTargetField'
 
 export type CreateHabitFormHandle = {
   open: (trigger?: HTMLButtonElement, initialGoalId?: number | null,
-    onCreated?: (goalIds: number[]) => void) => void
+    onCreated?: (goalIds: number[]) => void, initialStatus?: 'ACTIVE' | 'PLANNED') => void
 }
 
 function defaultSchedule(startDate: string): HabitSchedule {
@@ -24,7 +24,7 @@ function defaultSchedule(startDate: string): HabitSchedule {
 
 const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   onAdd: (name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
-    categoryId: number | null, goalIds: number[]) => Promise<void>
+    categoryId: number | null, goalIds: number[], activityStatus: 'ACTIVE' | 'PLANNED') => Promise<void>
   onCreated?: () => void
 }>(function CreateHabitForm({ onAdd, onCreated }, ref) {
   const [open, setOpen] = useState(false)
@@ -38,8 +38,11 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   const [goalIds, setGoalIds] = useState<number[]>([])
   const [initialGoalIds, setInitialGoalIds] = useState<number[]>([])
   const [categoryId, setCategoryId] = useState<number | null>(null)
+  const [activityStatus, setActivityStatus] = useState<'ACTIVE' | 'PLANNED'>('ACTIVE')
+  const [initialStatus, setInitialStatus] = useState<'ACTIVE' | 'PLANNED'>('ACTIVE')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const savingRequest = useRef(false)
   const [categorySaving, setCategorySaving] = useState(false)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
   const returnFocus = useRef<HTMLButtonElement | null>(null)
@@ -52,9 +55,11 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   const currentValues: HabitFormValues = { name, targetDays, rewardPoints, description, schedule, categoryId, goalIds }
   const initialValues: HabitFormValues = { name: '', targetDays: 7, rewardPoints: '1', description: '',
     schedule: defaultSchedule(initialStartDate), categoryId: null, goalIds: initialGoalIds }
-  const hasUnsavedChanges = habitFormChanged(currentValues, initialValues)
+  const hasUnsavedChanges = habitFormChanged(currentValues, initialValues) || activityStatus !== initialStatus
 
-  function resetForm(startDate = habitToday(), selectedGoalIds: number[] = []) {
+  function resetForm(startDate = habitToday(), selectedGoalIds: number[] = [], status: 'ACTIVE' | 'PLANNED' = 'ACTIVE') {
+    setActivityStatus(status)
+    setInitialStatus(status)
     setInitialStartDate(startDate)
     setName('')
     setTargetDays(7)
@@ -76,16 +81,16 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
   }
 
   function requestClose() {
-    if (saving) return
+    if (savingRequest.current) return
     if (hasUnsavedChanges) setDiscardDialogOpen(true)
     else closeForm()
   }
 
   useImperativeHandle(ref, () => ({
-    open(trigger, initialGoalId = null, onFormCreated) {
+    open(trigger, initialGoalId = null, onFormCreated, status = 'ACTIVE') {
       const startDate = habitToday()
       returnFocus.current = trigger ?? null
-      resetForm(startDate, initialGoalId === null ? [] : [initialGoalId])
+      resetForm(startDate, initialGoalId === null ? [] : [initialGoalId], status)
       createdCallback.current = onFormCreated ?? null
       setOpen(true)
     },
@@ -111,20 +116,22 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (saving) return
+    if (savingRequest.current) return
     const trimmedName = name.trim()
     if (!trimmedName) { setError('Wpisz nazwę nawyku.'); input.current?.focus(); return }
     if (trimmedName.length > 120) { setError('Nazwa nawyku może mieć maksymalnie 120 znaków.'); input.current?.focus(); return }
+    savingRequest.current = true
     setSaving(true)
     setError('')
     try {
-      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule, categoryId, goalIds)
+      await onAdd(trimmedName, targetDays, Number(rewardPoints), description.trim(), schedule, categoryId, goalIds, activityStatus)
       onCreated?.()
       createdCallback.current?.(goalIds)
       closeForm()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się dodać nawyku.')
     } finally {
+      savingRequest.current = false
       setSaving(false)
     }
   }
@@ -163,6 +170,13 @@ const CreateHabitForm = forwardRef<CreateHabitFormHandle, {
           <GoalPicker selectedIds={goalIds} onChange={setGoalIds} disabled={saving} />
           <HabitAdditionalSettings description={description} schedule={schedule} disabled={saving}
             onDescriptionChange={setDescription} onScheduleChange={setSchedule} />
+          <fieldset className="habit-start-options" disabled={saving}>
+            <legend>Rozpoczęcie nawyku</legend>
+            <label><input type="radio" name={`${dialogTitleId}-start`} checked={activityStatus === 'ACTIVE'}
+              onChange={() => setActivityStatus('ACTIVE')} />Rozpocznij teraz</label>
+            <label><input type="radio" name={`${dialogTitleId}-start`} checked={activityStatus === 'PLANNED'}
+              onChange={() => setActivityStatus('PLANNED')} />Dodaj do Poczekalni</label>
+          </fieldset>
           <div className="task-actions habit-form-actions">
             <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Zapisz'}</button>
             <button type="button" className="secondary-button" disabled={saving} onClick={requestClose}>Anuluj</button>

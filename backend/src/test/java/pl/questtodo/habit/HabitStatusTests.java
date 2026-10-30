@@ -120,6 +120,33 @@ class HabitStatusTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.activityStatus").value("PLANNED"));
         assertEquals(1, periodCount(id));
     }
+    @Test void plannedConfigurationCanBeEditedAndStartedWithoutLosingGoalsOrAwardingPoints() throws Exception {
+        jdbc.update("INSERT INTO goals(id,user_id,title) VALUES(9001,1,'Goal')");
+        mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Planned", "targetDays":3, "rewardPoints":2, "activityStatus":"PLANNED",
+                 "completionLimit":150, "completionBonusPoints":15, "goalIds":[9001]}
+                """)).andExpect(status().isCreated());
+        long id = jdbc.queryForObject("SELECT MAX(id) FROM habits", Long.class);
+        mvc.perform(put("/api/habits/{id}/configuration", id).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Edited", "targetDays":4, "rewardPoints":5, "description":"Notes", "startDate":"2026-10-30",
+                 "completionLimit":120, "completionBonusPoints":20, "replaceCompletionBonus":true,
+                 "goalIds":[9001]}
+                """)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.habit.activityStatus").value("PLANNED"));
+        assertEquals(1, periodCount(id));
+        when(calendar.now()).thenReturn(NOW.plusSeconds(5));
+        change(id, "ACTIVE"); change(id, "ACTIVE");
+        mvc.perform(get("/api/habits")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Edited"))
+                .andExpect(jsonPath("$[0].latestTarget.targetDays").value(4))
+                .andExpect(jsonPath("$[0].completionLimit").value(120))
+                .andExpect(jsonPath("$[0].completionBonusPoints").value(20))
+                .andExpect(jsonPath("$[0].goalIds[0]").value(9001));
+        assertEquals(2, periodCount(id));
+        assertEquals(NOW.plusSeconds(5), statuses.history(id).getLast().startedAt());
+        assertEquals(0, jdbc.queryForObject("SELECT points FROM users WHERE id=1", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM goal_habits WHERE habit_id=?", Integer.class, id));
+    }
     @Test void pausesPreserveCompletionsAwardsGoalsBonusTargetsAndBalance() throws Exception {
         long id = create(null);
         jdbc.update("INSERT INTO goals(id,user_id,title) VALUES(9001,1,'Goal')");

@@ -140,3 +140,16 @@ Walidacja aktywności, zapis wykonania i naliczenie nagrody odbywają się pod t
 samą blokadą nawyku co przejścia statusów. Dwa równoczesne żądania wykonania
 i wstrzymania zostają zserializowane: zapis po wstrzymaniu jest odrzucony,
 chyba że jest tylko ponowieniem już zapisanego wykonania.
+
+## Tworzenie i rozpoczynanie zaplanowanych nawyków (etap 5)
+
+Wspólny formularz tworzenia pozwala wybrać „Rozpocznij teraz” (`ACTIVE`) lub
+„Dodaj do Poczekalni” (`PLANNED`). Przycisk w nagłówku domyślnie wybiera status
+odpowiadający bieżącej zakładce. Utworzenie nie przełącza zakładki.
+POST `/api/habits` przesyła `activityStatus`, zgodnie z istniejącym kontraktem.
+
+Zaplanowany nawyk można edytować tym samym formularzem konfiguracji, bez zmiany
+statusu. Akcja „Rozpocznij” wywołuje PATCH `/api/habits/{id}/status` z
+`{"status":"ACTIVE"}`; po potwierdzeniu ten sam rekord przechodzi do Aktywnych.
+Backend ustala moment rozpoczęcia i zachowuje ustawienia oraz przypisane cele.
+Frontend nie nalicza punktów ani nie tworzy okresów historii.

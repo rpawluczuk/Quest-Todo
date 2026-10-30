@@ -48,14 +48,15 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
   async function changeStatus(habit: Habit, next: 'ACTIVE' | 'PAUSED') {
     if (busy || !((habit.activityStatus ?? 'ACTIVE') === 'ACTIVE' && next === 'PAUSED'
-      || habit.activityStatus === 'PAUSED' && next === 'ACTIVE') || !statusUpdates.begin(habit.id)) return
+      || (habit.activityStatus === 'PAUSED' || habit.activityStatus === 'PLANNED') && next === 'ACTIVE') || !statusUpdates.begin(habit.id)) return
     setPendingStatusIds(statusUpdates.pendingIds())
     try {
       const saved = await changeHabitStatus(habit.id, next)
       statusUpdates.saved(saved.id, next)
       // The endpoint's daily/weekly counts describe today. Preserve the selected day's data.
       setHabits(current => current.map(item => item.id === saved.id ? { ...item, activityStatus: saved.activityStatus } : item))
-      setStatusNotice({ message: next === 'PAUSED' ? 'Nawyk został wstrzymany' : 'Nawyk został wznowiony', error: false })
+      setStatusNotice({ message: next === 'PAUSED' ? 'Nawyk został wstrzymany'
+        : habit.activityStatus === 'PLANNED' ? 'Nawyk został rozpoczęty' : 'Nawyk został wznowiony', error: false })
       requestAnimationFrame(() => {
         if (document.activeElement === document.body)
           document.querySelector<HTMLButtonElement>('.habit-tabs [aria-selected="true"]')?.focus()
@@ -116,7 +117,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
     <div className="section-header section-header-with-action">
       <h2 id="habits-heading">Nawyki</h2>
       <button type="button" className="add-task-header-button" aria-label="Dodaj nawyk" title="Dodaj nawyk"
-        onClick={event => createHabitForm.current?.open(event.currentTarget)}>
+        onClick={event => createHabitForm.current?.open(event.currentTarget, null, undefined, tab === 'waiting' ? 'PLANNED' : 'ACTIVE')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 5v14M5 12h14" />
@@ -124,6 +125,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
       </button>
     </div>
     <HabitDayList habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+      onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} tab={tab} onTabChange={setTab} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
       onCompletionSaved={completionSaved} createHabitForm={createHabitForm} onHabitCreated={onHabitCreated} />
@@ -139,7 +141,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, tab, onTabChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated }: {
+  onHabitCreated, onCreatedNotice }: {
   habits: Habit[]; setHabits: Dispatch<SetStateAction<Habit[]>>
   statusUpdates: ReturnType<typeof createHabitStatusUpdates>
   pendingStatusIds: ReadonlySet<number>
@@ -150,6 +152,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
   createHabitForm: RefObject<CreateHabitFormHandle | null>
   onHabitCreated: () => void
   syncRevision: number
+  onCreatedNotice: (message: string) => void
 }) {
   const savingCompletion = useRef(false)
   const [loading, setLoading] = useState(true)
@@ -213,12 +216,14 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
   }
 
   async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
-    categoryId: number | null, goalIds: number[]) {
+    categoryId: number | null, goalIds: number[], activityStatus: 'ACTIVE' | 'PLANNED') {
     if (busy) throw new Error('Poczekaj na zakończenie zapisu.')
     onBusy(true)
     try {
-      await createHabit(name, targetDays, rewardPoints, description, schedule, categoryId, goalIds)
-      accept(await load())
+      const created = await createHabit(name, targetDays, rewardPoints, description, schedule, categoryId, goalIds, activityStatus)
+      statusUpdates.created(created)
+      setHabits(current => [...current.filter(item => item.id !== created.id), created])
+      onCreatedNotice(activityStatus === 'PLANNED' ? 'Nawyk został dodany do Poczekalni' : 'Nawyk został utworzony')
     } finally {
       onBusy(false)
     }
@@ -428,7 +433,8 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
         <div role="tabpanel" id="habit-panel-waiting" aria-labelledby="habit-tab-waiting" hidden={tab !== 'waiting'}>
           <HabitWaitingRoom paused={lists.paused} planned={lists.planned}
             pendingIds={pendingStatusIds} disabled={busy || editingId !== null}
-            onResume={habit => void onStatusChange(habit, 'ACTIVE')} />
+            onResume={habit => void onStatusChange(habit, 'ACTIVE')}
+            onStart={habit => void onStatusChange(habit, 'ACTIVE')} onEdit={habit => setEditingId(habit.id)} />
         </div>
         {editingHabit && <EditHabitForm habit={editingHabit}
           onSave={(name, targetDays, points, description, schedule, categoryId, goalIds) =>

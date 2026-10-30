@@ -83,7 +83,7 @@ try {
   await pausedCard(1).getByText('Wstrzymany', { exact: true }).waitFor()
   assert.equal(await waitingPanel.getByRole('checkbox').count(), 0)
   assert.equal(await waitingPanel.getByRole('menuitem').count(), 0)
-  assert.equal(await pausedCard(6).getByRole('button').count(), 0)
+  assert.equal(await pausedCard(6).getByRole('button', { name: /Wznów nawyk/ }).count(), 0)
   await pausedCard(1).getByRole('button', { name: /Wznów nawyk/ }).click()
   await page.getByRole('status').filter({ hasText: 'Nawyk został wznowiony' }).waitFor()
   assert.equal(await waiting.getAttribute('aria-selected'), 'true')
