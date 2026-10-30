@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface HabitRepository extends JpaRepository<HabitEntity, Long> {
+    boolean existsByIdAndUserId(long id, long userId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select h from HabitEntity h where h.id = :id")
     Optional<HabitEntity> findForSettlement(@Param("id") long id);

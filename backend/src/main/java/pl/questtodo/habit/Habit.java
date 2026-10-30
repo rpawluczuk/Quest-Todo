@@ -14,7 +14,7 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                     List<String> goalTitles, HabitRegularity regularity,
                     boolean completionBonusGranted, LocalDate completionBonusSettledOn,
                     Boolean completionBonusEverGranted, boolean completionBonusConditionsLocked,
-                    boolean completionBonusTargetLocked, Integer completionBonusAwardPoints) {
+                    boolean completionBonusTargetLocked, Integer completionBonusAwardPoints, HabitStatus activityStatus) {
     public Habit withGoals(List<Long> ids, List<String> titles) {
         return new Habit(id, name, createdOn, completed, target, latestTarget, weeklyCompletedDays, rewardPoints,
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
@@ -22,7 +22,7 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                 endedOn, endReason, category, List.copyOf(ids), List.copyOf(titles),
                 regularity, completionBonusGranted, completionBonusSettledOn,
                 completionBonusEverGranted, completionBonusConditionsLocked,
-                completionBonusTargetLocked, completionBonusAwardPoints);
+                completionBonusTargetLocked, completionBonusAwardPoints, activityStatus);
     }
     public Habit withCompletionBonus(HabitRegularity regularity, boolean granted, LocalDate settledOn,
             Boolean everGranted, boolean locked, boolean targetLocked, Integer awardPoints) {
@@ -30,6 +30,6 @@ public record Habit(long id, String name, LocalDate createdOn, boolean completed
                 weeklyRewardGranted, description, startDate, endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category, goalIds, goalTitles, regularity, granted, settledOn,
-                everGranted, locked, targetLocked, awardPoints);
+                everGranted, locked, targetLocked, awardPoints, activityStatus);
     }
 }

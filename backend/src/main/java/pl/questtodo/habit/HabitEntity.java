@@ -36,6 +36,13 @@ public class HabitEntity {
     @Column(name = "created_on", nullable = false, updatable = false)
     private LocalDate createdOn;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "activity_status", nullable = false, length = 16)
+    private HabitStatus activityStatus = HabitStatus.ACTIVE;
+
+    public HabitStatus getActivityStatus() { return activityStatus; }
+    void changeActivityStatus(HabitStatus status) { activityStatus = status; }
+
     @Column(name = "reward_points", nullable = false)
     private int rewardPoints;
 
@@ -108,7 +115,7 @@ public class HabitEntity {
                 weeklyRewardGranted, description, getStartDate(), endDate, completionLimit,
                 completionBonusPoints, requiredSuccessPercent, totalCompletions, status,
                 endedOn, endReason, category == null ? null : category.toCategory(),
-                java.util.List.of(), java.util.List.of(), null, false, null, false, false, false, null);
+                java.util.List.of(), java.util.List.of(), null, false, null, false, false, false, null, activityStatus);
     }
 
     public long getId() { return id; }

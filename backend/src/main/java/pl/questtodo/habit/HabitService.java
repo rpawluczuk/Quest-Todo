@@ -37,13 +37,14 @@ public class HabitService {
     private final GoalHabitRepository goalHabits;
     private final GoalRepository goals;
     private final CategoryRepository categories;
+    private final HabitStatusService statuses;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
                         HabitAwardRepository awards, HabitCompletionBonusAwardRepository completionBonusAwards,
                         HabitCompletionBonusService completionBonuses,
                         GoalHabitRepository goalHabits, GoalRepository goals,
-                        CategoryRepository categories) {
+                        CategoryRepository categories, HabitStatusService statuses) {
         this.habits = habits;
         this.users = users;
         this.currentUser = currentUser;
@@ -56,6 +57,7 @@ public class HabitService {
         this.goalHabits = goalHabits;
         this.goals = goals;
         this.categories = categories;
+        this.statuses = statuses;
     }
 
     @Transactional(readOnly = true)
@@ -123,6 +125,14 @@ public class HabitService {
     public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
                              LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
                              Long categoryId, Integer completionBonusPoints, Integer requiredSuccessPercent) {
+        return createHabit(name, targetDays, rewardPoints, description, startDate, endDate, completionLimit,
+                goalIds, categoryId, completionBonusPoints, requiredSuccessPercent, null);
+    }
+
+    public Habit createHabit(String name, Integer targetDays, Integer rewardPoints, String description,
+                             LocalDate startDate, LocalDate endDate, Integer completionLimit, List<Long> goalIds,
+                             Long categoryId, Integer completionBonusPoints, Integer requiredSuccessPercent,
+                             HabitStatus activityStatus) {
         var selectedGoals = ownedGoals(goalIds == null ? List.of() : goalIds);
         var category = ownedCategory(categoryId);
         LocalDate today = calendar.today();
@@ -130,6 +140,7 @@ public class HabitService {
         validateSchedule(start, endDate, completionLimit);
         validateCompletionBonus(endDate, completionLimit, completionBonusPoints, requiredSuccessPercent);
         HabitEntity habit = habits.save(new HabitEntity(name, category, users.currentReference(), today));
+        statuses.initialize(habit, activityStatus);
         habit.schedule(start, endDate, completionLimit);
         habit.setCompletionBonus(completionBonusPoints, requiredSuccessPercent);
         habit.setRewardPoints(rewardPoints == null ? 0 : rewardPoints);
@@ -304,6 +315,7 @@ public class HabitService {
         completionBonusAwards.deleteById(id);
         completions.deleteByHabitId(id);
         targets.deleteByHabit_Id(id);
+        statuses.deleteHistory(id);
         habits.delete(habit);
     }
 
@@ -322,6 +334,9 @@ public class HabitService {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
         boolean existingCompletion = completions.existsByHabitIdAndDate(id, date);
+        if (completed && !existingCompletion && habit.getActivityStatus() != HabitStatus.ACTIVE)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Nie można dodawać wykonań zaplanowanego lub wstrzymanego nawyku.");
         boolean outsideActivePeriod = date.isBefore(habit.getStartDate())
                 || (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
                 || (habit.getEndedOn() != null && !date.isBefore(habit.getEndedOn()));
@@ -383,6 +398,10 @@ public class HabitService {
                 completions.countByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)),
                 awards.existsByHabit_IdAndWeekStart(habit.getId(), monday), completions.countByHabitId(habit.getId()),
                 completions.countByHabitIdAndDateLessThanEqual(habit.getId(), date));
+    }
+
+    public Habit changeStatus(long id, HabitStatus status) {
+        return withGoalTitles(snapshot(statuses.change(id, status), calendar.today()));
     }
 
     private Habit withGoalTitles(Habit habit) {

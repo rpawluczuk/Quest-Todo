@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
+import pl.questtodo.habit.HabitStatus;
 
 public record HabitRequest(
         @NotBlank(message = "Podaj nazwę nawyku.")
@@ -25,4 +26,5 @@ public record HabitRequest(
         Boolean replaceCompletionBonus,
         @Positive(message = "Identyfikator kategorii musi być dodatni.") Long categoryId,
         @Size(max = 100, message = "Możesz przypisać maksymalnie 100 celów.")
-        List<@Positive Long> goalIds) {}
+        List<@Positive Long> goalIds,
+        HabitStatus activityStatus) {}

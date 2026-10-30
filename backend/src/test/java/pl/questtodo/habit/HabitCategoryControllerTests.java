@@ -36,6 +36,7 @@ class HabitCategoryControllerTests {
     void prepare() {
         when(currentUser.getUserId()).thenReturn(1L);
         when(calendar.today()).thenReturn(LocalDate.of(2026, 10, 15));
+        when(calendar.now()).thenReturn(java.time.Instant.parse("2026-10-15T12:00:00Z"));
         jdbc.update("DELETE FROM habits");
         jdbc.update("DELETE FROM categories");
         jdbc.update("DELETE FROM users WHERE id = 2");

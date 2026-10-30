@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pl.questtodo.habit.dto.HabitRequest;
 import pl.questtodo.habit.dto.EndHabitRequest;
+import pl.questtodo.habit.dto.HabitStatusRequest;
 
 @RestController
 @RequestMapping("/api/habits")
@@ -27,9 +29,11 @@ public class HabitController {
     }
 
     private final HabitService habits;
+    private final HabitStatusService statuses;
 
-    public HabitController(HabitService habits) {
+    public HabitController(HabitService habits, HabitStatusService statuses) {
         this.habits = habits;
+        this.statuses = statuses;
     }
 
     @GetMapping
@@ -43,11 +47,12 @@ public class HabitController {
     public Habit createHabit(@Valid @RequestBody HabitRequest request) {
         return habits.createHabit(request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
                 request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
-                request.completionBonusPoints(), request.requiredSuccessPercent());
+                request.completionBonusPoints(), request.requiredSuccessPercent(), request.activityStatus());
     }
 
     @PutMapping("/{id}")
     public Habit updateHabit(@PathVariable long id, @Valid @RequestBody HabitRequest request) {
+        rejectStatusEdit(request);
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
                 request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
                 request.completionBonusPoints(), request.requiredSuccessPercent(), Boolean.TRUE.equals(request.replaceCompletionBonus())).habit();
@@ -56,6 +61,7 @@ public class HabitController {
     @PutMapping("/{id}/configuration")
     public HabitCompletionResult updateHabitConfiguration(@PathVariable long id,
                                                            @Valid @RequestBody HabitRequest request) {
+        rejectStatusEdit(request);
         return habits.updateHabit(id, request.name().strip(), request.targetDays(), request.rewardPoints(), request.description(),
                 request.startDate(), request.endDate(), request.completionLimit(), request.goalIds(), request.categoryId(),
                 request.completionBonusPoints(), request.requiredSuccessPercent(), Boolean.TRUE.equals(request.replaceCompletionBonus()));
@@ -85,5 +91,21 @@ public class HabitController {
     @PostMapping("/{id}/awards/{awardId}/undo")
     public HabitCompletionResult undo(@PathVariable long id, @PathVariable java.util.UUID awardId) {
         return habits.undoAward(id, awardId);
+    }
+
+    @PatchMapping("/{id}/status")
+    public Habit changeStatus(@PathVariable long id, @Valid @RequestBody HabitStatusRequest request) {
+        return habits.changeStatus(id, request.status());
+    }
+
+    @GetMapping("/{id}/status-history")
+    public List<HabitStatusPeriodResponse> statusHistory(@PathVariable long id) {
+        return statuses.history(id);
+    }
+
+    private void rejectStatusEdit(HabitRequest request) {
+        if (request.activityStatus() != null)
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Do zmiany statusu użyj endpointu /status.");
     }
 }
