@@ -15,7 +15,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:habit_status_gate;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
+@SpringBootTest(properties = {"spring.datasource.url=jdbc:h2:mem:habit_status_gate;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+        "app.habits.waiting-room-enabled=false"})
 @AutoConfigureMockMvc
 @org.springframework.context.annotation.Import(pl.questtodo.AuthenticatedApiTestConfiguration.class)
 class HabitStatusGateTests {
@@ -26,7 +27,7 @@ class HabitStatusGateTests {
         when(currentUser.getUserId()).thenReturn(1L);
         jdbc.update("DELETE FROM habits");
     }
-    @Test void waitingRoomIsNotExposedBeforeRewardAlgorithmsSupportIt() throws Exception {
+    @Test void waitingRoomCanStillBeDisabledByDeploymentConfiguration() throws Exception {
         mvc.perform(post("/api/habits").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Active\"}"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.activityStatus").value("ACTIVE"));
         long id = jdbc.queryForObject("SELECT id FROM habits", Long.class);

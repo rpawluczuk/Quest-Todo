@@ -1,25 +1,27 @@
-# Poczekalnia nawyków — etapy 1–2
+# Poczekalnia nawyków — etapy 1–4
 
 ## Udostępnienie i kompatybilność
 
 `Habit.activityStatus` przechowuje `ACTIVE`, `PLANNED` lub `PAUSED`.
 Dotychczasowe pole odpowiedzi `status` (`ACTIVE`, `UPCOMING`, `FINISHED`) nadal
 opisuje wynik istniejących zasad kalendarza i zakończenia na wybrany dzień.
-Nie zastępuj jednego pola drugim. Frontend nie zmienia się w tym etapie.
+Nie zastępuj jednego pola drugim. Frontend rozdziela te dwa znaczenia statusu.
 
-**Flaga `app.habits.waiting-room-enabled` jest domyślnie wyłączona.**
+**Od etapu 4 flaga `app.habits.waiting-room-enabled` jest domyślnie włączona.**
+Można ją wyłączyć przez `HABIT_WAITING_ROOM_ENABLED=false` lub właściwość Springa.
 Nowe nawyki `ACTIVE`, odczyt historii i idempotentne ustawienie bieżącego statusu
 działają także z wyłączoną flagą. Utworzenie `PLANNED` oraz rzeczywista zmiana
 statusu zwracają wtedy `503` z komunikatem biznesowym.
 
 Etap 2 uwzględnia okresy statusów w wykonaniach, nagrodach tygodniowych,
-regularności i rozliczeniach premii. Flaga pozostaje wyłączona jako kontrola
-udostępnienia funkcjonalności; frontend Poczekalni powstanie w kolejnych etapach.
-Nie trzeba już blokować jej włączenia z powodu braku obsługi przerw w rozliczeniach.
+regularności i rozliczeniach premii. Etap 4 udostępnia wstrzymywanie i wznawianie
+istniejących nawyków. Zmiana jest widoczna dopiero po potwierdzeniu zapisu,
+bez automatycznej zmiany zakładki. `PLANNED` nie ma jeszcze akcji rozpoczęcia
+ani wyboru w formularzu tworzenia (zakres etapu 5).
 
 Do ręcznych testów na izolowanych danych uruchom backend z argumentem
-`--app.habits.waiting-room-enabled=true`. Testy statusów włączają tę właściwość
-wyłącznie we własnym kontekście testowym.
+`--app.habits.waiting-room-enabled=true`. Test blokady konfiguracji sprawdza
+również jawne wyłączenie tej właściwości.
 
 ## API
 

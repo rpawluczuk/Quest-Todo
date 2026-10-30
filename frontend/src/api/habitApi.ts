@@ -16,6 +16,24 @@ export class HabitUpdateConflictError extends Error {
   constructor(message: string) { super(message); this.name = 'HabitUpdateConflictError' }
 }
 
+export async function changeHabitStatus(id: number, status: 'ACTIVE' | 'PAUSED'): Promise<Habit> {
+  let response: Response
+  try {
+    response = await apiFetch(`/api/habits/${id}/status`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    })
+  } catch (failure) {
+    if (failure instanceof TypeError) throw new Error('Nie udało się zmienić statusu. Sprawdź połączenie i spróbuj ponownie.')
+    throw failure
+  }
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Sesja wygasła. Zaloguj się ponownie.')
+    if (response.status === 404) throw new Error('Nawyk nie istnieje. Odśwież listę.')
+    throw new Error(await errorMessage(response, 'Nie udało się zmienić statusu nawyku. Spróbuj ponownie.'))
+  }
+  return response.json()
+}
+
 export async function setHabitCompletion(id: number, date: string, completed: boolean): Promise<HabitCompletionResult> {
   const response = await apiFetch(`/api/habits/${id}/completions/${encodeURIComponent(date)}`, {
     method: completed ? 'PUT' : 'DELETE',
