@@ -23,6 +23,12 @@ public record HabitRegularity(long successfulWeeks, long totalWeeks, BigDecimal 
 
     public static HabitRegularity calculate(LocalDate start, LocalDate end, LocalDate today,
                                             List<HabitTarget> targets, Set<LocalDate> completions) {
+        return calculate(start, end, today, targets, completions, new HabitActivityTimeline(List.of()));
+    }
+
+    public static HabitRegularity calculate(LocalDate start, LocalDate end, LocalDate today,
+                                            List<HabitTarget> targets, Set<LocalDate> completions,
+                                            HabitActivityTimeline activity) {
         var history = targets.stream().sorted(Comparator.comparing(HabitTarget::effectiveFrom)).toList();
         long total = 0, successful = 0;
         int index = 0;
@@ -34,6 +40,7 @@ public record HabitRegularity(long successfulWeeks, long totalWeeks, BigDecimal 
             if (!last.isBefore(today)) break;
             while (index < history.size() && !history.get(index).effectiveFrom().isAfter(monday))
                 target = history.get(index++);
+            if (!activity.fullyActive(first, last)) continue;
             total++;
             int days = (int) ChronoUnit.DAYS.between(first, last) + 1;
             int required = target == null ? Integer.MAX_VALUE : (target.targetDays() * days + 6) / 7;

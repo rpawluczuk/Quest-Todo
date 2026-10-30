@@ -20,16 +20,18 @@ public class HabitCompletionBonusService {
     private final HabitTargetRepository targets;
     private final HabitCalendar calendar;
     private final UserRepository users;
+    private final HabitActivityService activity;
 
     public HabitCompletionBonusService(HabitRepository habits, HabitCompletionBonusAwardRepository awards,
             HabitCompletionRepository completions, HabitTargetRepository targets, HabitCalendar calendar,
-            UserRepository users) {
+            UserRepository users, HabitActivityService activity) {
         this.habits = habits;
         this.awards = awards;
         this.completions = completions;
         this.targets = targets;
         this.calendar = calendar;
         this.users = users;
+        this.activity = activity;
     }
 
     public void settle(long habitId) {
@@ -49,7 +51,7 @@ public class HabitCompletionBonusService {
                 targets.findByHabit_IdOrderByEffectiveFromAsc(habit.getId()).stream()
                         .map(HabitTargetEntity::toTarget).toList(),
                 completions.findByHabitIdAndDateBetween(habit.getId(), habit.getStartDate(), habit.getEndDate())
-                        .stream().map(HabitCompletionEntity::getDate).collect(Collectors.toSet()));
+                        .stream().map(HabitCompletionEntity::getDate).collect(Collectors.toSet()), activity.timeline(habit.getId()));
     }
 
     // Caller holds the habit lock. Account locking follows the same order as weekly awards.

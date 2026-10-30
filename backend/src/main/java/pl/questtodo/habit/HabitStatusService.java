@@ -69,7 +69,7 @@ public class HabitStatusService {
 
     private void requireEnabled() {
         if (!waitingRoomEnabled) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "Poczekalnia nawyków jest jeszcze niedostępna. Trwa przygotowanie rozliczania okresów wstrzymania.");
+                "Poczekalnia nawyków nie została jeszcze udostępniona.");
     }
     private static ResponseStatusException notFound() {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, "Nawyk nie istnieje.");

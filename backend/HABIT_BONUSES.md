@@ -1,12 +1,16 @@
 # Date-based habit completion bonuses
 
 Date-based bonuses use the existing `habit_completion_bonus_awards` ledger and account balance.
-Weekly rewards are unchanged.
+Weekly reward amounts and thresholds are unchanged. Status history is interpreted
+as described in [HABIT_STATUS.md](HABIT_STATUS.md).
 
 ## Regularity
 
 Weeks run Monday–Sunday. Only days between the start and end dates, inclusive, count.
 The required completions for a partial week are `ceil(historicalWeeklyTarget * activeDays / 7)`.
+Any positive `PAUSED` or `PLANNED` interval overlapping the accounting period makes
+that week neutral: it is excluded from both successful and total weeks, even if
+the weekly reward was earned. Only fully active periods contribute to regularity.
 Every included week has equal weight; surplus completions do not compensate for another week.
 While the habit is running, only finished periods contribute to regularity.
 Eligibility uses an exact comparison of counts; the displayed percentage is rounded to two decimals.

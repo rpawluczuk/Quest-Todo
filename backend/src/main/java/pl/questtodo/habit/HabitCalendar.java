@@ -6,8 +6,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class HabitCalendar {
+    public static final ZoneId ZONE = ZoneId.of("Europe/Warsaw");
     public java.time.Instant now() { return java.time.Instant.now(); }
     public LocalDate today() {
-        return LocalDate.now(ZoneId.of("Europe/Warsaw"));
+        return LocalDate.now(ZONE);
     }
 }

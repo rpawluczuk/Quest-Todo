@@ -1,4 +1,4 @@
-# Poczekalnia nawyków — etap 1
+# Poczekalnia nawyków — etapy 1–2
 
 ## Udostępnienie i kompatybilność
 
@@ -12,13 +12,10 @@ Nowe nawyki `ACTIVE`, odczyt historii i idempotentne ustawienie bieżącego stat
 działają także z wyłączoną flagą. Utworzenie `PLANNED` oraz rzeczywista zmiana
 statusu zwracają wtedy `503` z komunikatem biznesowym.
 
-Obecny `HabitBonusSettlementJob` oraz `HabitCompletionBonusService` rozliczają
-tygodnie według dat rozpoczęcia/zakończenia i historii progów. Nie znają jeszcze
-okresów wstrzymania. Również zwykła edycja konfiguracji może uruchamiać rozliczenie.
-Dlatego nie włączaj flagi w środowisku użytkowników przed etapem 2. Samo pomijanie
-aktualnie wstrzymanych nawyków w jobie nie wystarczyłoby: błędne rozliczenie
-mogłoby nastąpić po ich wznowieniu. Etap 1 nie zmienia algorytmów nagród ani
-regularności i nie wdraża nowej semantyki historycznych korekt wykonań.
+Etap 2 uwzględnia okresy statusów w wykonaniach, nagrodach tygodniowych,
+regularności i rozliczeniach premii. Flaga pozostaje wyłączona jako kontrola
+udostępnienia funkcjonalności; frontend Poczekalni powstanie w kolejnych etapach.
+Nie trzeba już blokować jej włączenia z powodu braku obsługi przerw w rozliczeniach.
 
 Do ręcznych testów na izolowanych danych uruchom backend z argumentem
 `--app.habits.waiting-room-enabled=true`. Testy statusów włączają tę właściwość
@@ -76,17 +73,26 @@ Odpowiedź `200` (chronologicznie, przy jednakowych czasach według kolejności 
 ```
 
 Daty ustala wyłącznie serwer. Historia nie ma endpointów edycji ani usuwania.
-Nowe wykonania dla `PLANNED` i `PAUSED` są blokowane (`409`). Istniejące wykonania
-oraz dotychczasowa obsługa ich cofania pozostają zachowane. Szczegółowe reguły
-korekt historycznych z uwzględnieniem statusu w dniu wykonania należą do etapu 2.
+Nowe wykonanie dzisiejsze wymaga `ACTIVE` w chwili zapisu, pod blokadą nawyku.
+Status zmieniony w trakcie dnia jest więc respektowany natychmiast. Historyczna
+data może być poprawiana, jeśli nawyk był aktywny przez choć część tego dnia
+w strefie Europe/Warsaw. Sam status `ACTIVE` dzisiaj nie pozwala uzupełniać
+całych dni spędzonych w `PAUSED` lub `PLANNED`. Istniejące ograniczenia dat
+rozpoczęcia, końca i limitu wykonań nadal obowiązują.
+
+Cofnięcie istniejącego wykonania (również w oknie cofnięcia nagrody) wymaga
+aktywności w jego dniu. Można zatem poprawiać wcześniejsze aktywne dni podczas
+obecnej pauzy. Ponowienie PUT dla już zapisanego wykonania jest bez zmian.
+Niedozwolona korekta zwraca `409`. Klient nie ustala kwalifikacji dnia/tygodnia.
 
 ## Integralność i migracja
 
 - Migracja `V45` ustawia wszystkie stare nawyki jako `ACTIVE` i zapisuje ich
   początkowy okres od chwili migracji. `created_on` jest datą bez godziny,
   więc nie służy do odtwarzania pozornego momentu utworzenia.
-- Historia przed migracją jest nieznana, a nie wstrzymana. Etap 2 musi zachować
-  wcześniejszą semantykę takich dni.
+- Początkowy okres `ACTIVE` oznacza zachowanie aktywnej interpretacji wcześniejszych
+  dni, także przed migracją. Brak historii w starym rekordzie również zachowuje
+  wcześniejszą semantykę. Pierwszy okres `PLANNED` nie tworzy wcześniejszej aktywności.
 - Przedziały to `[startedAt, endedAt)`, zapisane jako `Instant` (UTC) z precyzją
   mikrosekund. Granica kończąca poprzedni okres jest początkiem kolejnego.
   Przy tej samej chwili mogą istnieć puste okresy; kolejność zachowuje `id`.
@@ -100,6 +106,35 @@ korekt historycznych z uwzględnieniem statusu w dniu wykonania należą do etap
 - Usunięcie nawyku usuwa historię przez FK `ON DELETE CASCADE`. Zmiana statusu
   nie zmienia wykonań, punktów, premii, progów ani powiązań z celami.
 
-W etapie 2 do obliczeń posłużą `HabitStatusPeriod`, uporządkowana historia,
-bieżący `activityStatus` i serwerowe granice UTC. Należy uwzględnić wszystkie
-okresy, także wcześniejsze pauzy nawyku, który obecnie znów jest aktywny.
+## Nagrody i regularność (etap 2)
+
+`HabitActivityTimeline` jest wspólną interpretacją historii i granic dni/tygodni.
+Lokalny dzień jest przedziałem od północy do następnej północy w Europe/Warsaw,
+co uwzględnia dni 23- i 25-godzinne. Okresy statusów pozostają przedziałami UTC.
+
+- Nagroda tygodniowa wymaga pełnego dotychczasowego progu, także w tygodniu
+  częściowo aktywnym. Nie ma proporcjonalnego obniżania progu z powodu pauzy.
+  Liczą się wykonania z dni, w których nawyk rzeczywiście był aktywny.
+- Zmiana statusu nie przyznaje ani nie odbiera punktów. Wznowienie nie odtwarza
+  nagród. Istniejąca unikalność nagrody i blokada rodzica chronią przed duplikatami.
+- Zwykłe cofnięcie wykonania nadal nie odbiera już zdobytej nagrody tygodniowej.
+  Jawne cofnięcie nagrody w dotychczasowym oknie czasowym działa jak wcześniej.
+- Dla regularności nawet krótki, dodatni czas `PAUSED`/`PLANNED` w ocenianym
+  przedziale czyni go neutralnym, również gdy tygodniowy próg został osiągnięty.
+  Tydzień neutralny nie zwiększa licznika ani mianownika regularności.
+- Przedział oceny nadal jest przycięty do dat rozpoczęcia i zakończenia nawyku.
+  Przerwa poza tym przedziałem nie unieważnia tygodnia. Dotychczasowe proporcje
+  dla niepełnych tygodni wynikających z samych dat obowiązywania są zachowane.
+- Bieżący niezakończony okres nie jest oceniany. Przy zerze ocenionych tygodni
+  procent to `null`; nawet próg 1% nie daje wtedy premii.
+  Migracja `V46` pozwala utrwalić rozliczenie `0/0` wyłącznie bez aktywnej premii.
+- Premie datowe rozliczają się po końcu okresu według nowej regularności, także
+  w tle dla nawyku obecnie wstrzymanego. Liczy się cała historia, nie bieżący status.
+- Premie za liczbę wykonań i ich blokady pozostają bez zmian. Historyczne korekty
+  mogą cofnąć/przywrócić premię tak jak wcześniej; sama pauza nigdy tego nie robi.
+  Licznik całkowity i istniejące wykonania nie są usuwane ani zerowane.
+
+Walidacja aktywności, zapis wykonania i naliczenie nagrody odbywają się pod tą
+samą blokadą nawyku co przejścia statusów. Dwa równoczesne żądania wykonania
+i wstrzymania zostają zserializowane: zapis po wstrzymaniu jest odrzucony,
+chyba że jest tylko ponowieniem już zapisanego wykonania.

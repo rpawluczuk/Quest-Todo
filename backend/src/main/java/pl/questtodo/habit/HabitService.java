@@ -38,13 +38,14 @@ public class HabitService {
     private final GoalRepository goals;
     private final CategoryRepository categories;
     private final HabitStatusService statuses;
+    private final HabitActivityService activity;
 
     public HabitService(HabitRepository habits, UserService users, CurrentUserProvider currentUser,
                         HabitCompletionRepository completions, HabitCalendar calendar, HabitTargetRepository targets,
                         HabitAwardRepository awards, HabitCompletionBonusAwardRepository completionBonusAwards,
                         HabitCompletionBonusService completionBonuses,
                         GoalHabitRepository goalHabits, GoalRepository goals,
-                        CategoryRepository categories, HabitStatusService statuses) {
+                        CategoryRepository categories, HabitStatusService statuses, HabitActivityService activity) {
         this.habits = habits;
         this.users = users;
         this.currentUser = currentUser;
@@ -58,6 +59,7 @@ public class HabitService {
         this.goals = goals;
         this.categories = categories;
         this.statuses = statuses;
+        this.activity = activity;
     }
 
     @Transactional(readOnly = true)
@@ -253,11 +255,12 @@ public class HabitService {
         HabitAwardEntity award = null;
         Long balance = null;
         Habit current = snapshot(habit, today);
+        var eligibleCompletions = targetLowered ? eligibleWeeklyCompletions(habit, monday) : List.<HabitCompletionEntity>of();
         if (targetLowered && current.target() != null
-                && current.weeklyCompletedDays() >= current.target().targetDays()
+                && eligibleCompletions.size() >= current.target().targetDays()
                 && !current.weeklyRewardGranted()) {
-            var latestCompletion = completions.findFirstByHabitIdAndDateBetweenOrderByDateDescIdDesc(
-                    id, monday, monday.plusDays(6));
+            var latestCompletion = eligibleCompletions.stream().max(java.util.Comparator
+                    .comparing(HabitCompletionEntity::getDate).thenComparingLong(HabitCompletionEntity::getId));
             if (latestCompletion.isPresent()) {
                 award = grantAward(habit, monday, latestCompletion.get(), latestCompletion.get().getDate());
                 balance = users.lockCurrentUser().getPoints();
@@ -334,9 +337,7 @@ public class HabitService {
         HabitEntity habit = findForUpdate(id);
         validateDate(date);
         boolean existingCompletion = completions.existsByHabitIdAndDate(id, date);
-        if (completed && !existingCompletion && habit.getActivityStatus() != HabitStatus.ACTIVE)
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Nie można dodawać wykonań zaplanowanego lub wstrzymanego nawyku.");
+        activity.assertCompletionAllowed(habit, date, completed, existingCompletion);
         boolean outsideActivePeriod = date.isBefore(habit.getStartDate())
                 || (habit.getEndDate() != null && date.isAfter(habit.getEndDate()))
                 || (habit.getEndedOn() != null && !date.isBefore(habit.getEndedOn()));
@@ -354,7 +355,7 @@ public class HabitService {
                 completionChanged = true;
                 var snapshot = snapshot(habit, date);
                 LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                if (snapshot.target() != null && snapshot.weeklyCompletedDays() >= snapshot.target().targetDays()
+                if (snapshot.target() != null && eligibleWeeklyCompletions(habit, monday).size() >= snapshot.target().targetDays()
                         && !awards.existsByHabit_IdAndWeekStart(id, monday)) {
                     award = grantAward(habit, monday, completion, date);
                     balance = users.lockCurrentUser().getPoints();
@@ -383,6 +384,7 @@ public class HabitService {
         var completion = completions.findByHabitIdAndDate(habitId, award.getCompletionDate());
         if (completion.isPresent() && completion.get().getId() != award.getCompletionId())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Wykonanie zostało już zmienione. Nie można cofnąć tej operacji.");
+        if (completion.isPresent()) activity.assertCompletionAllowed(habit, award.getCompletionDate(), false, true);
         completion.ifPresent(completions::delete);
         user.addPoints(-(long) award.getPoints());
         awards.delete(award);
@@ -444,6 +446,14 @@ public class HabitService {
         user.addPoints(habit.getRewardPoints());
         return awards.save(new HabitAwardEntity(habit, monday, habit.getRewardPoints(),
                 completion.getId(), completionDate, calendar.now()));
+    }
+
+    private List<HabitCompletionEntity> eligibleWeeklyCompletions(HabitEntity habit, LocalDate monday) {
+        var timeline = activity.timeline(habit.getId());
+        // A partial/neutral week can still earn its full standard award. No prorating,
+        // and no award for dates on which the habit was never active.
+        return completions.findByHabitIdAndDateBetween(habit.getId(), monday, monday.plusDays(6)).stream()
+                .filter(completion -> timeline.wasActiveOn(completion.getDate())).toList();
     }
 
     private void validateSchedule(LocalDate start, LocalDate end, Integer limit) {
