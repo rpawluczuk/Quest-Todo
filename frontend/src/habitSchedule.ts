@@ -1,4 +1,5 @@
 import type { Habit, HabitEndReason } from './types/Habit'
+import { habitActivityStatus } from './habitLists.ts'
 
 const shortDate = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short' })
 const shortDateWithYear = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -9,8 +10,8 @@ function calendarDate(key: string): Date {
 }
 
 export function canToggleHabit(habit: Habit): boolean {
-  return habit.completed || (habit.status === 'ACTIVE'
-    && (habit.completionLimit === null || habit.totalCompletions < habit.completionLimit))
+  return habitActivityStatus(habit) === 'ACTIVE' && (habit.completed || (habit.status === 'ACTIVE'
+    && (habit.completionLimit === null || habit.totalCompletions < habit.completionLimit)))
 }
 
 export function habitEndDateLabel(endDate: string, today: string): string {
