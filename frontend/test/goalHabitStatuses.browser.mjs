@@ -154,7 +154,7 @@ try {
   await form.waitFor({ state: 'hidden' }); assert.equal(habits[5].activityStatus, 'PLANNED')
   await row(1, 'Poprawiona nazwa').waitFor()
   await nav.getByRole('button', { name: 'Nawyki', exact: true }).click()
-  await page.locator('#habit-tab-waiting').click()
+  await page.locator('.habit-waiting-section > summary').click()
   await page.locator('#habit-panel-waiting').getByText('Poprawiona nazwa', { exact: true }).waitFor()
   await nav.getByRole('button', { name: 'Cele', exact: true }).click()
   await page.getByRole('button', { name: /Osiągnięte \(/ }).click()
