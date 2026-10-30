@@ -71,6 +71,26 @@ class GoalHabitControllerTests {
     }
 
     @Test
+    void waitingHabitsCanBeListedAttachedAndDetachedWithoutChangingStatusOrOtherGoals() throws Exception {
+        jdbc.update("UPDATE habits SET activity_status='PLANNED' WHERE id=1001");
+        jdbc.update("UPDATE habits SET activity_status='PAUSED' WHERE id=1002");
+        long points = jdbc.queryForObject("SELECT points FROM users WHERE id=1", Long.class);
+        mvc.perform(get("/api/goals/1001/habits/available"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.habits.length()").value(2));
+        mvc.perform(put("/api/goals/1001/habits/1001")).andExpect(status().isNoContent());
+        mvc.perform(put("/api/goals/1001/habits/1002")).andExpect(status().isNoContent());
+        mvc.perform(put("/api/goals/1002/habits/1001")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/goals/1001/habits"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+        mvc.perform(delete("/api/goals/1001/habits/1001")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/goals/1002/habits"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        assertEquals("PLANNED", jdbc.queryForObject("SELECT activity_status FROM habits WHERE id=1001", String.class));
+        assertEquals("PAUSED", jdbc.queryForObject("SELECT activity_status FROM habits WHERE id=1002", String.class));
+        assertEquals(points, jdbc.queryForObject("SELECT points FROM users WHERE id=1", Long.class));
+    }
+
+    @Test
     void protectsOwnershipAndMissingResources() throws Exception {
         for (String path : new String[]{"/api/goals/2001/habits", "/api/goals/9999/habits"}) {
             mvc.perform(get(path)).andExpect(status().isNotFound());

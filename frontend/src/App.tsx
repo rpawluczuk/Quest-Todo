@@ -1,4 +1,5 @@
 import { SubtaskProvider } from './components/SubtaskProvider'
+import { HabitProvider } from './components/HabitProvider'
 import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase, type User } from './api/userApi'
 import { useEffect, useRef, useState } from 'react'
 import { createReward, deleteReward, getRewards, updateReward } from './api/rewardApi'
@@ -464,6 +465,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
           onGoalLinksChanged={refreshTaskGoalLinks}
           habitRevision={habitGoalRevision}
+          onHabitPointsChanged={balance => { accountRequest.current++; setPoints(balance) }}
           onCreateTask={(goalId, trigger, onCreated) =>
             createTaskForm.current?.open(trigger, 'backlog', goalId, () => onCreated())}
           onCreateHabit={(goalId, trigger, onCreated) =>
@@ -492,5 +494,5 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
 }
 
 export default function AppWithSubtasks(props: AppProps) {
-  return <SubtaskProvider><App {...props} /></SubtaskProvider>
+  return <SubtaskProvider><HabitProvider><App {...props} /></HabitProvider></SubtaskProvider>
 }

@@ -153,3 +153,18 @@ statusu. Akcja „Rozpocznij” wywołuje PATCH `/api/habits/{id}/status` z
 `{"status":"ACTIVE"}`; po potwierdzeniu ten sam rekord przechodzi do Aktywnych.
 Backend ustala moment rozpoczęcia i zachowuje ustawienia oraz przypisane cele.
 Frontend nie nalicza punktów ani nie tworzy okresów historii.
+
+## Integracja z celami (etap 6)
+
+`HabitProvider` udostępnia jeden cache nawyków na sesję, z osobnymi licznikami
+dla przeglądanych dni. Cele i główna lista korzystają z tego samego zapisu
+statusu i blokady równoczesnych żądań. Starsze odczyty nie nadpisują zapisanych
+zmian. Zmiana statusu aktualizuje cache bez pobierania wszystkich celów ani
+historii statusów. Przypinanie i odpinanie aktualizuje również dane relacji
+w cache, aby późniejsza edycja nie przywracała usuniętych powiązań.
+
+W celu aktywne nawyki poprzedzają grupę „Poczekalnia”. Zaplanowane nie pokazują
+tygodniowego postępu; wstrzymane pokazują status i zachowany licznik wykonań.
+Licznik zakładki nadal obejmuje wszystkie przypisane nawyki.
+Osiągnięty cel pokazuje aktualne dane nawyków w trybie tylko do odczytu,
+bez historycznych snapshotów i bez zmiany statusów samych nawyków.

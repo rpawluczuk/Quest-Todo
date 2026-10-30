@@ -1,9 +1,11 @@
 import { createHabitStatusUpdates } from '../habitStatusUpdates'
+import { useHabitStore } from '../components/HabitProvider'
+import { habitStatusAction } from '../habitStore'
 import HabitWaitingRoom from '../components/HabitWaitingRoom'
 import { partitionHabits } from '../habitLists'
-import { useEffect, useRef, useState, type MouseEvent, type RefObject, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type RefObject, type Dispatch, type SetStateAction } from 'react'
 import HabitCompletionBonus from '../components/HabitCompletionBonus'
-import { changeHabitStatus, createHabit, deleteHabit, endHabit, getHabits, HabitUpdateConflictError, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
+import { createHabit, deleteHabit, endHabit, HabitUpdateConflictError, setHabitCompletion, undoHabitAward, updateHabit } from '../api/habitApi'
 import CreateHabitForm, { type CreateHabitFormHandle } from '../components/CreateHabitForm'
 import EndHabitDialog from '../components/EndHabitDialog'
 import EditHabitForm from '../components/EditHabitForm'
@@ -26,13 +28,15 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
   createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
 }) {
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [statusUpdates] = useState(createHabitStatusUpdates)
-  const [pendingStatusIds, setPendingStatusIds] = useState<Set<number>>(() => new Set())
+  const store = useHabitStore()
+  const statusUpdates = store.statusUpdates
+  const pendingStatusIds = statusUpdates.pendingIds()
   const [statusNotice, setStatusNotice] = useState<{ message: string; error: boolean } | null>(null)
   const [tab, setTab] = useState<'active' | 'waiting'>('active')
   const [today, setToday] = useState(() => habitToday())
   const [selectedDay, setSelectedDay] = useState(today)
+  const habits = store.get(selectedDay) ?? []
+  const setHabits = useCallback<Dispatch<SetStateAction<Habit[]>>>(value => store.set(selectedDay, value), [store, selectedDay])
   const [busy, setBusy] = useState(false)
   const [notices, setNotices] = useState<AwardNotice[]>([])
   const [bonusNotices, setBonusNotices] = useState<CompletionBonusNotice[]>([])
@@ -47,25 +51,17 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   }, [statusNotice])
 
   async function changeStatus(habit: Habit, next: 'ACTIVE' | 'PAUSED') {
-    if (busy || !((habit.activityStatus ?? 'ACTIVE') === 'ACTIVE' && next === 'PAUSED'
-      || (habit.activityStatus === 'PAUSED' || habit.activityStatus === 'PLANNED') && next === 'ACTIVE') || !statusUpdates.begin(habit.id)) return
-    setPendingStatusIds(statusUpdates.pendingIds())
+    if (busy) return
     try {
-      const saved = await changeHabitStatus(habit.id, next)
-      statusUpdates.saved(saved.id, next)
-      // The endpoint's daily/weekly counts describe today. Preserve the selected day's data.
-      setHabits(current => current.map(item => item.id === saved.id ? { ...item, activityStatus: saved.activityStatus } : item))
-      setStatusNotice({ message: next === 'PAUSED' ? 'Nawyk został wstrzymany'
-        : habit.activityStatus === 'PLANNED' ? 'Nawyk został rozpoczęty' : 'Nawyk został wznowiony', error: false })
+      const saved = await store.changeStatus(habit, next)
+      if (!saved) return
+      setStatusNotice({ message: habitStatusAction(habit).message, error: false })
       requestAnimationFrame(() => {
         if (document.activeElement === document.body)
           document.querySelector<HTMLButtonElement>('.habit-tabs [aria-selected="true"]')?.focus()
       })
     } catch (failure) {
       setStatusNotice({ message: failure instanceof Error ? failure.message : 'Nie udało się zmienić statusu nawyku. Spróbuj ponownie.', error: true })
-    } finally {
-      statusUpdates.finish(habit.id)
-      setPendingStatusIds(statusUpdates.pendingIds())
     }
   }
 
@@ -154,6 +150,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
   syncRevision: number
   onCreatedNotice: (message: string) => void
 }) {
+  const store = useHabitStore()
   const savingCompletion = useRef(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -191,11 +188,12 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     toggleDescription(habit.id)
   }
 
+  const load = useCallback(() => store.load(date, true), [store, date])
+
   useEffect(() => {
     const controller = new AbortController()
-    load(controller.signal).then(loaded => {
+    load().then(() => {
       if (!controller.signal.aborted) {
-        accept(loaded)
         setLoadError('')
       }
     }).catch(() => {
@@ -204,16 +202,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
       if (!controller.signal.aborted) setLoading(false)
     })
     return () => controller.abort()
-  }, [date, today, syncRevision])
-
-  function load(signal?: AbortSignal) {
-    const readVersion = statusUpdates.version()
-    return getHabits(date, signal).then(loaded => ({ loaded, readVersion }))
-  }
-
-  function accept({ loaded, readVersion }: { loaded: Habit[]; readVersion: number }) {
-    setHabits(() => statusUpdates.merge(loaded, readVersion))
-  }
+  }, [load, today, syncRevision])
 
   async function add(name: string, targetDays: number, rewardPoints: number, description: string, schedule: HabitSchedule,
     categoryId: number | null, goalIds: number[], activityStatus: 'ACTIVE' | 'PLANNED') {
@@ -222,7 +211,8 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     try {
       const created = await createHabit(name, targetDays, rewardPoints, description, schedule, categoryId, goalIds, activityStatus)
       statusUpdates.created(created)
-      setHabits(current => [...current.filter(item => item.id !== created.id), created])
+      store.set(today, current => [...current.filter(item => item.id !== created.id), created])
+      if (date !== today) setHabits(current => [...current.filter(item => item.id !== created.id), created])
       onCreatedNotice(activityStatus === 'PLANNED' ? 'Nawyk został dodany do Poczekalni' : 'Nawyk został utworzony')
     } finally {
       onBusy(false)
@@ -235,15 +225,14 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     onBusy(true)
     try {
       const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule, categoryId, goalIds)
-      const loaded = await load()
-      accept(loaded)
+      store.update(result.habit, date)
+      await load()
       onCompletionSaved(result)
       setEditingId(null)
       setExpandedDescriptions(current => { const next = new Set(current); next.delete(id); return next })
     } catch (failure) {
       if (failure instanceof HabitUpdateConflictError) {
-        const loaded = await load().catch(() => null)
-        if (loaded) accept(loaded)
+        await load().catch(() => null)
       }
       throw failure
     } finally {
@@ -295,7 +284,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     onBusy(true)
     try {
       await endHabit(habit.id, reason)
-      accept(await load())
+      await load()
       setEndingHabit(null)
     } finally {
       onBusy(false)
@@ -365,7 +354,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
                   <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                     disabled={busy || pendingStatusIds.has(habit.id) || editingId !== null}
                     actions={[
-                      { label: 'Wstrzymaj nawyk', icon: 'pause', onSelect: () => void onStatusChange(habit, 'PAUSED') },
+                      { ...habitStatusAction(habit), onSelect: () => void onStatusChange(habit, 'PAUSED') },
                       ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
                       ...(!habit.endedOn && habit.status !== 'FINISHED'
                         ? [{ label: 'Zakończ nawyk', onSelect: () => setEndingHabit(habit) }] : []),

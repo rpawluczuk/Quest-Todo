@@ -41,7 +41,8 @@ try {
       habit.totalCompletions = completed ? 3 : 2
       habit.weeklyRewardGranted = true; points = 103
       return route.fulfill({ json: { habit, balance: points,
-        award: completed ? { id: 'award', points: 3, undoUntil: '2026-10-30T10:00:08Z' } : null } })
+        award: completed ? { id: 'award', points: 3,
+          undoUntil: await page.evaluate(() => new Date(Date.now() + 8000).toISOString()) } : null } })
     }
     return route.fulfill({ json: path === '/api/users/me' ? { id: 1, login: 'test', points, theme: 'PURPLE' }
       : path === '/api/tasks/overview' ? { tasks: [], completedCount: 0 }
@@ -98,6 +99,7 @@ try {
   await page.getByRole('button', { name: 'Następny tydzień', exact: true }).click()
   await activePanel.getByText('Czytanie', { exact: true }).waitFor()
   const check = activePanel.getByRole('checkbox', { name: /^Czytanie —/ })
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now() + 1000)))
   await check.check()
   await page.getByText('Saldo 103 pkt', { exact: true }).waitFor()
   await page.getByText(/Cel tygodniowy osiągnięty! Czytanie/).waitFor()

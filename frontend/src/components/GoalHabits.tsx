@@ -1,8 +1,12 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
+import { Clock3, Pause } from 'lucide-react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
-import { getHabits } from '../api/habitApi'
+import { HabitUpdateConflictError, updateHabit } from '../api/habitApi'
+import { useHabitStore } from './HabitProvider'
+import { habitStatusAction } from '../habitStore'
+import EditHabitForm from './EditHabitForm'
 import { formatHabitProgress } from '../habitTarget'
-import type { Habit } from '../types/Habit'
+import type { Habit, HabitSchedule } from '../types/Habit'
 import { habitToday } from '../weekDates'
 import TaskActionsMenu from './TaskActionsMenu'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
@@ -10,12 +14,17 @@ import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSect
 const GoalHabits = forwardRef<GoalSectionActionHandle, {
   goalId: number; goalTitle: string; onGoalLinksChanged: () => void
   readOnly?: boolean
+  onPointsChanged: (balance: number) => void
   revision: number
   onCountChange?: (goalId: number, count: number) => void
 } & GoalSectionActionProps>(function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange,
-  revision, actionTriggerRef, onActionDisabledChange, readOnly = false }, ref) {
+  revision, actionTriggerRef, onActionDisabledChange, readOnly = false, onPointsChanged }, ref) {
+  const store = useHabitStore()
+  const today = habitToday()
+  const detailsById = new Map((store.get(today) ?? []).map(habit => [habit.id, habit]))
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const editingHabit = editingId === null ? null : detailsById.get(editingId)
   const [attached, setAttached] = useState<GoalHabit[]>([])
-  const [detailsById, setDetailsById] = useState<Map<number, Habit>>(new Map())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
@@ -35,16 +44,13 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
 
   useEffect(() => {
     const controller = new AbortController()
-    getGoalHabits(goalId, controller.signal).then(result => {
+    Promise.all([getGoalHabits(goalId, controller.signal), store.load(today)]).then(([result]) => {
       if (!controller.signal.aborted) { setAttached(result); setLoadError('') }
     }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać nawyków.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
-    getHabits(habitToday(), controller.signal).then(habits => {
-      if (!controller.signal.aborted) setDetailsById(new Map(habits.map(habit => [habit.id, habit])))
-    }).catch(() => undefined)
     return () => controller.abort()
-  }, [goalId, retry, revision])
+  }, [goalId, retry, revision, store, today])
 
   useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
 
@@ -90,7 +96,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
   }, [actionDisabled, goalId, onActionDisabledChange])
 
   async function run(action: () => Promise<void>) {
-    if (sending.current) return
+    if (readOnly || sending.current) return
     sending.current = true
     setBusy(true)
     setError('')
@@ -98,6 +104,48 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać zmiany.') }
     finally { sending.current = false; setBusy(false) }
   }
+
+  async function changeStatus(habit: Habit) {
+    if (readOnly || busy || store.statusUpdates.pending(habit.id)) return
+    setError('')
+    try {
+      const action = habitStatusAction(habit)
+      if (await store.changeStatus(habit, action.next)) setNotice(action.message)
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Nie udało się zmienić statusu nawyku.')
+    } finally {
+      requestAnimationFrame(() => {
+        if (document.activeElement === document.body)
+          document.querySelector<HTMLButtonElement>(`#goal-habits-${goalId} [data-habit-id="${habit.id}"] .task-menu-trigger`)?.focus()
+      })
+    }
+  }
+
+  async function save(id: number, name: string, target: number, points: number, description: string,
+    schedule: HabitSchedule, categoryId: number | null, goalIds: number[]) {
+    if (readOnly || sending.current || store.statusUpdates.pending(id)) throw new Error('Poczekaj na zakończenie zapisu.')
+    sending.current = true
+    setBusy(true)
+    try {
+      const result = await updateHabit(id, name, target, points, description, schedule, categoryId, goalIds)
+      store.update(result.habit, today)
+      if (result.balance !== null) onPointsChanged(result.balance)
+      onGoalLinksChanged()
+      setEditingId(null)
+    } catch (failure) {
+      if (failure instanceof HabitUpdateConflictError) await store.load(today, true).catch(() => undefined)
+      throw failure
+    } finally { sending.current = false; setBusy(false) }
+  }
+
+  const isWaiting = (habit: GoalHabit) => {
+    const status = detailsById.get(habit.id)?.activityStatus
+    return status === 'PAUSED' || status === 'PLANNED'
+  }
+  const groups = [
+    { title: '', items: attached.filter(habit => !isWaiting(habit)) },
+    { title: 'Poczekalnia', items: attached.filter(isWaiting) },
+  ]
 
   function closePicker() {
     if (sending.current) return
@@ -114,6 +162,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
   function attach(habit: GoalHabit) {
     void run(async () => {
       await setGoalHabit(goalId, habit.id, true)
+      store.updateGoalLink(habit.id, goalId, goalTitle, true)
       setAttached(current => current.some(item => item.id === habit.id) ? current : [...current, habit])
       onGoalLinksChanged()
       setNotice(`Przypięto: ${habit.name}`)
@@ -142,32 +191,55 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
       }}>Spróbuj ponownie</button>
     </> : <>
       {attached.length === 0 && <p className="empty-state goal-linked-empty">Brak przypisanych nawyków</p>}
-      {attached.length > 0 && <ul className="task-list goal-linked-tasks">
-        {attached.map(habit => {
+      {groups.filter(group => group.items.length > 0).map(group => <section key={group.title} className="goal-habit-group"
+        aria-label={group.title || undefined}>
+        {group.title && <h3 className="goal-habit-waiting-heading">{group.title}</h3>}
+        <ul className="task-list goal-linked-tasks">
+        {group.items.map(habit => {
           const details = detailsById.get(habit.id)
+          const name = details?.name ?? habit.name
+          const waiting = isWaiting(habit)
+          const statusAction = details ? habitStatusAction(details) : null
           const progress = details
             ? formatHabitProgress(details.weeklyCompletedDays, details.target?.targetDays ?? null)
             : null
-          return <li key={habit.id} className="goal-linked-task goal-linked-habit">
-          <span className="goal-linked-item-title">{habit.name}</span>
-          {details && progress && <div className="goal-linked-item-meta">
+          return <li key={habit.id} className="goal-linked-task goal-linked-habit" data-habit-id={habit.id}
+            aria-busy={store.statusUpdates.pending(habit.id)}>
+          <span className="goal-linked-item-title">{name}</span>
+          {waiting && details && <div className="goal-linked-item-meta">
+            <span className="habit-waiting-status">{details.activityStatus === 'PAUSED'
+              ? <><Pause size={16} aria-hidden="true" />Wstrzymany</>
+              : <><Clock3 size={16} aria-hidden="true" />Zaplanowany</>}</span>
+            {details.activityStatus === 'PAUSED' && details.totalCompletions > 0
+              && <span className="goal-linked-habit-progress">{details.totalCompletions} wykonań łącznie</span>}
+          </div>}
+          {!waiting && details && progress && <div className="goal-linked-item-meta">
             <span className="goal-linked-habit-progress">
               <strong>{progress.count}</strong> {progress.period}
             </span>
             <span className="task-points task-card-points">{details.rewardPoints} pkt</span>
           </div>}
-          <TaskActionsMenu itemTitle={habit.name} itemType="nawyku" disabled={readOnly || busy} actions={[{
+          {!readOnly && <TaskActionsMenu itemTitle={name} itemType="nawyku" disabled={busy || store.statusUpdates.pending(habit.id)} actions={[
+            ...(details && statusAction ? [{ label: statusAction.label, icon: statusAction.icon,
+              onSelect: () => void changeStatus(details) }] : []),
+            ...(details && !details.endedOn ? [{ label: 'Edytuj', icon: 'pencil' as const,
+              onSelect: () => setEditingId(habit.id) }] : []), {
             label: 'Odepnij od celu', onSelect: () => void run(async () => {
               await setGoalHabit(goalId, habit.id, false)
+              store.updateGoalLink(habit.id, goalId, goalTitle, false)
               setAttached(current => current.filter(item => item.id !== habit.id))
               onGoalLinksChanged()
             }),
-          }]} />
+          }]} />}
         </li>})}
-      </ul>}
+      </ul></section>)}
+      {!pickerOpen && notice && <p role="status" className="goal-picker-notice">{notice}</p>}
       {!pickerOpen && busy && <p role="status">Zapisywanie…</p>}
       {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}
     </>}
+    {editingHabit && !readOnly && <EditHabitForm habit={editingHabit} onCancel={() => setEditingId(null)}
+      onSave={(name, target, points, description, schedule, categoryId, goalIds) =>
+        save(editingHabit.id, name, target, points, description, schedule, categoryId, goalIds)} />}
     {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog" aria-labelledby={titleId}
       onCancel={event => { event.preventDefault(); closePicker() }}>
       <div className="goal-picker-header">

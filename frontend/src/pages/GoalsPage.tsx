@@ -25,12 +25,13 @@ function definitionError(currentState: string, desiredOutcome: string): string {
 
 type GoalTab = GoalSection
 
-export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCreateHabit, habitRevision,
+export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCreateHabit, habitRevision, onHabitPointsChanged,
   ...taskProps }: GoalTasksProps & {
   onHabitGoalLinksChanged: () => void
   onCreateTask: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
   onCreateHabit: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
   habitRevision: number
+  onHabitPointsChanged: (balance: number) => void
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [initialStateOpenId, setInitialStateOpenId] = useState<number | null>(null)
@@ -528,6 +529,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               <div className="goal-tab-panel" role="tabpanel" id={`goal-panel-habits-${goal.id}`}
                 aria-labelledby={`goal-tab-habits-${goal.id}`} hidden={activeTab !== 'habits'}>
                 <GoalHabits key={`habits-${goal.id}`} goalId={goal.id} goalTitle={goal.title} readOnly={goal.completed}
+                  onPointsChanged={onHabitPointsChanged}
                   revision={habitRevision}
                   actionTriggerRef={sectionActionTrigger}
                   ref={action => {

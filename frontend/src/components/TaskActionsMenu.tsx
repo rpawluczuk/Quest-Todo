@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw' | 'list-plus' | 'pause'
+type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw' | 'list-plus' | 'pause' | 'play'
 
 type TaskMenuAction = {
   readonly label: string
@@ -17,6 +17,7 @@ type TaskActionsMenuProps = {
 }
 
 const taskMenuIconPaths: Record<TaskMenuIconName, ReactNode> = {
+  play: <path d="m8 4 12 8-12 8V4Z" />,
   pause: <><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></>,
   'list-plus': <path d="M3 6h18M3 12h12M3 18h6M19 14v8M15 18h8" />,
   pencil: (
