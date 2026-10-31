@@ -3,19 +3,33 @@ import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
 import type { GoalEntries, GoalEntry, GoalEntryType } from '../types/GoalEntry'
 
-export async function createGoalEntry(goalId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+export async function updateGoalEntry(goalId: number, entryId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+  const response = await journalMutation(`/api/goals/${goalId}/entries/${entryId}`, 'PATCH', { type, content: content.trim() })
+  return response.json()
+}
+
+export async function deleteGoalEntry(goalId: number, entryId: number): Promise<void> {
+  await journalMutation(`/api/goals/${goalId}/entries/${entryId}`, 'DELETE')
+}
+
+async function journalMutation(path: string, method: string, body?: { type: GoalEntryType; content: string }) {
   try {
-    const response = await apiFetch(`/api/goals/${goalId}/entries`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, content: content.trim() }),
+    const response = await apiFetch(path, {
+      method, ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
     })
     if (response.status === 401) throw new Error('Sesja wygasła. Zaloguj się ponownie.')
-    if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać wpisu'))
-    return response.json()
+    if (response.status === 404) throw new Error('Wpis lub cel nie jest już dostępny. Mógł zostać usunięty albo nie masz do niego dostępu.')
+    if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać zmian w dzienniku'))
+    return response
   } catch (failure) {
     if (failure instanceof TypeError) throw new Error('Brak połączenia. Sprawdź sieć i spróbuj ponownie.')
     throw failure
   }
+}
+
+export async function createGoalEntry(goalId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+  const response = await journalMutation(`/api/goals/${goalId}/entries`, 'POST', { type, content: content.trim() })
+  return response.json()
 }
 
 export async function getGoalEntries(goalId: number): Promise<GoalEntries> {

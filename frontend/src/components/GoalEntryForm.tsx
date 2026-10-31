@@ -1,27 +1,33 @@
 import { useId, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { goalEntryLabels } from '../goalJournal'
-import type { GoalEntryType } from '../types/GoalEntry'
+import type { GoalEntry, GoalEntryType } from '../types/GoalEntry'
 import AutoResizeTextarea from './AutoResizeTextarea'
 import FormSelect, { FormSelectItem } from './FormSelect'
 
-export default function GoalEntryForm({ onSave, onCancel }: {
+export default function GoalEntryForm({ onSave, onCancel, entry, onDirtyChange }: {
   onSave: (type: GoalEntryType, content: string) => Promise<void>
   onCancel: () => void
+  entry?: GoalEntry
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const id = useId()
-  const [type, setType] = useState<GoalEntryType>('NOTE')
-  const [content, setContent] = useState('')
+  const [type, setType] = useState<GoalEntryType>(entry?.type ?? 'NOTE')
+  const [content, setContent] = useState(entry?.content ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const pending = useRef(false)
-  return <form className="task-form goal-entry-create-form" aria-label="Dodawanie wpisu do dziennika"
+  function dirty(nextType: GoalEntryType, nextContent: string) {
+    onDirtyChange?.(nextType !== (entry?.type ?? 'NOTE') || nextContent.trim() !== (entry?.content ?? ''))
+  }
+  return <form className="task-form goal-entry-create-form" aria-label={entry ? 'Edycja wpisu w dzienniku' : 'Dodawanie wpisu do dziennika'}
     aria-busy={saving} onSubmit={async event => {
       event.preventDefault()
       if (pending.current) return
       if (!content.trim() || content.length > 5000) {
         setError('Wpisz treść od 1 do 5000 znaków.'); return
       }
+      if (entry && type === entry.type && content.trim() === entry.content) { onCancel(); return }
       pending.current = true; setSaving(true); setError('')
       try { await onSave(type, content.trim()) }
       catch (failure) { setError(failure instanceof Error ? failure.message : 'Nie udało się dodać wpisu.') }
@@ -34,7 +40,7 @@ export default function GoalEntryForm({ onSave, onCancel }: {
     }}>
     <div className="form-field">
       <label htmlFor={`${id}-type`}>Rodzaj wpisu</label>
-      <FormSelect id={`${id}-type`} value={type} onValueChange={value => setType(value as GoalEntryType)}
+      <FormSelect id={`${id}-type`} value={type} onValueChange={value => { setType(value as GoalEntryType); dirty(value as GoalEntryType, content) }}
         disabled={saving} ariaLabel="Rodzaj wpisu" triggerContent={goalEntryLabels[type]}>
         {(Object.keys(goalEntryLabels) as GoalEntryType[]).map(value =>
           <FormSelectItem key={value} value={value}>{goalEntryLabels[value]}</FormSelectItem>)}
@@ -45,7 +51,7 @@ export default function GoalEntryForm({ onSave, onCancel }: {
       <AutoResizeTextarea id={`${id}-content`} autoFocus required maxLength={5000} value={content}
         placeholder="Co nowego w realizacji celu?" disabled={saving}
         aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined}
-        onChange={event => setContent(event.target.value)} onKeyDown={event => {
+        onChange={event => { setContent(event.target.value); dirty(type, event.target.value) }} onKeyDown={event => {
           if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
             event.preventDefault(); event.currentTarget.form?.requestSubmit()
           }
@@ -55,7 +61,7 @@ export default function GoalEntryForm({ onSave, onCancel }: {
     <div className="task-actions milestone-inline-actions">
       <button type="button" className="milestone-inline-cancel" disabled={saving} onClick={onCancel}>Anuluj</button>
       <button type="submit" className="milestone-inline-submit" disabled={saving || !content.trim()}>
-        <Check size={16} aria-hidden="true" />{saving ? 'Dodawanie…' : 'Dodaj'}
+        <Check size={16} aria-hidden="true" />{saving ? (entry ? 'Zapisywanie…' : 'Dodawanie…') : (entry ? 'Zapisz' : 'Dodaj')}
       </button>
     </div>
   </form>

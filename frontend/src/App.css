@@ -3695,6 +3695,11 @@
 .goal-journal-entry-type { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 .goal-journal-entry-type svg { flex-shrink: 0; color: var(--color-primary); }
 .goal-journal-entry-header time { white-space: nowrap; }
+.goal-journal-entry-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.goal-journal-entry-actions .task-menu { align-self: center; }
+.goal-journal-entry-actions .task-menu-trigger { flex-shrink: 0; width: 40px; height: 40px; }
+.goal-journal-entry-actions .task-menu-trigger::before { inset: 0; }
+.goal-journal .discard-task-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .goal-journal-empty { padding: 8px 0; color: #625b70; }
 .goal-journal-empty small { display: block; margin-top: 4px; line-height: 1.5; }
 .goal-journal-content .goal-journal-total { margin-top: 6px; color: #625b70; font-size: 0.75rem; }
