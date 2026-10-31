@@ -1,7 +1,22 @@
 import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
-import type { GoalEntries } from '../types/GoalEntry'
+import type { GoalEntries, GoalEntry, GoalEntryType } from '../types/GoalEntry'
+
+export async function createGoalEntry(goalId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+  try {
+    const response = await apiFetch(`/api/goals/${goalId}/entries`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, content: content.trim() }),
+    })
+    if (response.status === 401) throw new Error('Sesja wygasła. Zaloguj się ponownie.')
+    if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać wpisu'))
+    return response.json()
+  } catch (failure) {
+    if (failure instanceof TypeError) throw new Error('Brak połączenia. Sprawdź sieć i spróbuj ponownie.')
+    throw failure
+  }
+}
 
 export async function getGoalEntries(goalId: number): Promise<GoalEntries> {
   const response = await apiFetch(`/api/goals/${goalId}/entries?page=0&size=3`)

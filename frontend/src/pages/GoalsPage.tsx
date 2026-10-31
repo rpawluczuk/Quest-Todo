@@ -543,7 +543,8 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onGoalLinksChanged={onHabitGoalLinksChanged}
                   onCountChange={updateHabitCount} />
               </div>
-              <GoalJournal key={`journal-${goal.id}`} goalId={goal.id} store={journalStore} />
+              <GoalJournal key={`journal-${goal.id}`} goalId={goal.id} store={journalStore}
+                readOnly={goal.completed} onAdded={() => setCreationNotice('Wpis został dodany')} />
               {goal.currentState && <>
                 <button type="button" className="goal-initial-state-toggle"
                   aria-expanded={initialStateOpenId === goal.id} aria-controls={`goal-initial-state-${goal.id}`}
