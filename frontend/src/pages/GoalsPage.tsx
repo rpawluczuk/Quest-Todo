@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
 import { createGoal, deleteGoal, getGoalEntries, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
 import { createGoalJournalStore } from '../goalJournal'
-import GoalJournal from '../components/GoalJournal'
+import GoalJournal, { type GoalJournalHandle } from '../components/GoalJournal'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
@@ -37,6 +37,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [journalStore] = useState(() => createGoalJournalStore(getGoalEntries))
+  const journalRef = useRef<GoalJournalHandle>(null)
   const [initialStateOpenId, setInitialStateOpenId] = useState<number | null>(null)
   const [activeTabByGoal, setActiveTabByGoal] = useState<Record<number, GoalTab>>({})
   const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
@@ -416,7 +417,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                 ...(goal.completed ? [{ label: 'Wznów cel', icon: 'rotate-ccw' as const,
                   onSelect: () => { void changeCompletion(goal, false).catch(() => undefined) } }]
                   : [{ label: 'Oznacz jako osiągnięty', icon: 'check-circle-2' as const,
-                    onSelect: () => setCompletionGoal(goal) },
+                    onSelect: () => {
+                      if (expandedId === goal.id && journalRef.current) journalRef.current.beforeStatusChange(() => setCompletionGoal(goal))
+                      else setCompletionGoal(goal)
+                    } },
                   { label: 'Edytuj', icon: 'pencil' as const, onSelect: () => {
                   setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
                   setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
@@ -543,7 +547,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onGoalLinksChanged={onHabitGoalLinksChanged}
                   onCountChange={updateHabitCount} />
               </div>
-              <GoalJournal key={`journal-${goal.id}`} goalId={goal.id} store={journalStore}
+              <GoalJournal ref={journalRef} key={`journal-${goal.id}`} goalId={goal.id} store={journalStore}
                 readOnly={goal.completed} onNotice={setCreationNotice} />
               {goal.currentState && <>
                 <button type="button" className="goal-initial-state-toggle"

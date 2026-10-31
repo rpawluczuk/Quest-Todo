@@ -63,6 +63,9 @@ test('journal dates use Polish labels and Warsaw midnight independently of brows
   assert.equal(formatGoalEntryDate('2026-10-29T12:00:00Z'), '29 paź 2026')
   assert.equal(formatGoalEntryDate('2026-10-29T23:30:00Z'), '30 paź 2026')
   assert.equal(formatGoalEntryDate('2026-06-01T22:30:00Z'), '2 cze 2026')
+  assert.equal(formatGoalEntryDate('2026-03-28T23:30:00Z'), '29 mar 2026')
+  assert.equal(formatGoalEntryDate('2026-03-29T22:30:00Z'), '30 mar 2026')
+  assert.equal(formatGoalEntryDate('2026-10-25T22:30:00Z'), '25 paź 2026')
   assert.deepEqual(Object.values(goalEntryLabels), ['Notatka', 'Sukces', 'Trudność', 'Wniosek'])
 })
 

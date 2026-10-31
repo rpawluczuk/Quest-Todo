@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, useSyncExternalStore } from 'react'
 import { ChevronDown, ChevronUp, NotebookPen, Plus } from 'lucide-react'
 import type { createGoalJournalStore } from '../goalJournal'
 import { createGoalEntry, deleteGoalEntry, updateGoalEntry } from '../api/goalApi'
@@ -8,10 +8,11 @@ import GoalEntryForm from './GoalEntryForm'
 import DiscardTaskChangesDialog from './DiscardTaskChangesDialog'
 
 type Editor = { kind: 'create' } | { kind: 'edit'; entry: GoalEntry }
+export type GoalJournalHandle = { beforeStatusChange: (action: () => void) => void }
 
-export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
+const GoalJournal = forwardRef<GoalJournalHandle, {
   goalId: number; store: ReturnType<typeof createGoalJournalStore>; readOnly: boolean; onNotice: (message: string) => void
-}) {
+}>(function GoalJournal({ goalId, store, readOnly, onNotice }, ref) {
   const [open, setOpen] = useState(false)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [discardAction, setDiscardAction] = useState<{ run: () => void } | null>(null)
@@ -26,6 +27,12 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
   const { data, loading, error, busy, full, history, historyLoading, historyError } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
   const visible = full && history ? history.entries : data?.entries ?? []
   const creating = editor?.kind === 'create'
+  useImperativeHandle(ref, () => ({ beforeStatusChange: action => {
+    if (store.get(goalId).busy) { onNotice('Poczekaj na zakończenie zapisu w dzienniku.'); return }
+    const proceed = () => { dirty.current = false; setEditor(null); setDeleting(null); action() }
+    if (dirty.current) setDiscardAction({ run: proceed })
+    else proceed()
+  } }))
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => {
     if (open && creating && !readOnly) {
@@ -129,7 +136,7 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
         </GoalEntryItem>)}</ul>
       </> : <div className="goal-journal-empty">
         <p>Brak wpisów w dzienniku</p>
-        <small>Tutaj możesz zapisywać obserwacje, sukcesy i wnioski z realizacji celu.</small>
+        {!readOnly && <small>Zapisuj tutaj obserwacje, sukcesy i wnioski z realizacji celu.</small>}
         {!readOnly && !creating && <button type="button" className="goal-picker-link" onClick={startCreating}>
           + Dodaj pierwszy wpis
         </button>}
@@ -159,4 +166,6 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
       onContinue={() => { const id = deleting.id; setDeleting(null); restoreFocus(id) }}
       onDiscard={() => { void confirmDelete() }} />}
   </section>
-}
+})
+
+export default GoalJournal
