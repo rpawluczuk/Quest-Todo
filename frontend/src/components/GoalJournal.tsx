@@ -23,7 +23,8 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
   const addButton = useRef<HTMLButtonElement>(null)
   const contentId = useId()
   const headingId = useId()
-  const { data, loading, error, busy } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
+  const { data, loading, error, busy, full, history, historyLoading, historyError } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
+  const visible = full && history ? history.entries : data?.entries ?? []
   const creating = editor?.kind === 'create'
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => {
@@ -55,6 +56,24 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
   function closeForm() {
     const entryId = editor?.kind === 'edit' ? editor.entry.id : undefined
     dirty.current = false; setEditor(null); restoreFocus(entryId)
+  }
+  function showLess() {
+    const collapse = () => {
+      if (editor?.kind === 'edit' && !data?.entries.some(entry => entry.id === editor.entry.id)) {
+        dirty.current = false; setEditor(null)
+      }
+      store.showLess(goalId)
+      requestAnimationFrame(() => {
+        if (!mounted.current) return
+        const heading = document.getElementById(headingId)
+        heading?.focus({ preventScroll: true })
+        const bounds = heading?.getBoundingClientRect()
+        if (bounds && (bounds.top < 0 || bounds.bottom > innerHeight)) heading?.scrollIntoView({ block: 'nearest' })
+      })
+    }
+    if (editor?.kind === 'edit' && dirty.current && !data?.entries.some(entry => entry.id === editor.entry.id)) {
+      setDiscardAction({ run: collapse })
+    } else collapse()
   }
   function form(current: Editor) {
     const entry = current.kind === 'edit' ? current.entry : undefined
@@ -100,15 +119,14 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
       {error && <div><p className="form-error" role="alert">{error}</p>
         <button type="button" className="goal-picker-link" onClick={() => void store.load(goalId, true)}>Spróbuj ponownie</button>
       </div>}
-      {data && (data.entries.length ? <>
-        <ul className="goal-journal-list">{data.entries.map(entry => <GoalEntryItem key={entry.id} entry={entry}
+      {data && (visible.length ? <>
+        <ul className="goal-journal-list">{visible.map(entry => <GoalEntryItem key={entry.id} entry={entry}
           readOnly={readOnly} disabled={!!busy} onEdit={() => startEditor({ kind: 'edit', entry })}
           onDelete={() => transition(() => {
             dirty.current = false; setEditor(null); setDeleteError(''); setDeleting(entry)
           })}>
           {!readOnly && editor?.kind === 'edit' && editor.entry.id === entry.id ? form(editor) : undefined}
         </GoalEntryItem>)}</ul>
-        {data.totalElements > 3 && <p className="goal-journal-total">Łącznie {data.totalElements} wpisów</p>}
       </> : <div className="goal-journal-empty">
         <p>Brak wpisów w dzienniku</p>
         <small>Tutaj możesz zapisywać obserwacje, sukcesy i wnioski z realizacji celu.</small>
@@ -116,6 +134,22 @@ export default function GoalJournal({ goalId, store, readOnly, onNotice }: {
           + Dodaj pierwszy wpis
         </button>}
       </div>)}
+      {full && historyLoading && <p role="status" className="goal-journal-total">Ładowanie historii…</p>}
+      {full && historyError && <div><p className="form-error" role="alert">{historyError}</p>
+        <button type="button" className="goal-picker-link" disabled={busy || historyLoading}
+          onClick={() => { void store.more(goalId) }}>Spróbuj ponownie</button>
+      </div>}
+      {data && data.totalElements > 3 && <div className="goal-journal-history-actions">
+        {!full ? <button type="button" className="goal-picker-link" disabled={busy || historyLoading}
+          onClick={() => { void store.showHistory(goalId) }}>Pokaż wszystkie wpisy ({data.totalElements})</button>
+          : <>
+            {history?.hasMore && !historyError && <button type="button" className="goal-picker-link"
+              disabled={busy || historyLoading} onClick={() => { void store.more(goalId) }}>
+              {historyLoading ? 'Ładowanie…' : 'Pokaż więcej wpisów'}
+            </button>}
+            <button type="button" className="goal-picker-link" disabled={busy} onClick={showLess}>Pokaż mniej</button>
+          </>}
+      </div>}
     </div>
     {discardAction && !readOnly && <DiscardTaskChangesDialog onContinue={() => setDiscardAction(null)}
       onDiscard={() => { const action = discardAction.run; setDiscardAction(null); action() }} />}

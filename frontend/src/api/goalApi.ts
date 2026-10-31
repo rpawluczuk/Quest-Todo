@@ -32,8 +32,8 @@ export async function createGoalEntry(goalId: number, type: GoalEntryType, conte
   return response.json()
 }
 
-export async function getGoalEntries(goalId: number): Promise<GoalEntries> {
-  const response = await apiFetch(`/api/goals/${goalId}/entries?page=0&size=3`)
+export async function getGoalEntries(goalId: number, page = 0, size = 3): Promise<GoalEntries> {
+  const response = await apiFetch(`/api/goals/${goalId}/entries?page=${page}&size=${size}`)
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać wpisów dziennika'))
   return response.json()
 }

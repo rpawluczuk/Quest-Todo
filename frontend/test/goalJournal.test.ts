@@ -198,3 +198,129 @@ test('pending initial reads finish before PATCH and duplicate DELETEs share one 
   assert.equal(writes, 2); assert.equal(reads, 2)
   assert.equal(store.get(1).busy, false)
 })
+
+function paginatedJournal(count = 25) {
+  let records = Array.from({ length: count }, (_, index) => data(count - index).entries[0])
+  const calls: [number, number, number][] = []
+  const store = createGoalJournalStore(async (id, page = 0, size = 3) => {
+    calls.push([id, page, size])
+    return { entries: records.slice(page * size, (page + 1) * size),
+      totalElements: records.length, hasMore: (page + 1) * size < records.length }
+  })
+  return { store, calls, records: () => records, replace: (next: typeof records) => { records = next } }
+}
+
+test('history loads separately sized pages on demand, caches reopens and stops at the last page', async () => {
+  const { store, calls } = paginatedJournal()
+  assert.equal(calls.length, 0)
+  await store.load(1)
+  assert.equal(store.get(1).data?.entries.length, 3)
+  await store.showHistory(1)
+  assert.deepEqual(calls, [[1, 0, 3], [1, 0, 10]])
+  assert.equal(store.get(1).history?.entries.length, 10)
+  await store.more(1)
+  assert.equal(store.get(1).history?.entries.length, 20)
+  assert.equal(store.get(1).history?.pages, 2)
+  await store.more(1)
+  const history = store.get(1).history!
+  assert.deepEqual(history.entries.map(entry => entry.id), Array.from({ length: 25 }, (_, index) => 25 - index))
+  assert.equal(history.hasMore, false)
+  const count = calls.length
+  await store.more(1); store.showLess(1); await store.showHistory(1)
+  assert.equal(calls.length, count)
+  assert.equal(store.get(1).data?.entries.length, 3)
+  assert.equal(store.get(1).data?.totalElements, 25)
+})
+
+test('history errors preserve loaded records and retry the same target range', async () => {
+  let fail = true
+  const calls: number[] = []
+  const records = Array.from({ length: 25 }, (_, index) => data(25 - index).entries[0])
+  const store = createGoalJournalStore(async (_id, page = 0, size = 3) => {
+    calls.push(page)
+    if (size === 10 && fail) throw new Error('History offline')
+    return { entries: records.slice(page * size, (page + 1) * size), totalElements: 25, hasMore: (page + 1) * size < 25 }
+  })
+  await store.load(1); await store.showHistory(1)
+  assert.equal(store.get(1).data?.entries.length, 3)
+  assert.equal(store.get(1).history, undefined)
+  fail = false; await store.more(1)
+  const before = store.get(1).history
+  fail = true; await store.more(1)
+  assert.equal(store.get(1).history, before)
+  assert.equal(store.get(1).historyTarget, 2)
+  fail = false; await store.more(1)
+  assert.equal(store.get(1).history?.entries.length, 20)
+  assert.equal(store.get(1).historyError, '')
+  assert.equal(calls.at(-1), 1)
+})
+
+test('simultaneous history requests deduplicate and remain isolated across goals', async () => {
+  const pending = deferred<GoalEntries>()
+  const store = createGoalJournalStore(async (id, _page = 0, size = 3) => size === 10 && id === 1 ? pending.promise : data(id))
+  await store.load(1); await store.load(2)
+  const first = store.showHistory(1), second = store.showHistory(1)
+  assert.equal(first, second)
+  store.showLess(1)
+  pending.resolve(data(9)); await first
+  assert.equal(store.get(1).full, false)
+  assert.equal(store.get(2).data?.entries[0].id, 2)
+  assert.equal(store.get(2).history, undefined)
+})
+
+test('CRUD keeps loaded history coherent across offset boundaries without resetting its mode', async () => {
+  const journal = paginatedJournal()
+  const { store, calls } = journal
+  await store.load(1); await store.showHistory(1); await store.more(1)
+  const created = { ...data(26).entries[0], createdAt: '2026-10-31T12:00:00Z' }
+  await store.create(1, async () => { journal.replace([created, ...journal.records()]); return created })
+  assert.equal(store.get(1).full, true)
+  assert.equal(store.get(1).history?.entries.length, 20)
+  assert.deepEqual(store.get(1).history?.entries.map(entry => entry.id), Array.from({ length: 20 }, (_, index) => 26 - index))
+  assert.equal(store.get(1).data?.totalElements, 26)
+  const beforeEdit = calls.length
+  const updated = { ...journal.records().find(entry => entry.id === 10)!, content: 'Older edit' }
+  await store.update(1, async () => updated)
+  assert.equal(calls.length, beforeEdit)
+  assert.equal(store.get(1).history?.entries.find(entry => entry.id === 10)?.content, 'Older edit')
+  await store.remove(1, 12, async () => { journal.replace(journal.records().filter(entry => entry.id !== 12)) })
+  assert.deepEqual(store.get(1).history?.entries.map(entry => entry.id), journal.records().slice(0, 20).map(entry => entry.id))
+  assert.equal(store.get(1).data?.totalElements, 25)
+  await store.more(1)
+  assert.deepEqual(store.get(1).history?.entries.map(entry => entry.id), journal.records().map(entry => entry.id))
+})
+
+test('external deletion or replacement before loading more cannot leave stale rows, duplicates or missing boundary records', async () => {
+  const journal = paginatedJournal()
+  await journal.store.load(1); await journal.store.showHistory(1)
+  journal.replace(journal.records().filter(entry => entry.id !== 22))
+  await journal.store.more(1)
+  assert.deepEqual(journal.store.get(1).history?.entries.map(entry => entry.id), journal.records().slice(0, 20).map(entry => entry.id))
+  const replacement = { ...data(40).entries[0], createdAt: '2026-10-31T12:00:00Z' }
+  journal.replace([replacement, ...journal.records().filter(entry => entry.id !== 17)])
+  await journal.store.more(1)
+  assert.deepEqual(journal.store.get(1).history?.entries.map(entry => entry.id), journal.records().map(entry => entry.id))
+})
+
+test('late history reads finish before a mutation and never overwrite its confirmed update', async () => {
+  const pending = deferred<GoalEntries>()
+  const store = createGoalJournalStore(async (_id, _page = 0, size = 3) => size === 10 ? pending.promise : data())
+  await store.load(1)
+  const reading = store.showHistory(1)
+  let writes = 0
+  const saving = store.update(1, async () => { writes++; return { ...data().entries[0], content: 'New' } })
+  assert.equal(writes, 0)
+  pending.resolve(data()); await reading; await saving
+  assert.equal(writes, 1)
+  assert.equal(store.get(1).history?.entries[0].content, 'New')
+  assert.equal(store.get(1).data?.entries[0].content, 'New')
+})
+
+test('deleting down to three records automatically returns to compact mode', async () => {
+  const journal = paginatedJournal(4)
+  await journal.store.load(1); await journal.store.showHistory(1)
+  await journal.store.remove(1, 4, async () => journal.replace(journal.records().filter(entry => entry.id !== 4)))
+  assert.equal(journal.store.get(1).full, false)
+  assert.equal(journal.store.get(1).data?.totalElements, 3)
+  assert.deepEqual(journal.store.get(1).data?.entries.map(entry => entry.id), [3, 2, 1])
+})

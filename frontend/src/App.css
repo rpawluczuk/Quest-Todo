@@ -3703,6 +3703,8 @@
 .goal-journal-empty { padding: 8px 0; color: #625b70; }
 .goal-journal-empty small { display: block; margin-top: 4px; line-height: 1.5; }
 .goal-journal-content .goal-journal-total { margin-top: 6px; color: #625b70; font-size: 0.75rem; }
+.goal-journal-history-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 6px; }
+.goal-journal-history-actions .goal-picker-link { min-height: 40px; max-width: 100%; white-space: normal; }
 .goal-tabs-row {
   grid-column: 1 / -1;
   display: grid;
