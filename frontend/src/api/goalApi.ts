@@ -1,6 +1,13 @@
 import { apiFetch } from './apiFetch'
 import type { Goal } from '../types/Goal'
 import type { Task } from '../types/Task'
+import type { GoalEntries } from '../types/GoalEntry'
+
+export async function getGoalEntries(goalId: number): Promise<GoalEntries> {
+  const response = await apiFetch(`/api/goals/${goalId}/entries?page=0&size=3`)
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać wpisów dziennika'))
+  return response.json()
+}
 
 export type Milestone = { id: number; title: string; completed: boolean; position: number }
 

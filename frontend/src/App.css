@@ -3675,6 +3675,21 @@
   font-size: 0.875rem;
 }
 .goal-initial-state[hidden] { display: none; }
+.goal-journal { grid-column: 1 / -1; min-width: 0; }
+.goal-journal .goal-journal-toggle { border-top-color: var(--color-primary-border); }
+.goal-journal-content { min-width: 0; padding: 0 2px 8px; color: #514b5d; font-size: 0.875rem; }
+.goal-journal-content[hidden] { display: none; }
+.goal-journal-content p { margin: 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.goal-journal-list { list-style: none; margin: 0; padding: 0; }
+.goal-journal-entry { min-width: 0; padding: 10px 0; }
+.goal-journal-entry + .goal-journal-entry { border-top: 1px solid var(--color-primary-border); }
+.goal-journal-entry-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; color: #625b70; font-size: 0.75rem; line-height: 1.4; }
+.goal-journal-entry-type { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.goal-journal-entry-type svg { flex-shrink: 0; color: var(--color-primary); }
+.goal-journal-entry-header time { white-space: nowrap; }
+.goal-journal-empty { padding: 8px 0; color: #625b70; }
+.goal-journal-empty small { display: block; margin-top: 4px; line-height: 1.5; }
+.goal-journal-content .goal-journal-total { margin-top: 6px; color: #625b70; font-size: 0.75rem; }
 .goal-tabs-row {
   grid-column: 1 / -1;
   display: grid;

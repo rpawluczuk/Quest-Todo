@@ -1,6 +1,8 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
 import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
-import { createGoal, deleteGoal, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
+import { createGoal, deleteGoal, getGoalEntries, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
+import { createGoalJournalStore } from '../goalJournal'
+import GoalJournal from '../components/GoalJournal'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal } from '../types/Goal'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
@@ -34,6 +36,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   onHabitPointsChanged: (balance: number) => void
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [journalStore] = useState(() => createGoalJournalStore(getGoalEntries))
   const [initialStateOpenId, setInitialStateOpenId] = useState<number | null>(null)
   const [activeTabByGoal, setActiveTabByGoal] = useState<Record<number, GoalTab>>({})
   const [taskCountByGoal, setTaskCountByGoal] = useState<Record<number, number>>({})
@@ -540,6 +543,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onGoalLinksChanged={onHabitGoalLinksChanged}
                   onCountChange={updateHabitCount} />
               </div>
+              <GoalJournal key={`journal-${goal.id}`} goalId={goal.id} store={journalStore} />
               {goal.currentState && <>
                 <button type="button" className="goal-initial-state-toggle"
                   aria-expanded={initialStateOpenId === goal.id} aria-controls={`goal-initial-state-${goal.id}`}

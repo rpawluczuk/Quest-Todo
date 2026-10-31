@@ -28,7 +28,7 @@ public class GoalEntryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowe parametry stronicowania.");
         goals.findByIdAndUserId(goalId, currentUser.getUserId()).orElseThrow(GoalEntryService::goalNotFound);
         var result = entries.findByGoalIdOrderByCreatedAtDescIdDesc(goalId, PageRequest.of(page, size));
-        return new GoalEntries(result.stream().map(GoalEntryEntity::toResponse).toList(), result.hasNext());
+        return new GoalEntries(result.stream().map(GoalEntryEntity::toResponse).toList(), result.hasNext(), result.getTotalElements());
     }
 
     public GoalEntryResponse create(long goalId, CreateGoalEntryRequest request) {

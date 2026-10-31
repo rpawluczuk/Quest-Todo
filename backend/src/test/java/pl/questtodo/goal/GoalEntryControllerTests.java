@@ -124,6 +124,7 @@ class GoalEntryControllerTests {
                 .andExpect(jsonPath("$.entries.length()").value(2))
                 .andExpect(jsonPath("$.entries[0].id").value(third))
                 .andExpect(jsonPath("$.entries[1].id").value(first))
+                .andExpect(jsonPath("$.totalElements").value(3))
                 .andExpect(jsonPath("$.hasMore").value(true));
         mvc.perform(get("/api/goals/1001/entries").param("size", "2").param("page", "1"))
                 .andExpect(jsonPath("$.entries.length()").value(1)).andExpect(jsonPath("$.entries[0].id").value(second))
@@ -134,10 +135,13 @@ class GoalEntryControllerTests {
 
     @Test void returnsEmptyListAndDefaultPageIsLimitedToTwenty() throws Exception {
         mvc.perform(get("/api/goals/1001/entries")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.entries.length()").value(0)).andExpect(jsonPath("$.hasMore").value(false));
+                .andExpect(jsonPath("$.entries.length()").value(0)).andExpect(jsonPath("$.hasMore").value(false))
+                .andExpect(jsonPath("$.totalElements").value(0));
         for (int i = 0; i < 21; i++) create(1001);
         mvc.perform(get("/api/goals/1001/entries")).andExpect(jsonPath("$.entries.length()").value(20))
-                .andExpect(jsonPath("$.hasMore").value(true));
+                .andExpect(jsonPath("$.hasMore").value(true)).andExpect(jsonPath("$.totalElements").value(21));
+        mvc.perform(get("/api/goals/1001/entries").param("size", "3"))
+                .andExpect(jsonPath("$.entries.length()").value(3)).andExpect(jsonPath("$.totalElements").value(21));
     }
 
     @ParameterizedTest @CsvSource({"-1,20", "0,0", "0,-1", "0,101", "2147483647,100"})

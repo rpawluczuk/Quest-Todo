@@ -30,12 +30,14 @@ GET /api/goals/1001/entries?page=0&size=3
 Odpowiedź `200 OK`:
 
 ```json
-{"entries":[{"id":123,"type":"SUCCESS","content":"Pierwsza poprawa.","createdAt":"2026-10-30T18:30:00Z","updatedAt":"2026-10-30T18:30:00Z"}],"hasMore":false}
+{"entries":[{"id":123,"type":"SUCCESS","content":"Pierwsza poprawa.","createdAt":"2026-10-30T18:30:00Z","updatedAt":"2026-10-30T18:30:00Z"}],"hasMore":false,"totalElements":1}
 ```
 
 Numeracja stron zaczyna się od 0, domyślny rozmiar to 20, dopuszczalny zakres
 rozmiaru to 1–100. Kolejność: `createdAt DESC, id DESC`. Strona pobiera tylko
-potrzebne rekordy i sprawdza istnienie następnej strony, bez liczenia całej historii.
+potrzebne rekordy i zwraca `totalElements`: liczbę wszystkich wpisów tego celu,
+niezależną od rozmiaru strony. Licznik jest obliczany przez backend bez ładowania
+całej historii do pamięci (dodany w etapie 2 dla nagłówka dziennika).
 Edycja nie przesuwa wpisu według daty ostatniej modyfikacji. Przy równoczesnym
 dodawaniu wpisów paginacja offsetowa nie stanowi historycznego snapshotu.
 
