@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw' | 'list-plus' | 'pause' | 'play'
+type TaskMenuIconName = 'pencil' | 'arrow-down' | 'arrow-up' | 'trash-2' | 'check-circle-2' | 'rotate-ccw' | 'list-plus' | 'pause' | 'play' | 'notebook-pen'
 
 type TaskMenuAction = {
   readonly label: string
   readonly onSelect: () => void
   readonly destructive?: boolean
+  readonly expanded?: boolean
+  readonly controls?: string
   readonly icon?: TaskMenuIconName
 }
 
@@ -17,6 +19,7 @@ type TaskActionsMenuProps = {
 }
 
 const taskMenuIconPaths: Record<TaskMenuIconName, ReactNode> = {
+  'notebook-pen': <path d="M4 3h12v18H4zM2 7h4M2 12h4M2 17h4M10 14l9-9 3 3-9 9-4 1z" />,
   play: <path d="m8 4 12 8-12 8V4Z" />,
   pause: <><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></>,
   'list-plus': <path d="M3 6h18M3 12h12M3 18h6M19 14v8M15 18h8" />,
@@ -174,6 +177,8 @@ export default function TaskActionsMenu({ itemTitle, itemType = 'zadania', disab
                 type="button"
                 role="menuitem"
                 tabIndex={-1}
+                aria-expanded={action.expanded}
+                aria-controls={action.controls}
                 className={action.destructive ? 'task-menu-item task-menu-item-danger' : 'task-menu-item'}
                 onClick={(event) => {
                   event.stopPropagation()

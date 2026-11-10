@@ -1,4 +1,5 @@
 import { apiFetch } from './apiFetch'
+import type { GoalEntries } from '../types/GoalEntry'
 import type { Habit, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
@@ -9,6 +10,14 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
 export async function getHabits(date: string, signal?: AbortSignal): Promise<Habit[]> {
   const response = await apiFetch(`/api/habits?includeInactive=true&date=${encodeURIComponent(date)}`, { signal })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać nawyków'))
+  return response.json()
+}
+
+export async function getHabitEntries(id: number, page = 0, size = 3): Promise<GoalEntries> {
+  const response = await apiFetch(`/api/habits/${id}/entries?page=${page}&size=${size}`)
+  if (response.status === 404 || response.status === 403)
+    throw new Error('Nawyk został usunięty lub nie masz dostępu do jego dziennika.')
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się pobrać wpisów dziennika'))
   return response.json()
 }
 

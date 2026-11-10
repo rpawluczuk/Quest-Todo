@@ -2,6 +2,9 @@ import { createHabitStatusUpdates } from '../habitStatusUpdates'
 import { useHabitStore } from '../components/HabitProvider'
 import { habitStatusAction } from '../habitStore'
 import HabitWaitingRoom from '../components/HabitWaitingRoom'
+import HabitJournal from '../components/HabitJournal'
+import { createHabitJournalStore, type HabitJournalStore } from '../habitJournal'
+import { getHabitEntries } from '../api/habitApi'
 import { partitionHabits } from '../habitLists'
 import { ChevronDown } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type MouseEvent, type RefObject, type Dispatch, type SetStateAction } from 'react'
@@ -30,6 +33,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
 }) {
   const store = useHabitStore()
+  const [journalStore] = useState(() => createHabitJournalStore(getHabitEntries))
   const statusUpdates = store.statusUpdates
   const pendingStatusIds = statusUpdates.pendingIds()
   const [statusNotice, setStatusNotice] = useState<{ message: string; error: boolean } | null>(null)
@@ -121,7 +125,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+    <HabitDayList journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
       onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
@@ -138,7 +142,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated, onCreatedNotice }: {
+  onHabitCreated, onCreatedNotice, journalStore }: {
+  journalStore: HabitJournalStore
   habits: Habit[]; setHabits: Dispatch<SetStateAction<Habit[]>>
   statusUpdates: ReturnType<typeof createHabitStatusUpdates>
   pendingStatusIds: ReadonlySet<number>
@@ -152,6 +157,16 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
 }) {
   const store = useHabitStore()
   const [waitingOpen, setWaitingOpen] = useState(false)
+  const [journalId, setJournalId] = useState<number | null>(null)
+  function closeJournal(id: number) {
+    const trigger = document.getElementById(`habit-journal-${id}`)?.closest('li')?.querySelector<HTMLButtonElement>('.task-menu-trigger')
+    setJournalId(null)
+    trigger?.focus({ preventScroll: true })
+  }
+  function journal(habit: Habit) {
+    return journalId === habit.id ? <HabitJournal key={habit.id} habitId={habit.id} store={journalStore}
+      onClose={() => closeJournal(habit.id)} /> : null
+  }
   const [finishedOpen, setFinishedOpen] = useState(false)
   const savingCompletion = useRef(false)
   const [loading, setLoading] = useState(true)
@@ -334,6 +349,9 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
                   <TaskActionsMenu itemTitle={habit.name} itemType="nawyku"
                     disabled={busy || pendingStatusIds.has(habit.id) || editingId !== null}
                     actions={[
+                      { label: 'Dziennik nawyku', icon: 'notebook-pen', expanded: journalId === habit.id,
+                        controls: journalId === habit.id ? `habit-journal-${habit.id}` : undefined,
+                        onSelect: () => setJournalId(habit.id) },
                       { ...habitStatusAction(habit), onSelect: () => void onStatusChange(habit, 'PAUSED') },
                       ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
                       ...(!habit.endedOn && habit.status !== 'FINISHED'
@@ -385,6 +403,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
               <p id={`habit-note-${habit.id}`} className="task-card-description habit-description"
                 hidden={!expandedDescriptions.has(habit.id)}>{habit.description}</p>
             </>}
+            {journal(habit)}
           </li>)}
           </ul>
           if (group.collapsible) return <Fragment key={group.key}>
@@ -398,6 +417,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
               </summary>
               <div id="habit-panel-waiting">
                 <HabitWaitingRoom paused={lists.paused} planned={lists.planned}
+                  journalId={journalId} onJournal={habit => setJournalId(habit.id)} renderJournal={journal}
                   pendingIds={pendingStatusIds} disabled={busy || editingId !== null}
                   onResume={habit => void onStatusChange(habit, 'ACTIVE')}
                   onStart={habit => void onStatusChange(habit, 'ACTIVE')} onEdit={habit => setEditingId(habit.id)} />

@@ -138,7 +138,7 @@ try {
     errorStatus = status
     await pausedCard(1).getByRole('button', { name: /Wznów nawyk/ }).click()
     await page.getByRole('alert').filter({ hasText: status === 404 ? 'Nawyk nie istnieje' : 'Nie udało się zapisać statusu' }).waitFor()
-    assert.equal(await pausedCard(1).getByRole('button').isEnabled(), true)
+  assert.equal(await pausedCard(1).getByRole('button', { name: /Wznów nawyk/ }).isEnabled(), true)
     assert.equal(all[0].activityStatus, 'PAUSED')
   }
   errorStatus = 0; networkFailure = true
@@ -160,7 +160,7 @@ try {
   for (const width of [320, 360, 390, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
-    assert.ok(await pausedCard(4).getByRole('button').evaluate(el => el.getBoundingClientRect().height >= 40))
+    assert.ok(await pausedCard(4).getByRole('button', { name: /Wznów nawyk/ }).evaluate(el => el.getBoundingClientRect().height >= 40))
   }
   await page.setViewportSize({ width: 360, height: 844 })
   await waitingPanel.screenshot({ path: '../.local-backups/habit-resume.png' })
@@ -171,7 +171,7 @@ try {
   await page.getByText('Nie masz aktywnych nawyków', { exact: true }).waitFor()
   assert.equal(await page.getByRole('group', { name: 'Przegląd tygodni' }).isVisible(), true)
   await expandWaiting()
-  await pausedCard(1).getByRole('button').click()
+  await pausedCard(1).getByRole('button', { name: /Wznów nawyk/ }).click()
   await pausedCard(1).waitFor({ state: 'detached' })
   await card(1).getByRole('checkbox').check()
   await card(1).getByText('43/150 wykonań', { exact: true }).waitFor()
