@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { dateFromKey, dateKey, moveWeek, selectedDayInWeek, startOfWeek, weekDays } from '../weekDates'
 
 const labels = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']
@@ -11,13 +10,13 @@ export default function WeekBar({ selectedDay, today: todayKey, onSelect, disabl
   onSelect: (date: string) => void
   disabled?: boolean
 }) {
-  const [monday, setMonday] = useState(() => startOfWeek(dateFromKey(selectedDay)))
+  // Keep the range tied to the accepted selection (which can require a draft confirmation).
+  const monday = startOfWeek(dateFromKey(selectedDay))
   const today = dateFromKey(todayKey)
   const days = weekDays(monday)
 
   function navigate(direction: -1 | 1) {
     const next = moveWeek(monday, direction, today)
-    setMonday(next)
     onSelect(selectedDayInWeek(selectedDay, next, todayKey))
   }
 

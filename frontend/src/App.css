@@ -3683,6 +3683,10 @@
 .habit-journal-close { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--color-primary); cursor: pointer; }
 .habit-journal-close:hover { background: var(--color-primary-soft); }
 .habit-journal-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.habit-journal-header h4 { flex: 1; }
+.habit-journal-header .habit-journal-add { flex-shrink: 0; width: 36px; height: 40px; }
+.habit-journal-header { gap: 4px; }
+.habit-journal-close:disabled { opacity: 0.6; cursor: wait; }
 .goal-journal-header { display: grid; grid-template-columns: minmax(0, 1fr) 32px 18px; align-items: center; gap: 8px; margin-top: 10px; border-top: 1px solid var(--color-primary-border); }
 .goal-journal .goal-journal-toggle { grid-column: 1 / -1; grid-row: 1; display: grid; grid-template-columns: subgrid; gap: 8px; margin: 0; border: 0; }
 .goal-journal-toggle .goal-initial-state-label { grid-column: 1; min-width: 0; }

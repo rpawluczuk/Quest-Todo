@@ -2,68 +2,35 @@ import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, us
 import { ChevronDown, ChevronUp, NotebookPen, Plus } from 'lucide-react'
 import type { createGoalJournalStore } from '../goalJournal'
 import { createGoalEntry, deleteGoalEntry, updateGoalEntry } from '../api/goalApi'
-import type { GoalEntry } from '../types/GoalEntry'
 import GoalEntryItem from './GoalEntryItem'
-import GoalEntryForm from './GoalEntryForm'
-import DiscardTaskChangesDialog from './DiscardTaskChangesDialog'
+import { useJournalEditor } from './useJournalEditor'
 
-type Editor = { kind: 'create' } | { kind: 'edit'; entry: GoalEntry }
 export type GoalJournalHandle = { beforeStatusChange: (action: () => void) => void }
 
 const GoalJournal = forwardRef<GoalJournalHandle, {
   goalId: number; store: ReturnType<typeof createGoalJournalStore>; readOnly: boolean; onNotice: (message: string) => void
 }>(function GoalJournal({ goalId, store, readOnly, onNotice }, ref) {
   const [open, setOpen] = useState(false)
-  const [editor, setEditor] = useState<Editor | null>(null)
-  const [discardAction, setDiscardAction] = useState<{ run: () => void } | null>(null)
-  const [deleting, setDeleting] = useState<GoalEntry | null>(null)
-  const [deleteError, setDeleteError] = useState('')
-  const dirty = useRef(false)
-  const deletingNow = useRef(false)
-  const mounted = useRef(false)
   const addButton = useRef<HTMLButtonElement>(null)
   const contentId = useId()
   const headingId = useId()
   const { data, loading, error, busy, full, history, historyLoading, historyError } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
   const visible = full && history ? history.entries : data?.entries ?? []
+  const { editor, setEditor, dirty, mounted, setDiscardAction, startEditor: edit, startDelete, beforeLeave, form, dialogs } = useJournalEditor({
+    id: goalId, store, readOnly, contentId, addButton, onNotice, onSaved: () => setOpen(true),
+    api: { create: (type, content) => createGoalEntry(goalId, type, content),
+      update: (entry, type, content) => updateGoalEntry(goalId, entry.id, type, content),
+      remove: entry => deleteGoalEntry(goalId, entry.id) },
+  })
   const creating = editor?.kind === 'create'
-  useImperativeHandle(ref, () => ({ beforeStatusChange: action => {
-    if (store.get(goalId).busy) { onNotice('Poczekaj na zakończenie zapisu w dzienniku.'); return }
-    const proceed = () => { dirty.current = false; setEditor(null); setDeleting(null); action() }
-    if (dirty.current) setDiscardAction({ run: proceed })
-    else proceed()
-  } }))
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  useImperativeHandle(ref, () => ({ beforeStatusChange: beforeLeave }))
   useEffect(() => {
     if (open && creating && !readOnly) {
       document.getElementById(contentId)?.querySelector('textarea')?.focus({ preventScroll: true })
     }
   }, [open, creating, readOnly, contentId])
-  function transition(action: () => void) {
-    if (readOnly || store.get(goalId).busy) return
-    if (dirty.current) setDiscardAction({ run: action })
-    else action()
-  }
-  function startEditor(next: Editor) {
-    setOpen(true); void store.load(goalId)
-    if (editor?.kind === next.kind && (next.kind === 'create'
-      || (editor.kind === 'edit' && editor.entry.id === next.entry.id))) {
-      document.getElementById(contentId)?.querySelector('textarea')?.focus({ preventScroll: true }); return
-    }
-    transition(() => { dirty.current = false; setEditor(next) })
-  }
+  function startEditor(next: Parameters<typeof edit>[0]) { setOpen(true); edit(next) }
   function startCreating() { startEditor({ kind: 'create' }) }
-  function restoreFocus(entryId?: number) {
-    requestAnimationFrame(() => {
-      if (!mounted.current) return
-      const menu = document.getElementById(contentId)?.querySelector<HTMLButtonElement>(`[data-entry-id="${entryId}"] .task-menu-trigger`)
-      ;(menu ?? addButton.current)?.focus({ preventScroll: true })
-    })
-  }
-  function closeForm() {
-    const entryId = editor?.kind === 'edit' ? editor.entry.id : undefined
-    dirty.current = false; setEditor(null); restoreFocus(entryId)
-  }
   function showLess() {
     const collapse = () => {
       if (editor?.kind === 'edit' && !data?.entries.some(entry => entry.id === editor.entry.id)) {
@@ -82,28 +49,6 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
       setDiscardAction({ run: collapse })
     } else collapse()
   }
-  function form(current: Editor) {
-    const entry = current.kind === 'edit' ? current.entry : undefined
-    return <GoalEntryForm key={entry?.id ?? 'create'} entry={entry} onCancel={closeForm}
-      onDirtyChange={value => { dirty.current = value }} onSave={async (type, content) => {
-        if (entry) await store.update(goalId, () => updateGoalEntry(goalId, entry.id, type, content))
-        else await store.create(goalId, () => createGoalEntry(goalId, type, content))
-        if (!mounted.current) return
-        closeForm(); setOpen(true); onNotice(entry ? 'Wpis został zaktualizowany' : 'Wpis został dodany')
-      }} />
-  }
-  async function confirmDelete() {
-    if (!deleting || deletingNow.current || readOnly || store.get(goalId).busy) return
-    deletingNow.current = true; setDeleteError('')
-    try {
-      await store.remove(goalId, deleting.id, () => deleteGoalEntry(goalId, deleting.id))
-      if (!mounted.current) return
-      setDeleting(null); setOpen(true); restoreFocus(); onNotice('Wpis został usunięty')
-    } catch (failure) {
-      if (mounted.current) setDeleteError(failure instanceof Error ? failure.message : 'Nie udało się usunąć wpisu.')
-    } finally { deletingNow.current = false }
-  }
-
   return <section className="goal-journal" aria-labelledby={headingId}>
     <div className="goal-journal-header">
     <button type="button" id={headingId} className="goal-initial-state-toggle goal-journal-toggle"
@@ -129,9 +74,7 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
       {data && (visible.length ? <>
         <ul className="goal-journal-list">{visible.map(entry => <GoalEntryItem key={entry.id} entry={entry}
           readOnly={readOnly} disabled={!!busy} onEdit={() => startEditor({ kind: 'edit', entry })}
-          onDelete={() => transition(() => {
-            dirty.current = false; setEditor(null); setDeleteError(''); setDeleting(entry)
-          })}>
+          onDelete={() => startDelete(entry)}>
           {!readOnly && editor?.kind === 'edit' && editor.entry.id === entry.id ? form(editor) : undefined}
         </GoalEntryItem>)}</ul>
       </> : <div className="goal-journal-empty">
@@ -158,13 +101,7 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
           </>}
       </div>}
     </div>
-    {discardAction && !readOnly && <DiscardTaskChangesDialog onContinue={() => setDiscardAction(null)}
-      onDiscard={() => { const action = discardAction.run; setDiscardAction(null); action() }} />}
-    {deleting && !readOnly && <DiscardTaskChangesDialog title="Usunąć wpis z dziennika?"
-      description={`Ten wpis zostanie trwale usunięty. Tej operacji nie można cofnąć.\n${deleting.content.slice(0, 100)}`}
-      cancelLabel="Anuluj" confirmLabel={busy ? 'Usuwanie…' : 'Usuń'} busy={!!busy} error={deleteError}
-      onContinue={() => { const id = deleting.id; setDeleting(null); restoreFocus(id) }}
-      onDiscard={() => { void confirmDelete() }} />}
+    {dialogs}
   </section>
 })
 

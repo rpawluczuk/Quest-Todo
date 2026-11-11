@@ -1,9 +1,10 @@
+import type { JournalEditorHandle } from '../components/useJournalEditor'
 import { createHabitStatusUpdates } from '../habitStatusUpdates'
 import { useHabitStore } from '../components/HabitProvider'
 import { habitStatusAction } from '../habitStore'
 import HabitWaitingRoom from '../components/HabitWaitingRoom'
 import HabitJournal from '../components/HabitJournal'
-import { createHabitJournalStore, type HabitJournalStore } from '../habitJournal'
+import { createHabitJournalStore, habitJournalReadOnly, type HabitJournalStore } from '../habitJournal'
 import { getHabitEntries } from '../api/habitApi'
 import { partitionHabits } from '../habitLists'
 import { ChevronDown } from 'lucide-react'
@@ -33,6 +34,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
 }) {
   const store = useHabitStore()
+  const journalEditor = useRef<JournalEditorHandle>(null)
   const [journalStore] = useState(() => createHabitJournalStore(getHabitEntries))
   const statusUpdates = store.statusUpdates
   const pendingStatusIds = statusUpdates.pendingIds()
@@ -114,7 +116,10 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
   }, [])
 
   return <section className="tasks-section" aria-labelledby="habits-heading">
-    <WeekBar selectedDay={selectedDay} today={today} onSelect={setSelectedDay} disabled={busy} />
+    <WeekBar selectedDay={selectedDay} today={today} onSelect={day => {
+      if (journalEditor.current) journalEditor.current.beforeLeave(() => setSelectedDay(day))
+      else setSelectedDay(day)
+    }} disabled={busy} />
     <div className="section-header section-header-with-action">
       <h2 id="habits-heading">Nawyki</h2>
       <button type="button" className="add-task-header-button" aria-label="Dodaj nawyk" title="Dodaj nawyk"
@@ -125,7 +130,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+    <HabitDayList journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
       onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
@@ -142,7 +147,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated, onCreatedNotice, journalStore }: {
+  onHabitCreated, onCreatedNotice, journalStore, journalEditor }: {
+  journalEditor: RefObject<JournalEditorHandle | null>
   journalStore: HabitJournalStore
   habits: Habit[]; setHabits: Dispatch<SetStateAction<Habit[]>>
   statusUpdates: ReturnType<typeof createHabitStatusUpdates>
@@ -158,13 +164,21 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
   const store = useHabitStore()
   const [waitingOpen, setWaitingOpen] = useState(false)
   const [journalId, setJournalId] = useState<number | null>(null)
+  function guardJournal(action: () => void) {
+    if (journalEditor.current) journalEditor.current.beforeLeave(action)
+    else action()
+  }
+  function openJournal(id: number) {
+    if (journalId !== id) guardJournal(() => setJournalId(id))
+  }
   function closeJournal(id: number) {
     const trigger = document.getElementById(`habit-journal-${id}`)?.closest('li')?.querySelector<HTMLButtonElement>('.task-menu-trigger')
     setJournalId(null)
     trigger?.focus({ preventScroll: true })
   }
   function journal(habit: Habit) {
-    return journalId === habit.id ? <HabitJournal key={habit.id} habitId={habit.id} store={journalStore}
+    return journalId === habit.id ? <HabitJournal ref={journalEditor} key={habit.id} habitId={habit.id} store={journalStore}
+      readOnly={habitJournalReadOnly(habit, today)} onNotice={onCreatedNotice}
       onClose={() => closeJournal(habit.id)} /> : null
   }
   const [finishedOpen, setFinishedOpen] = useState(false)
@@ -330,7 +344,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
                 <input type="checkbox" checked={habit.completed}
                   disabled={busy || pendingStatusIds.has(habit.id) || editingId !== null || !canToggleHabit(habit)}
                   aria-label={`${habit.name} — ${displayDate.format(dateFromKey(date))}`}
-                  onChange={() => void toggleCompletion(habit)} />
+                  onChange={() => guardJournal(() => { void toggleCompletion(habit) })} />
               </label>
               <div className="habit-card-content">
                 <div className="habit-heading-row">
@@ -351,12 +365,12 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
                     actions={[
                       { label: 'Dziennik nawyku', icon: 'notebook-pen', expanded: journalId === habit.id,
                         controls: journalId === habit.id ? `habit-journal-${habit.id}` : undefined,
-                        onSelect: () => setJournalId(habit.id) },
-                      { ...habitStatusAction(habit), onSelect: () => void onStatusChange(habit, 'PAUSED') },
-                      ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => setEditingId(habit.id) }] : []),
+                        onSelect: () => openJournal(habit.id) },
+                      { ...habitStatusAction(habit), onSelect: () => guardJournal(() => { void onStatusChange(habit, 'PAUSED') }) },
+                      ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => guardJournal(() => setEditingId(habit.id)) }] : []),
                       ...(!habit.endedOn && habit.status !== 'FINISHED'
-                        ? [{ label: 'Zakończ nawyk', onSelect: () => setEndingHabit(habit) }] : []),
-                      { label: 'Usuń', destructive: true, onSelect: () => void remove(habit.id) },
+                        ? [{ label: 'Zakończ nawyk', onSelect: () => guardJournal(() => setEndingHabit(habit)) }] : []),
+                      { label: 'Usuń', destructive: true, onSelect: () => guardJournal(() => { void remove(habit.id) }) },
                     ]} />
                 </div>
                 {pendingStatusIds.has(habit.id) && <span className="habit-status-saving" role="status">Wstrzymywanie…</span>}
@@ -417,10 +431,10 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
               </summary>
               <div id="habit-panel-waiting">
                 <HabitWaitingRoom paused={lists.paused} planned={lists.planned}
-                  journalId={journalId} onJournal={habit => setJournalId(habit.id)} renderJournal={journal}
+                  journalId={journalId} onJournal={habit => openJournal(habit.id)} renderJournal={journal}
                   pendingIds={pendingStatusIds} disabled={busy || editingId !== null}
-                  onResume={habit => void onStatusChange(habit, 'ACTIVE')}
-                  onStart={habit => void onStatusChange(habit, 'ACTIVE')} onEdit={habit => setEditingId(habit.id)} />
+                  onResume={habit => guardJournal(() => { void onStatusChange(habit, 'ACTIVE') })}
+                  onStart={habit => guardJournal(() => { void onStatusChange(habit, 'ACTIVE') })} onEdit={habit => guardJournal(() => setEditingId(habit.id))} />
               </div>
             </details>
             <details className="habit-finished-section" open={finishedOpen}

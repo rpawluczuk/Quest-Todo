@@ -1,0 +1,69 @@
+import { useId, useRef, useState } from 'react'
+import { Check } from 'lucide-react'
+import { goalEntryLabels } from '../goalJournal'
+import type { GoalEntry, GoalEntryType } from '../types/GoalEntry'
+import AutoResizeTextarea from './AutoResizeTextarea'
+import FormSelect, { FormSelectItem } from './FormSelect'
+
+export default function JournalEntryForm({ onSave, onCancel, entry, onDirtyChange, placeholder = "Co nowego w realizacji celu?" }: {
+  onSave: (type: GoalEntryType, content: string) => Promise<void>
+  onCancel: () => void
+  placeholder?: string
+  entry?: GoalEntry
+  onDirtyChange?: (dirty: boolean) => void
+}) {
+  const id = useId()
+  const [type, setType] = useState<GoalEntryType>(entry?.type ?? 'NOTE')
+  const [content, setContent] = useState(entry?.content ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const pending = useRef(false)
+  function dirty(nextType: GoalEntryType, nextContent: string) {
+    onDirtyChange?.(nextType !== (entry?.type ?? 'NOTE') || nextContent.trim() !== (entry?.content ?? ''))
+  }
+  return <form className="task-form goal-entry-create-form" aria-label={entry ? 'Edycja wpisu w dzienniku' : 'Dodawanie wpisu do dziennika'}
+    aria-busy={saving} onSubmit={async event => {
+      event.preventDefault()
+      if (pending.current) return
+      if (!content.trim() || content.length > 5000) {
+        setError('Wpisz treść od 1 do 5000 znaków.'); return
+      }
+      if (entry && type === entry.type && content.trim() === entry.content) { onCancel(); return }
+      pending.current = true; setSaving(true); setError('')
+      try { await onSave(type, content.trim()) }
+      catch (failure) { setError(failure instanceof Error ? failure.message : 'Nie udało się dodać wpisu.') }
+      finally { pending.current = false; setSaving(false) }
+    }} onKeyDown={event => {
+      if (event.key === 'Escape' && !event.defaultPrevented && !pending.current
+        && !event.currentTarget.querySelector('[role="combobox"][aria-expanded="true"]')) {
+        event.preventDefault(); event.stopPropagation(); onCancel()
+      }
+    }}>
+    <div className="form-field">
+      <label htmlFor={`${id}-type`}>Rodzaj wpisu</label>
+      <FormSelect id={`${id}-type`} value={type} onValueChange={value => { setType(value as GoalEntryType); dirty(value as GoalEntryType, content) }}
+        disabled={saving} ariaLabel="Rodzaj wpisu" triggerContent={goalEntryLabels[type]}>
+        {(Object.keys(goalEntryLabels) as GoalEntryType[]).map(value =>
+          <FormSelectItem key={value} value={value}>{goalEntryLabels[value]}</FormSelectItem>)}
+      </FormSelect>
+    </div>
+    <label className="form-field" htmlFor={`${id}-content`}>
+      <span>Treść <span className="required-field-marker" aria-hidden="true">*</span></span>
+      <AutoResizeTextarea id={`${id}-content`} autoFocus required maxLength={5000} value={content}
+        placeholder={placeholder} disabled={saving}
+        aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined}
+        onChange={event => { setContent(event.target.value); dirty(type, event.target.value) }} onKeyDown={event => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault(); event.currentTarget.form?.requestSubmit()
+          }
+        }} />
+    </label>
+    {error && <p className="form-error" id={`${id}-error`} role="alert">{error}</p>}
+    <div className="task-actions milestone-inline-actions">
+      <button type="button" className="milestone-inline-cancel" disabled={saving} onClick={onCancel}>Anuluj</button>
+      <button type="submit" className="milestone-inline-submit" disabled={saving || !content.trim()}>
+        <Check size={16} aria-hidden="true" />{saving ? (entry ? 'Zapisywanie…' : 'Dodawanie…') : (entry ? 'Zapisz' : 'Dodaj')}
+      </button>
+    </div>
+  </form>
+}

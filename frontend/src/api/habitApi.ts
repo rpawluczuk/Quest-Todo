@@ -1,5 +1,6 @@
+import { journalMutation } from './journalApi'
 import { apiFetch } from './apiFetch'
-import type { GoalEntries } from '../types/GoalEntry'
+import type { GoalEntries, GoalEntry, GoalEntryType } from '../types/GoalEntry'
 import type { Habit, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
@@ -100,4 +101,20 @@ export async function endHabit(id: number, reason: HabitEndReason): Promise<Habi
   })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zakończyć nawyku'))
   return response.json()
+}
+
+const journalUnavailable = 'Wpis lub nawyk nie jest ju\u017c dost\u0119pny. M\u00f3g\u0142 zosta\u0107 usuni\u0119ty albo nie masz do niego dost\u0119pu.'
+
+export async function createHabitEntry(habitId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+  const response = await journalMutation(`/api/habits/${habitId}/entries`, 'POST', { type, content: content.trim() }, journalUnavailable)
+  return response.json()
+}
+
+export async function updateHabitEntry(habitId: number, entryId: number, type: GoalEntryType, content: string): Promise<GoalEntry> {
+  const response = await journalMutation(`/api/habits/${habitId}/entries/${entryId}`, 'PATCH', { type, content: content.trim() }, journalUnavailable)
+  return response.json()
+}
+
+export async function deleteHabitEntry(habitId: number, entryId: number): Promise<void> {
+  await journalMutation(`/api/habits/${habitId}/entries/${entryId}`, 'DELETE', undefined, journalUnavailable)
 }
