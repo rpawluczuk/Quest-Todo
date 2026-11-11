@@ -1,3 +1,4 @@
+import JournalHistoryControls from './JournalHistoryControls'
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, useSyncExternalStore } from 'react'
 import { ChevronDown, ChevronUp, NotebookPen, Plus } from 'lucide-react'
 import type { createGoalJournalStore } from '../goalJournal'
@@ -14,9 +15,9 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
   const addButton = useRef<HTMLButtonElement>(null)
   const contentId = useId()
   const headingId = useId()
-  const { data, loading, error, busy, full, history, historyLoading, historyError } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
+  const { data, loading, error, busy, full, history } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
   const visible = full && history ? history.entries : data?.entries ?? []
-  const { editor, setEditor, dirty, mounted, setDiscardAction, startEditor: edit, startDelete, beforeLeave, form, dialogs } = useJournalEditor({
+  const { editor, showLess: collapseHistory, startEditor: edit, startDelete, beforeLeave, form, dialogs } = useJournalEditor({
     id: goalId, store, readOnly, contentId, addButton, onNotice, onSaved: () => setOpen(true),
     api: { create: (type, content) => createGoalEntry(goalId, type, content),
       update: (entry, type, content) => updateGoalEntry(goalId, entry.id, type, content),
@@ -31,24 +32,7 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
   }, [open, creating, readOnly, contentId])
   function startEditor(next: Parameters<typeof edit>[0]) { setOpen(true); edit(next) }
   function startCreating() { startEditor({ kind: 'create' }) }
-  function showLess() {
-    const collapse = () => {
-      if (editor?.kind === 'edit' && !data?.entries.some(entry => entry.id === editor.entry.id)) {
-        dirty.current = false; setEditor(null)
-      }
-      store.showLess(goalId)
-      requestAnimationFrame(() => {
-        if (!mounted.current) return
-        const heading = document.getElementById(headingId)
-        heading?.focus({ preventScroll: true })
-        const bounds = heading?.getBoundingClientRect()
-        if (bounds && (bounds.top < 0 || bounds.bottom > innerHeight)) heading?.scrollIntoView({ block: 'nearest' })
-      })
-    }
-    if (editor?.kind === 'edit' && dirty.current && !data?.entries.some(entry => entry.id === editor.entry.id)) {
-      setDiscardAction({ run: collapse })
-    } else collapse()
-  }
+  function showLess() { collapseHistory(data?.entries ?? [], () => store.showLess(goalId), headingId) }
   return <section className="goal-journal" aria-labelledby={headingId}>
     <div className="goal-journal-header">
     <button type="button" id={headingId} className="goal-initial-state-toggle goal-journal-toggle"
@@ -84,22 +68,7 @@ const GoalJournal = forwardRef<GoalJournalHandle, {
           + Dodaj pierwszy wpis
         </button>}
       </div>)}
-      {full && historyLoading && <p role="status" className="goal-journal-total">Ładowanie historii…</p>}
-      {full && historyError && <div><p className="form-error" role="alert">{historyError}</p>
-        <button type="button" className="goal-picker-link" disabled={busy || historyLoading}
-          onClick={() => { void store.more(goalId) }}>Spróbuj ponownie</button>
-      </div>}
-      {data && data.totalElements > 3 && <div className="goal-journal-history-actions">
-        {!full ? <button type="button" className="goal-picker-link" disabled={busy || historyLoading}
-          onClick={() => { void store.showHistory(goalId) }}>Pokaż wszystkie wpisy ({data.totalElements})</button>
-          : <>
-            {history?.hasMore && !historyError && <button type="button" className="goal-picker-link"
-              disabled={busy || historyLoading} onClick={() => { void store.more(goalId) }}>
-              {historyLoading ? 'Ładowanie…' : 'Pokaż więcej wpisów'}
-            </button>}
-            <button type="button" className="goal-picker-link" disabled={busy} onClick={showLess}>Pokaż mniej</button>
-          </>}
-      </div>}
+      <JournalHistoryControls id={goalId} store={store} onShowLess={showLess} />
     </div>
     {dialogs}
   </section>

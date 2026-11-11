@@ -1,13 +1,15 @@
 import { createGoalJournalStore } from './goalJournal.ts'
 import type { GoalEntries } from './types/GoalEntry'
+import type { JournalDraft } from './types/JournalDraft'
 
 // A separate instance namespaces habit data from goals and other sessions.
 // Reuse the journal cache's preview slot (page=0, size=3), deduplication and
-// per-parent snapshots. History remains unavailable in the habit journal.
+// per-parent snapshots and history pages, without sharing data with goals.
 export function createHabitJournalStore(fetchEntries: (id: number, page: number, size: number) => Promise<GoalEntries>) {
-  const store = createGoalJournalStore(id => fetchEntries(id, 0, 3))
-  return { get: store.get, subscribe: store.subscribe, load: store.load,
-    create: store.create, update: store.update, remove: store.remove }
+  return { ...createGoalJournalStore((id, page = 0, size = 3) => fetchEntries(id, page, size)),
+    // A refreshed habit may move between lists and remount its panel.
+    // Keep unsaved text within this session, separate from confirmed API data.
+    drafts: new Map<number, JournalDraft>() }
 }
 
 export type HabitJournalStore = ReturnType<typeof createHabitJournalStore>

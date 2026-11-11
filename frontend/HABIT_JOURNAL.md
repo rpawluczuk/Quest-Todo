@@ -1,4 +1,4 @@
-# Dziennik nawyku — etapy 2–3
+# Dziennik nawyku — etapy 2–4
 
 Akcja „Dziennik nawyku” w menu otwiera panel pod wybranym nawykiem.
 Dotyczy aktywnych, zaplanowanych, wstrzymanych i zakończonych nawyków.
@@ -22,7 +22,16 @@ i rozwijanie tekstu z `GoalEntryItem`. Dziennik celu nadal przekazuje swoje
 menu i formularz jako elementy React. Wspólne `JournalEntryForm`,
 `EditableJournalEntryItem` i `useJournalEditor` obsługują formularze inline,
 menu, potwierdzenia odrzucenia zmian i usunięcia. Kontenery wybierają API.
-Backend nie wymagał zmian. Pełna historia pozostaje zakresem etapu 4.
+Backend nie wymagał zmian. `JournalHistoryControls` współdzieli przyciski historii
+z dziennikiem celu. Przy ponad trzech wpisach „Pokaż wszystkie wpisy” pobiera
+pierwszą stronę po 10, a „Pokaż więcej” kolejne. „Pokaż mniej” przywraca podgląd
+i focus nagłówka, zachowując pobraną historię w cache.
+
+Historia korzysta z tego samego magazynu co dziennik celu. Po dodaniu lub usunięciu
+odświeża załadowany zakres stron, aby przesunięcia offsetów nie powodowały luk
+ani duplikatów. Edycja aktualizuje wpis w miejscu, bez zmiany kolejności i GET.
+Spadek liczby wpisów do trzech przywraca widok kompaktowy. Błąd pobrania
+zachowuje dotychczasowe wpisy i pozwala ponowić żądanie.
 
 Przycisk `+` i akcja pustego stanu otwierają formularz tworzenia. Menu wpisu
 pozwala edytować lub usunąć wpis. Formularz zachowuje treść po błędzie,
@@ -44,6 +53,13 @@ Zakończony nawyk ukrywa akcje zapisu. Przedłużenie harmonogramu odblokowuje j
 po otrzymaniu aktualnych danych nawyku. Odpowiedź 409 zachowuje szkic i pokazuje
 komunikat backendu; nie ma synchronizacji czasu rzeczywistego.
 
+Zmiany statusu zachowują historię i nie wywołują dodatkowych pobrań dziennika.
+Szkice nawyków są przechowywane w pamięci strony, według identyfikatora nawyku,
+aby przetrwały przeniesienie kafelka między sekcjami przy zewnętrznym odświeżeniu.
+Po zakończeniu otwarty szkic pozostaje do skopiowania z ostrzeżeniem i zablokowanym
+zapisem. Anulowanie lub potwierdzone odrzucenie usuwa szkic. Nie jest on utrwalany
+w przeglądarce. Oczekujące operacje sprawdzają aktualny tryb przed wysłaniem zapisu.
+
 Weryfikacja:
 
 ```shell
@@ -51,6 +67,7 @@ npm test
 npm run build
 node test/habitJournal.browser.mjs
 node test/habitJournalManage.browser.mjs
+node test/habitJournalHistory.browser.mjs
 ```
 
 Test przeglądarkowy wymaga lokalnego Vite na porcie 5197 (lub `TEST_URL`),
@@ -60,3 +77,6 @@ błędy/404, klawiaturę, tekst bez HTML, szerokości 320/360/390/1280 px
 i brak żądań zmieniających dane podczas przeglądania. Test zarządzania sprawdza
 CRUD, walidację, ochronę szkiców, potwierdzenia, błędy API, odświeżenie po DELETE,
 reaktywację, formularze mobilne oraz brak zmian wykonań i punktów.
+Test historii obejmuje strony po 10, CRUD starszych wpisów, ponowienia, cache,
+zmiany statusów oraz ochronę szkicu przy zewnętrznym zakończeniu nawyku.
+Etap 4 jest przygotowany do dalszej rozbudowy w etapie 5.

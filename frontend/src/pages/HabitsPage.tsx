@@ -169,7 +169,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     else action()
   }
   function openJournal(id: number) {
-    if (journalId !== id) guardJournal(() => setJournalId(id))
+    if (journalId !== id) guardJournal(() => { journalStore.showLess(id); setJournalId(id) })
   }
   function closeJournal(id: number) {
     const trigger = document.getElementById(`habit-journal-${id}`)?.closest('li')?.querySelector<HTMLButtonElement>('.task-menu-trigger')
