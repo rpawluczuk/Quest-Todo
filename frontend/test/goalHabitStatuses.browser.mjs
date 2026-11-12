@@ -31,6 +31,7 @@ try {
     let body = []
     if (path.endsWith('/status-history')) historyReads++
     if (path === '/api/users/me') body = { id: 1, login: 'test', points: 100, theme: 'PURPLE' }
+    else if (/^\/api\/habits\/\d+\/entries$/.test(path)) body = { entries: [], totalElements: 0, hasMore: false }
     else if (path === '/api/auth/csrf') body = { headerName: 'X-CSRF-TOKEN', token: 'test' }
     else if (path === '/api/tasks/overview') body = { tasks: [], completedCount: 0 }
     else if (path === '/api/goals') { goalReads++; body = goals }
@@ -160,7 +161,8 @@ try {
   await page.getByRole('button', { name: /Osiągnięte \(/ }).click()
   await openGoal(3)
   assert.equal(await goalHabits(3).locator('.goal-linked-habit').count(), 3)
-  assert.equal(await goalHabits(3).locator('.task-menu').count(), 0)
+  await menu(row(3, 'Rehabilitacja'), 'Dziennik nawyku')
+  assert.equal(await goalHabits(3).getByRole('button', { name: 'Dodaj wpis do dziennika', exact: true }).count(), 0)
   assert.equal(await goalHabits(3).getByRole('checkbox').count(), 0)
   assert.equal(await page.locator('#goal-card-3').getByRole('button', { name: 'Dodaj nawyk do celu', exact: true }).count(), 0)
   const headerMenu = page.locator('#goal-card-3').locator('.task-menu-trigger').first()

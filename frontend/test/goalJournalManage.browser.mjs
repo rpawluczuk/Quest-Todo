@@ -190,16 +190,19 @@ try {
   await journal(1).getByRole('button', { name: 'Spróbuj ponownie' }).click()
   await item(1, 4).waitFor()
   assert.equal(writes.length, writesBeforeRetry)
-  // Complete a request after changing goals: only the original cache changes, with no foreign toast.
+  // Navigation waits for a pending write, then the next goal keeps its own entries.
   await edit(1, 6); await text(1).fill('Zmiana w tle')
   gate = new Promise(done => { release = done })
   await save(1).click()
-  await openGoal(2)
+  await card(2).getByRole('button', { name: 'Cel 2', exact: true }).click()
+  assert.equal(await form(1).count(), 1)
+  const savedResponse = page.waitForResponse(response => response.request().method() === 'PATCH')
   release(); gate = undefined
-  await page.waitForResponse(response => response.request().method() === 'PATCH')
+  await savedResponse
+  await form(1).waitFor({ state: 'detached' })
+  await openGoal(2)
   assert.equal(await toggle(2).innerText(), 'Dziennik celu (1)')
   assert.equal(await journal(2).getByText('Zmiana w tle', { exact: true }).count(), 0)
-  assert.equal(await page.getByRole('status').filter({ hasText: 'Wpis został zaktualizowany' }).count(), 0)
   // Last record deletion restores the original empty state and first-entry action.
   await action(2, 1, 'Usuń')
   await dialog().getByRole('button', { name: 'Usuń', exact: true }).click()

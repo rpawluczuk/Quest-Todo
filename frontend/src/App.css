@@ -4984,3 +4984,5 @@ body:has(dialog[open]) {
 .habit-start-options legend { margin-bottom: 4px; font-size: 0.875rem; font-weight: 500; }
 .habit-form .habit-start-options label { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 40px; font-size: 0.875rem; cursor: pointer; }
 .habit-form .habit-start-options input { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; padding: 0; accent-color: var(--color-primary); }
+
+.goal-linked-habit > .habit-journal { grid-column: 1 / -1; min-width: 0; margin: 4px 0 0; }

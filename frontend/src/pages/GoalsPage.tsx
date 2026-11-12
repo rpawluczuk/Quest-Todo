@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
+import type { JournalEditorHandle } from '../components/useJournalEditor'
+import { Fragment, useImperativeHandle, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
 import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
 import { createGoal, deleteGoal, getGoalEntries, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
 import { createGoalJournalStore } from '../goalJournal'
@@ -28,7 +29,8 @@ function definitionError(currentState: string, desiredOutcome: string): string {
 type GoalTab = GoalSection
 
 export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCreateHabit, habitRevision, onHabitPointsChanged,
-  ...taskProps }: GoalTasksProps & {
+  navigationRef, ...taskProps }: GoalTasksProps & {
+  navigationRef: RefObject<JournalEditorHandle | null>
   onHabitGoalLinksChanged: () => void
   onCreateTask: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
   onCreateHabit: (goalId: number, trigger: HTMLButtonElement, onCreated: () => void) => void
@@ -164,7 +166,23 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     setSectionActionDisabled(current => current[key] === disabled ? current : { ...current, [key]: disabled })
   }, [])
 
+  function guardHabitJournal(action: () => void) {
+    const section = sectionActions.current.get(`${expandedId}:habits`)
+    if (section?.beforeLeave) section.beforeLeave(action)
+    else action()
+  }
+  function guardJournals(action: () => void) {
+    guardHabitJournal(() => {
+      if (journalRef.current) journalRef.current.beforeStatusChange(action)
+      else action()
+    })
+  }
+  useImperativeHandle(navigationRef, () => ({ beforeLeave: guardJournals }))
+
   function toggleGoal(goalId: number) {
+    guardJournals(() => toggleGoalNow(goalId))
+  }
+  function toggleGoalNow(goalId: number) {
     setActionMenu(null)
     setInitialStateOpenId(null)
     if (expandedId !== goalId) setActiveTabByGoal(current => ({ ...current, [goalId]: 'milestones' }))
@@ -172,6 +190,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   }
 
   function selectGoalTab(goalId: number, tab: GoalTab) {
+    if (activeTabByGoal[goalId] === tab) return
+    guardHabitJournal(() => selectGoalTabNow(goalId, tab))
+  }
+  function selectGoalTabNow(goalId: number, tab: GoalTab) {
     setActionMenu(null)
     if (tab !== 'milestones') sectionActions.current.get(`${goalId}:milestones`)?.resetView?.()
     setActiveTabByGoal(current => ({ ...current, [goalId]: tab }))
@@ -362,7 +384,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
         return <Fragment key={goal.id}>
           {isFirstCompleted && <li className="goal-achieved-section">
             <button type="button" className="goal-achieved-toggle" aria-expanded={achievedOpen}
-              onClick={() => setAchievedOpen(current => !current)}>
+              onClick={() => guardJournals(() => setAchievedOpen(current => !current))}>
               <span><CheckCircle2 aria-hidden="true" />Osiągnięte ({completedGoals.length})</span>
               <ChevronDown className={achievedOpen ? 'is-open' : undefined} aria-hidden="true" />
             </button>
@@ -418,14 +440,14 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onSelect: () => { void changeCompletion(goal, false).catch(() => undefined) } }]
                   : [{ label: 'Oznacz jako osiągnięty', icon: 'check-circle-2' as const,
                     onSelect: () => {
-                      if (expandedId === goal.id && journalRef.current) journalRef.current.beforeStatusChange(() => setCompletionGoal(goal))
+                      if (expandedId === goal.id) guardJournals(() => setCompletionGoal(goal))
                       else setCompletionGoal(goal)
                     } },
-                  { label: 'Edytuj', icon: 'pencil' as const, onSelect: () => {
+                  { label: 'Edytuj', icon: 'pencil' as const, onSelect: () => guardJournals(() => {
                   setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
                   setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
-                } }]),
-                { label: 'Usuń', destructive: true, onSelect: () => void remove(goal.id) },
+                }) }]),
+                { label: 'Usuń', destructive: true, onSelect: () => guardJournals(() => { void remove(goal.id) }) },
               ]} />
             </div>
             {expandedId === goal.id && <>

@@ -1,11 +1,10 @@
 import type { JournalEditorHandle } from '../components/useJournalEditor'
 import { createHabitStatusUpdates } from '../habitStatusUpdates'
-import { useHabitStore } from '../components/HabitProvider'
+import { useHabitStore, useHabitJournalStore } from '../components/HabitProvider'
 import { habitStatusAction } from '../habitStore'
 import HabitWaitingRoom from '../components/HabitWaitingRoom'
 import HabitJournal from '../components/HabitJournal'
-import { createHabitJournalStore, habitJournalReadOnly, type HabitJournalStore } from '../habitJournal'
-import { getHabitEntries } from '../api/habitApi'
+import { habitJournalReadOnly, type HabitJournalStore } from '../habitJournal'
 import { partitionHabits } from '../habitLists'
 import { ChevronDown } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type MouseEvent, type RefObject, type Dispatch, type SetStateAction } from 'react'
@@ -29,13 +28,14 @@ type AwardNotice = HabitAward & { habitId: number; name: string }
 type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
 export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision,
-  createHabitForm, onHabitCreated }: {
+  createHabitForm, onHabitCreated, journalEditor, onHabitDeleted }: {
+  onHabitDeleted: () => void
+  journalEditor: RefObject<JournalEditorHandle | null>
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
   createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
 }) {
   const store = useHabitStore()
-  const journalEditor = useRef<JournalEditorHandle>(null)
-  const [journalStore] = useState(() => createHabitJournalStore(getHabitEntries))
+  const journalStore = useHabitJournalStore()
   const statusUpdates = store.statusUpdates
   const pendingStatusIds = statusUpdates.pendingIds()
   const [statusNotice, setStatusNotice] = useState<{ message: string; error: boolean } | null>(null)
@@ -130,7 +130,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+    <HabitDayList onHabitDeleted={onHabitDeleted} journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
       onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
@@ -147,7 +147,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated, onCreatedNotice, journalStore, journalEditor }: {
+  onHabitCreated, onCreatedNotice, journalStore, journalEditor, onHabitDeleted }: {
+  onHabitDeleted: () => void
   journalEditor: RefObject<JournalEditorHandle | null>
   journalStore: HabitJournalStore
   habits: Habit[]; setHabits: Dispatch<SetStateAction<Habit[]>>
@@ -300,7 +301,10 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     setDeleteError('')
     try {
       await deleteHabit(id)
-      setHabits(current => current.filter(habit => habit.id !== id))
+      store.remove(id)
+      onHabitDeleted()
+      if (journalId === id) setJournalId(null)
+      journalStore.drafts.delete(id)
       setEditingId(current => current === id ? null : current)
     } catch (failure) {
       setDeleteError(failure instanceof Error ? failure.message : 'Nie udało się usunąć nawyku.')

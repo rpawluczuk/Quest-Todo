@@ -290,6 +290,29 @@ class HabitEntryControllerTests {
         mvc.perform(get("/api/habits/1001/entries")).andExpect(jsonPath("$.entries[0].id").value(id));
     }
 
+    @Test void achievedGoalDoesNotBlockHabitJournalAndDeletionKeepsOtherJournals() throws Exception {
+        jdbc.update("INSERT INTO goals(id,user_id,title) VALUES(3001,1,'First goal'),(3002,1,'Other goal')");
+        for (long goal : new long[]{3001, 3002}) {
+            mvc.perform(put("/api/goals/{goal}/habits/1001", goal)).andExpect(status().isNoContent());
+            mvc.perform(post("/api/goals/{goal}/entries", goal).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"content\":\"Goal note\"}")).andExpect(status().isCreated());
+        }
+        mvc.perform(patch("/api/goals/3001/completion").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"completed\":true}")).andExpect(status().isOk());
+        long first = create(1001), other = create(1002);
+        update(1001, first, "{\"content\":\"Still writable\"}");
+        long temporary = create(1001);
+        mvc.perform(delete("/api/habits/1001/entries/{id}", temporary)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/goals/3001")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/habits/1001/entries")).andExpect(jsonPath("$.entries[0].id").value(first));
+        mvc.perform(get("/api/goals/3002/habits")).andExpect(jsonPath("$[0].id").value(1001));
+        mvc.perform(delete("/api/habits/1001")).andExpect(status().isNoContent());
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM habit_entries WHERE habit_id=1001", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM habit_entries WHERE id=?", Integer.class, other));
+        mvc.perform(get("/api/goals/3002/entries")).andExpect(jsonPath("$.totalElements").value(1));
+        assertEquals(37, jdbc.queryForObject("SELECT points FROM users WHERE id=1", Integer.class));
+    }
+
     @Test void journalCrudDoesNotChangeCompletionsProgressPointsBonusesOrRegularity() throws Exception {
         jdbc.update("INSERT INTO habit_completions(habit_id,completion_date) VALUES(1001,CURRENT_DATE)");
         jdbc.update("INSERT INTO habit_targets(habit_id,target_days,effective_from) VALUES(1001,3,CURRENT_DATE)");

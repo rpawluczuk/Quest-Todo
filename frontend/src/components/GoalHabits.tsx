@@ -2,7 +2,10 @@ import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } f
 import { Clock3, Pause } from 'lucide-react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
 import { HabitUpdateConflictError, updateHabit } from '../api/habitApi'
-import { useHabitStore } from './HabitProvider'
+import { useHabitStore, useHabitJournalStore } from './HabitProvider'
+import HabitJournal from './HabitJournal'
+import { habitJournalReadOnly } from '../habitJournal'
+import type { JournalEditorHandle } from './useJournalEditor'
 import { habitStatusAction } from '../habitStore'
 import EditHabitForm from './EditHabitForm'
 import { formatHabitProgress } from '../habitTarget'
@@ -20,6 +23,21 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
 } & GoalSectionActionProps>(function GoalHabits({ goalId, goalTitle, onGoalLinksChanged, onCountChange,
   revision, actionTriggerRef, onActionDisabledChange, readOnly = false, onPointsChanged }, ref) {
   const store = useHabitStore()
+  const journalStore = useHabitJournalStore()
+  const journalEditor = useRef<JournalEditorHandle>(null)
+  const [journalId, setJournalId] = useState<number | null>(null)
+  function guardJournal(action: () => void) {
+    if (journalEditor.current) journalEditor.current.beforeLeave(action)
+    else action()
+  }
+  function openJournal(id: number) {
+    if (journalId !== id) guardJournal(() => { journalStore.showLess(id); setJournalId(id) })
+  }
+  function closeJournal(id: number) {
+    setJournalId(null)
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(
+      `#goal-habits-${goalId} [data-habit-id="${id}"] > .task-menu .task-menu-trigger`)?.focus())
+  }
   const today = habitToday()
   const detailsById = new Map((store.get(today) ?? []).map(habit => [habit.id, habit]))
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -84,13 +102,14 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
   const disabled = readOnly || busy || pickerLoading || queryInput.trim() !== query
   const actionDisabled = readOnly || loading || !!loadError || busy || pickerOpen
   useImperativeHandle(ref, () => ({
+    beforeLeave: guardJournal,
     activate: () => {
       if (actionDisabled) return
       setError('')
       setPickerLoading(true)
       setPickerOpen(true)
     },
-  }), [actionDisabled])
+  }))
   useEffect(() => {
     onActionDisabledChange?.(goalId, 'habits', actionDisabled)
   }, [actionDisabled, goalId, onActionDisabledChange])
@@ -219,18 +238,26 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
             </span>
             <span className="task-points task-card-points">{details.rewardPoints} pkt</span>
           </div>}
-          {!readOnly && <TaskActionsMenu itemTitle={name} itemType="nawyku" disabled={busy || store.statusUpdates.pending(habit.id)} actions={[
-            ...(details && statusAction ? [{ label: statusAction.label, icon: statusAction.icon,
-              onSelect: () => void changeStatus(details) }] : []),
-            ...(details && !details.endedOn ? [{ label: 'Edytuj', icon: 'pencil' as const,
-              onSelect: () => setEditingId(habit.id) }] : []), {
-            label: 'Odepnij od celu', onSelect: () => void run(async () => {
+          <TaskActionsMenu itemTitle={name} itemType="nawyku" disabled={busy || store.statusUpdates.pending(habit.id)} actions={[
+            { label: 'Dziennik nawyku', icon: 'notebook-pen', expanded: journalId === habit.id,
+              controls: journalId === habit.id ? `goal-${goalId}-habit-journal-${habit.id}` : undefined,
+              onSelect: () => openJournal(habit.id) },
+            ...(!readOnly && details && statusAction ? [{ label: statusAction.label, icon: statusAction.icon,
+              onSelect: () => guardJournal(() => { void changeStatus(details) }) }] : []),
+            ...(!readOnly && details && !details.endedOn ? [{ label: 'Edytuj', icon: 'pencil' as const,
+              onSelect: () => guardJournal(() => setEditingId(habit.id)) }] : []), ...(!readOnly ? [{
+            label: 'Odepnij od celu', onSelect: () => guardJournal(() => { void run(async () => {
               await setGoalHabit(goalId, habit.id, false)
               store.updateGoalLink(habit.id, goalId, goalTitle, false)
               setAttached(current => current.filter(item => item.id !== habit.id))
+              if (journalId === habit.id) setJournalId(null)
               onGoalLinksChanged()
-            }),
-          }]} />}
+            }) }),
+          }] : [])]} />
+          {journalId === habit.id && <HabitJournal key={habit.id} ref={journalEditor} habitId={habit.id}
+            instanceId={`goal-${goalId}-habit-journal-${habit.id}`} store={journalStore}
+            readOnly={readOnly || !details || habitJournalReadOnly(details, today)}
+            onClose={() => closeJournal(habit.id)} onNotice={setNotice} />}
         </li>})}
       </ul></section>)}
       {!pickerOpen && notice && <p role="status" className="goal-picker-notice">{notice}</p>}

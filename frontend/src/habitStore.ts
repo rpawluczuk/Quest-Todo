@@ -13,6 +13,7 @@ export function createHabitStore(fetchHabits: (date: string) => Promise<Habit[]>
   const entries = new Map<string, Habit[]>()
   const generations = new Map<string, number>()
   const requests = new Map<string, Promise<Habit[]>>()
+  const deletedIds = new Set<number>()
   const listeners = new Set<() => void>()
   const statusUpdates = createHabitStatusUpdates()
   let revision = 0
@@ -25,6 +26,12 @@ export function createHabitStore(fetchHabits: (date: string) => Promise<Habit[]>
   }
   return {
     get, set, statusUpdates,
+    remove(id: number) {
+      deletedIds.add(id)
+      for (const [date, items] of entries) {
+        if (items.some(item => item.id === id)) set(date, items.filter(item => item.id !== id))
+      }
+    },
     update(habit: Habit, sourceDate: string) {
       for (const [date, items] of entries) {
         if (!items.some(item => item.id === habit.id)) continue
@@ -56,7 +63,7 @@ export function createHabitStore(fetchHabits: (date: string) => Promise<Habit[]>
       const generation = generations.get(date) ?? 0
       const version = statusUpdates.version()
       const request = fetchHabits(date).then(items => {
-        if ((generations.get(date) ?? 0) === generation) set(date, statusUpdates.merge(items, version))
+        if ((generations.get(date) ?? 0) === generation) set(date, statusUpdates.merge(items.filter(item => !deletedIds.has(item.id)), version))
         return get(date) ?? []
       }).finally(() => requests.delete(date))
       requests.set(date, request)

@@ -170,6 +170,7 @@ try {
   await form(1).getByRole('button', { name: 'Zapisz', exact: true }).click(); await waitClosed(1)
   await action(1, latest, 'Usuń')
   await page.getByRole('dialog').getByRole('button', { name: 'Anuluj' }).click()
+  await page.waitForFunction(id => document.querySelector(`#habit-journal-1 [data-entry-id="${id}"] .task-menu-trigger`) === document.activeElement, latest)
   assert.equal(await item(1, latest).locator('.task-menu-trigger').evaluate(el => el === document.activeElement), true)
   await action(1, latest, 'Usuń'); failure = 500
   await page.getByRole('dialog').getByRole('button', { name: 'Usuń', exact: true }).click()

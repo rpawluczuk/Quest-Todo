@@ -5,6 +5,23 @@ import type { Habit } from '../src/types/Habit.ts'
 
 const habit = (activityStatus: Habit['activityStatus'] = 'ACTIVE') => ({ id: 1, name: 'Czytanie', activityStatus,
   totalCompletions: 42, weeklyCompletedDays: 2, goalIds: [1, 2], goalTitles: ['First', 'Second'] } as Habit)
+
+test('deleting a habit removes all cached dates and a pending older response cannot restore it', async () => {
+  const pending = deferred<Habit[]>()
+  const store = createHabitStore(() => pending.promise, async () => habit())
+  const other = { ...habit(), id: 2 }
+  store.set('today', [habit(), other])
+  store.set('past', [habit(), other])
+  const loading = store.load('past', true)
+  const firstRead = store.load('uncached')
+  store.remove(1)
+  pending.resolve([habit(), other])
+  await loading
+  await firstRead
+  assert.deepEqual(store.get('today')?.map(item => item.id), [2])
+  assert.deepEqual(store.get('past')?.map(item => item.id), [2])
+  assert.deepEqual(store.get('uncached')?.map(item => item.id), [2])
+})
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>(done => { resolve = done })

@@ -7,14 +7,17 @@ import { createHabitEntry, updateHabitEntry, deleteHabitEntry } from '../api/hab
 import { useJournalEditor, type JournalEditorHandle } from './useJournalEditor'
 
 const HabitJournal = forwardRef<JournalEditorHandle, {
+  instanceId?: string
   habitId: number; store: HabitJournalStore; onClose: () => void
   readOnly: boolean; onNotice: (message: string) => void
-}>(function HabitJournal({ habitId, store, onClose, readOnly, onNotice }, ref) {
+}>(function HabitJournal({ habitId, store, onClose, readOnly, onNotice, instanceId }, ref) {
   const { data, loading, error, busy, full, history } = useSyncExternalStore(store.subscribe, () => store.get(habitId))
   const visible = full && history ? history.entries : data?.entries ?? []
   const close = useRef<HTMLButtonElement>(null)
   const addButton = useRef<HTMLButtonElement>(null)
-  const contentId = `habit-journal-content-${habitId}`
+  const panelId = instanceId ?? `habit-journal-${habitId}`
+  const headingId = instanceId ? `${panelId}-heading` : `habit-journal-heading-${habitId}`
+  const contentId = `${panelId}-content`
   const { editor, startEditor, startDelete, beforeLeave, form, dialogs, showLess } = useJournalEditor({
     id: habitId, store, readOnly, contentId, addButton, onNotice,
     placeholder: 'Co nowego w realizacji nawyku?',
@@ -27,10 +30,10 @@ const HabitJournal = forwardRef<JournalEditorHandle, {
     void store.load(habitId)
     close.current?.focus({ preventScroll: true })
   }, [habitId, store])
-  return <section id={`habit-journal-${habitId}`} className="habit-journal goal-journal"
-    aria-labelledby={`habit-journal-heading-${habitId}`} onClick={event => event.stopPropagation()}>
+  return <section id={panelId} className="habit-journal goal-journal"
+    aria-labelledby={headingId} onClick={event => event.stopPropagation()}>
     <div className="habit-journal-header">
-      <h4 tabIndex={-1} id={`habit-journal-heading-${habitId}`}><NotebookPen size={18} aria-hidden="true" />
+      <h4 tabIndex={-1} id={headingId}><NotebookPen size={18} aria-hidden="true" />
         <span>Dziennik nawyku{data ? ` (${data.totalElements})` : ''}</span></h4>
       {!readOnly && <button ref={addButton} type="button" className="add-task-header-button habit-journal-add"
         aria-label="Dodaj wpis do dziennika" title="Dodaj wpis do dziennika" disabled={busy}
@@ -56,7 +59,7 @@ const HabitJournal = forwardRef<JournalEditorHandle, {
           onClick={() => startEditor({ kind: 'create' })}>+ Dodaj pierwszy wpis</button>}
       </div>)}
       <JournalHistoryControls id={habitId} store={store}
-        onShowLess={() => showLess(data?.entries ?? [], () => store.showLess(habitId), `habit-journal-heading-${habitId}`)} />
+        onShowLess={() => showLess(data?.entries ?? [], () => store.showLess(habitId), headingId)} />
     </div>
     {dialogs}
   </section>

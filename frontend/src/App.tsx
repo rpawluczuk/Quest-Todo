@@ -1,3 +1,4 @@
+import type { JournalEditorHandle } from './components/useJournalEditor'
 import { SubtaskProvider } from './components/SubtaskProvider'
 import { HabitProvider } from './components/HabitProvider'
 import { getUser, getPurchases, purchaseReward, consumePurchase, type Purchase, type User } from './api/userApi'
@@ -36,6 +37,15 @@ type AppProps = {
 function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmail, onDeleteAccount, onThemeChange }: AppProps) {
   const createTaskForm = useRef<CreateTaskFormHandle>(null)
   const createHabitForm = useRef<CreateHabitFormHandle>(null)
+  const habitJournalEditor = useRef<JournalEditorHandle>(null)
+  const goalJournalEditor = useRef<JournalEditorHandle>(null)
+  function navigate(page: 'tasks' | 'habits' | 'goals' | 'rewards') {
+    if (page === activePage) return
+    const action = () => { setActivePage(page); if (page === 'habits') synchronizeExternalState() }
+    const editor = activePage === 'habits' ? habitJournalEditor.current : activePage === 'goals' ? goalJournalEditor.current : null
+    if (editor) editor.beforeLeave(action)
+    else action()
+  }
   const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
@@ -364,7 +374,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           className="secondary-button"
           aria-pressed={activePage === 'tasks'}
           aria-controls="tasks-page"
-          onClick={() => setActivePage('tasks')}
+          onClick={() => navigate('tasks')}
         >
           Zadania
         </button>
@@ -373,7 +383,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           className="secondary-button"
           aria-pressed={activePage === 'habits'}
           aria-controls="habits-page"
-          onClick={() => { setActivePage('habits'); synchronizeExternalState() }}
+          onClick={() => navigate('habits')}
         >
           Nawyki
         </button>
@@ -382,7 +392,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           className="secondary-button"
           aria-pressed={activePage === 'goals'}
           aria-controls="goals-page"
-          onClick={() => setActivePage('goals')}
+          onClick={() => navigate('goals')}
         >
           Cele
         </button>
@@ -391,7 +401,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           className="secondary-button"
           aria-pressed={activePage === 'rewards'}
           aria-controls="rewards-page"
-          onClick={() => setActivePage('rewards')}
+          onClick={() => navigate('rewards')}
         >
           Nagrody
         </button>
@@ -450,7 +460,8 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
+        <HabitsPage journalEditor={habitJournalEditor} goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
+          onHabitDeleted={() => setHabitGoalRevision(value => value + 1)}
           createHabitForm={createHabitForm}
           onHabitCreated={() => {
             setHabitGoalRevision(value => value + 1)
@@ -462,7 +473,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         }} />
       </div>
       <div id="goals-page" hidden={activePage !== 'goals'}>
-        <GoalsPage taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
+        <GoalsPage navigationRef={goalJournalEditor} taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
           onGoalLinksChanged={refreshTaskGoalLinks}
           habitRevision={habitGoalRevision}
           onHabitPointsChanged={balance => { accountRequest.current++; setPoints(balance) }}
