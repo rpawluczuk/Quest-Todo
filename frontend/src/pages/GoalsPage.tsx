@@ -5,7 +5,9 @@ import { createGoal, deleteGoal, getGoalEntries, getGoals, getMilestones, update
 import { createGoalJournalStore } from '../goalJournal'
 import GoalJournal, { type GoalJournalHandle } from '../components/GoalJournal'
 import TaskActionsMenu from '../components/TaskActionsMenu'
-import type { Goal } from '../types/Goal'
+import type { Goal, GoalReviewFrequency } from '../types/Goal'
+import GoalReviewFields from '../components/GoalReviewFields'
+import { reviewFrequencyError } from '../goalReviews'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 import GoalHabits from '../components/GoalHabits'
 import GoalMilestones from '../components/GoalMilestones'
@@ -59,10 +61,12 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const [currentState, setCurrentState] = useState('')
   const [desiredOutcome, setDesiredOutcome] = useState('')
   const [createDetailsOpen, setCreateDetailsOpen] = useState(false)
+  const [reviewFrequency, setReviewFrequency] = useState<GoalReviewFrequency | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editCurrentState, setEditCurrentState] = useState('')
   const [editDesiredOutcome, setEditDesiredOutcome] = useState('')
+  const [editReviewFrequency, setEditReviewFrequency] = useState<GoalReviewFrequency | null>(null)
   const [saving, setSaving] = useState(false)
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -227,13 +231,13 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   async function add(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current) return
-    const validation = titleError(title) || definitionError(currentState, desiredOutcome)
+    const validation = titleError(title) || definitionError(currentState, desiredOutcome) || reviewFrequencyError(reviewFrequency)
     if (validation) { setError(validation); return }
     sending.current = true
     setSaving(true)
     setError('')
     try {
-      const goal = await createGoal(title.trim(), currentState, desiredOutcome)
+      const goal = await createGoal(title.trim(), currentState, desiredOutcome, reviewFrequency)
       createdGoalId.current = goal.id
       setGoals(current => [...current, goal])
       setMilestonesByGoal(current => ({ ...current, [goal.id]: [] }))
@@ -243,6 +247,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
       setTitle('')
       setCurrentState('')
       setDesiredOutcome('')
+      setReviewFrequency(null)
       setCreateDetailsOpen(false)
       setCreateOpen(false)
     } catch (failure) {
@@ -253,16 +258,22 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current || editingId === null) return
+    const original = goals.find(goal => goal.id === editingId)
+    if (!original || original.completed) return
     const validation = titleError(editTitle) || definitionError(editCurrentState, editDesiredOutcome)
+      || reviewFrequencyError(editReviewFrequency)
     if (validation) { setError(validation); return }
     sending.current = true
     setPendingId(editingId)
     setError('')
     try {
-      const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome)
+      const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome,
+        editReviewFrequency === (original.reviewFrequency ?? null) ? undefined : editReviewFrequency)
       setGoals(current => current.map(goal => goal.id === updated.id ? updated : goal))
-      taskProps.onGoalLinksChanged()
-      onHabitGoalLinksChanged()
+      if (updated.title !== original.title) {
+        taskProps.onGoalLinksChanged()
+        onHabitGoalLinksChanged()
+      }
       setEditingId(null)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Nie udało się zapisać celu.')
@@ -362,11 +373,13 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
             <AutoResizeTextarea value={currentState} maxLength={2000} disabled={saving}
               placeholder="Np. Obecnie jestem w stanie przebiec 2 km"
               onChange={event => setCurrentState(event.target.value)} /></label>
+          <GoalReviewFields value={reviewFrequency} onChange={setReviewFrequency} disabled={saving} />
         </>}
         <div className="task-actions">
           <button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : 'Dodaj cel'}</button>
           <button type="button" className="secondary-button" disabled={saving} onClick={() => {
             setCreateOpen(false); setTitle(''); setCurrentState(''); setDesiredOutcome('')
+            setReviewFrequency(null)
             setCreateDetailsOpen(false); setError('')
           }}>Anuluj</button>
         </div>
@@ -404,6 +417,9 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
               <AutoResizeTextarea value={editDesiredOutcome} maxLength={2000} disabled={pendingId !== null}
                 placeholder="Opisz warunki, po których rozpoznasz sukces…"
                 onChange={event => setEditDesiredOutcome(event.target.value)} /></label>
+            <GoalReviewFields value={editReviewFrequency} onChange={setEditReviewFrequency}
+              disabled={pendingId !== null || goal.completed} savedFrequency={goal.reviewFrequency ?? null}
+              nextReviewDate={goal.nextReviewDate} />
             <div className="task-actions">
               <button type="submit" disabled={pendingId !== null}>{pendingId === goal.id ? 'Zapisywanie…' : 'Zapisz'}</button>
               <button type="button" className="secondary-button" disabled={pendingId !== null} onClick={() => {
@@ -445,6 +461,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                     } },
                   { label: 'Edytuj', icon: 'pencil' as const, onSelect: () => guardJournals(() => {
                   setCreateOpen(false); setEditingId(goal.id); setEditTitle(goal.title)
+                  setEditReviewFrequency(goal.reviewFrequency ?? null)
                   setEditCurrentState(goal.currentState ?? ''); setEditDesiredOutcome(goal.desiredOutcome ?? ''); setError('')
                 }) }]),
                 { label: 'Usuń', destructive: true, onSelect: () => guardJournals(() => { void remove(goal.id) }) },

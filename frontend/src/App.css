@@ -3351,6 +3351,41 @@
 }
 
 .goal-form { grid-template-columns: minmax(0, 1fr) auto; }
+.goal-review-settings {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 4px 0 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid #ddd7e7;
+}
+.goal-review-settings legend {
+  padding: 0 8px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.goal-review-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.goal-review-toggle input {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+.goal-review-toggle input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.goal-review-frequency { display: grid; gap: 8px; margin-top: 8px; min-width: 0; }
+.goal-review-frequency p { margin: 0; overflow-wrap: anywhere; }
+.goal-review-date { color: #625b70; font-size: 0.85rem; line-height: 1.5; }
 .goal-create-form {
   row-gap: 10px;
   margin-top: 12px;

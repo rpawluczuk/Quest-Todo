@@ -1,6 +1,6 @@
 import { journalMutation } from './journalApi'
 import { apiFetch } from './apiFetch'
-import type { Goal } from '../types/Goal'
+import type { Goal, GoalReviewFrequency } from '../types/Goal'
 import type { Task } from '../types/Task'
 import type { GoalEntries, GoalEntry, GoalEntryType } from '../types/GoalEntry'
 
@@ -138,19 +138,21 @@ export async function getGoals(signal?: AbortSignal): Promise<Goal[]> {
   return response.json()
 }
 
-export async function createGoal(title: string, currentState: string, desiredOutcome: string): Promise<Goal> {
+export async function createGoal(title: string, currentState: string, desiredOutcome: string,
+  reviewFrequency: GoalReviewFrequency | null = null): Promise<Goal> {
   const response = await apiFetch('/api/goals', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, currentState, desiredOutcome }),
+    body: JSON.stringify({ title, currentState, desiredOutcome, reviewFrequency }),
   })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się dodać celu'))
   return response.json()
 }
 
-export async function updateGoal(id: number, title: string, currentState: string, desiredOutcome: string): Promise<Goal> {
+export async function updateGoal(id: number, title: string, currentState: string, desiredOutcome: string,
+  reviewFrequency?: GoalReviewFrequency | null): Promise<Goal> {
   const response = await apiFetch(`/api/goals/${id}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, currentState, desiredOutcome }),
+    body: JSON.stringify({ title, currentState, desiredOutcome, reviewFrequency }),
   })
   if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się zapisać celu'))
   return response.json()
