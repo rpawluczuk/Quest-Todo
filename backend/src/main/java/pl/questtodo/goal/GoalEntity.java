@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.time.Instant;
+import java.time.LocalDate;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -60,6 +63,32 @@ public class GoalEntity {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_frequency", length = 20)
+    private GoalReviewFrequency reviewFrequency;
+
+    @Column(name = "next_review_date")
+    private LocalDate nextReviewDate;
+
+    public void configureReviews(GoalReviewFrequency frequency, LocalDate today) {
+        if (reviewFrequency == frequency) return;
+        reviewFrequency = frequency;
+        restartReviews(today);
+    }
+
+    public void restartReviews(LocalDate today) {
+        nextReviewDate = completed || reviewFrequency == null ? null : reviewFrequency.nextDate(today);
+    }
+
+    public boolean reviewDue(LocalDate today) {
+        return !completed && reviewFrequency != null && nextReviewDate != null
+                && !nextReviewDate.isAfter(today);
+    }
+
+    public void reviewAfterEntry(LocalDate entryDate) {
+        if (reviewDue(entryDate)) restartReviews(entryDate);
+    }
+
     protected GoalEntity() {}
 
     public GoalEntity(String title, String currentState, String desiredOutcome, UserEntity user) {
@@ -87,5 +116,6 @@ public class GoalEntity {
 
     public String getTitle() { return title; }
 
-    public Goal toGoal() { return new Goal(id, title, currentState, desiredOutcome, completed, completedAt); }
+    public Goal toGoal(LocalDate today) { return new Goal(id, title, currentState, desiredOutcome, completed, completedAt,
+            reviewFrequency, nextReviewDate, reviewDue(today)); }
 }

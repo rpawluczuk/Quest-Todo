@@ -1,6 +1,7 @@
 package pl.questtodo.goal;
 
 import java.time.Instant;
+import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -12,11 +13,13 @@ import pl.questtodo.user.CurrentUserProvider;
 @Service
 @Transactional
 public class GoalEntryService {
+    private final Clock clock;
     private final GoalRepository goals;
     private final GoalEntryRepository entries;
     private final CurrentUserProvider currentUser;
 
-    public GoalEntryService(GoalRepository goals, GoalEntryRepository entries, CurrentUserProvider currentUser) {
+    public GoalEntryService(GoalRepository goals, GoalEntryRepository entries, CurrentUserProvider currentUser, Clock clock) {
+        this.clock = clock;
         this.goals = goals;
         this.entries = entries;
         this.currentUser = currentUser;
@@ -34,8 +37,11 @@ public class GoalEntryService {
     public GoalEntryResponse create(long goalId, CreateGoalEntryRequest request) {
         GoalEntity goal = ownedForUpdate(goalId);
         GoalService.requireActive(goal);
-        var entry = new GoalEntryEntity(goal, request.getType(), request.getContent().strip(), now());
-        return entries.save(entry).toResponse();
+        Instant createdAt = now();
+        var entry = new GoalEntryEntity(goal, request.getType(), request.getContent().strip(), createdAt);
+        var response = entries.save(entry).toResponse();
+        goal.reviewAfterEntry(createdAt.atZone(GoalReviewTimeConfiguration.ZONE).toLocalDate());
+        return response;
     }
 
     public GoalEntryResponse update(long goalId, long entryId, UpdateGoalEntryRequest request) {
@@ -68,5 +74,5 @@ public class GoalEntryService {
     }
 
     // Match the database's microsecond timestamp precision for stable POST/GET responses.
-    private static Instant now() { return Instant.now().truncatedTo(ChronoUnit.MICROS); }
+    private Instant now() { return clock.instant().truncatedTo(ChronoUnit.MICROS); }
 }

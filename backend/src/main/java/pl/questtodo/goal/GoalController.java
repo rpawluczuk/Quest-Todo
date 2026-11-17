@@ -30,12 +30,13 @@ public class GoalController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Goal createGoal(@Valid @RequestBody GoalRequest request) {
-        return goals.createGoal(request.title().strip(), request.currentState(), request.desiredOutcome());
+        return goals.createGoal(request.title().strip(), request.currentState(), request.desiredOutcome(), request.reviewFrequency());
     }
 
     @PutMapping("/{id}")
     public Goal updateGoal(@PathVariable long id, @Valid @RequestBody GoalRequest request) {
-        return goals.updateGoal(id, request.title().strip(), request.currentState(), request.desiredOutcome());
+        return goals.updateGoal(id, request.title().strip(), request.currentState(), request.desiredOutcome(),
+                request.reviewFrequency(), request.hasReviewFrequency());
     }
 
     @PatchMapping("/{id}/completion")

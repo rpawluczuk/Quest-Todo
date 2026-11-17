@@ -150,10 +150,9 @@ public class HabitService {
         HabitTargetEntity target = targets.save(new HabitTargetEntity(habit, targetDays == null ? 7 : targetDays,
                 start.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
         selectedGoals.forEach(goal -> goalHabits.save(new GoalHabitEntity(goal, habit)));
-        var selected = selectedGoals.stream().map(GoalEntity::toGoal).toList();
         return toHabit(habit, today, false, List.of(target), 0, false, 0, 0).withGoals(
-                selected.stream().map(goal -> goal.id()).toList(),
-                selected.stream().map(goal -> goal.title()).toList());
+                selectedGoals.stream().map(GoalEntity::getId).toList(),
+                selectedGoals.stream().map(GoalEntity::getTitle).toList());
     }
 
     public HabitCompletionResult updateHabit(long id, String name, Integer targetDays) {
