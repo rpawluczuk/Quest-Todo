@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 const browser = await chromium.launch({ channel: 'msedge', headless: true })
 try {
   const page = await browser.newPage({ viewport: { width: 320, height: 800 } })
+  await page.clock.setFixedTime(new Date('2026-10-25T12:00:00Z'))
   page.on('pageerror', error => console.error(error.message))
   const milestones = []
   let failCreate = false
@@ -24,6 +25,7 @@ try {
   }
   const availableHabit = {
     id: 201, name: 'Bardzo długi nawyk przypięty do celu, którego nazwa zawija się na telefonie',
+    goalIds: [], goalTitles: [], activityStatus: 'ACTIVE',
     weeklyCompletedDays: 1, rewardPoints: 2, target: { targetDays: 3, effectiveFrom: '2026-10-19' },
   }
   const attachedTasks = []
@@ -265,7 +267,7 @@ try {
   const emptyDescriptionCard = emptyDescriptionToggle.locator('..')
   await emptyDescriptionCard.getByText('Nie określono kryterium osiągnięcia celu', { exact: true }).waitFor()
   assert.equal(await emptyDescriptionCard.locator('.goal-success-criterion').count(), 0)
-  assert.equal(await emptyDescriptionCard.locator('.goal-initial-state-toggle').count(), 0)
+  assert.equal(await emptyDescriptionCard.getByRole('button', { name: 'Stan początkowy', exact: true }).count(), 0)
   assert.equal(await emptyDescriptionCard.getByRole('button', { name: 'Opis celu', exact: true }).count(), 0)
   await emptyDescriptionToggle.click()
   const exactThreeLineToggle = page.getByRole('button', { name: longGoalTitle, exact: true })

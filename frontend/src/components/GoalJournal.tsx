@@ -5,31 +5,48 @@ import type { createGoalJournalStore } from '../goalJournal'
 import { createGoalEntry, deleteGoalEntry, updateGoalEntry } from '../api/goalApi'
 import GoalEntryItem from './GoalEntryItem'
 import { useJournalEditor } from './useJournalEditor'
+import type { GoalEntry } from '../types/GoalEntry'
 
-export type GoalJournalHandle = { beforeStatusChange: (action: () => void) => void }
+export type GoalJournalHandle = { beforeStatusChange: (action: () => void) => void; openCreate: () => void }
 
 const GoalJournal = forwardRef<GoalJournalHandle, {
   goalId: number; store: ReturnType<typeof createGoalJournalStore>; readOnly: boolean; onNotice: (message: string) => void
-}>(function GoalJournal({ goalId, store, readOnly, onNotice }, ref) {
+  onEntryCreated?: (entry: GoalEntry) => Promise<string>
+}>(function GoalJournal({ goalId, store, readOnly, onNotice, onEntryCreated }, ref) {
   const [open, setOpen] = useState(false)
   const addButton = useRef<HTMLButtonElement>(null)
   const contentId = useId()
   const headingId = useId()
+  const [revealRequest, setRevealRequest] = useState(0)
   const { data, loading, error, busy, full, history } = useSyncExternalStore(store.subscribe, () => store.get(goalId))
   const visible = full && history ? history.entries : data?.entries ?? []
   const { editor, showLess: collapseHistory, startEditor: edit, startDelete, beforeLeave, form, dialogs } = useJournalEditor({
-    id: goalId, store, readOnly, contentId, addButton, onNotice, onSaved: () => setOpen(true),
+    id: goalId, store, readOnly, contentId, addButton, onNotice, onSaved: () => setOpen(true), afterCreate: onEntryCreated,
     api: { create: (type, content) => createGoalEntry(goalId, type, content),
       update: (entry, type, content) => updateGoalEntry(goalId, entry.id, type, content),
       remove: entry => deleteGoalEntry(goalId, entry.id) },
   })
   const creating = editor?.kind === 'create'
-  useImperativeHandle(ref, () => ({ beforeStatusChange: beforeLeave }))
+  useImperativeHandle(ref, () => ({ beforeStatusChange: beforeLeave, openCreate: () => {
+    if (readOnly || busy) return
+    setRevealRequest(current => current + 1)
+    startCreating()
+  } }))
   useEffect(() => {
     if (open && creating && !readOnly) {
       document.getElementById(contentId)?.querySelector('textarea')?.focus({ preventScroll: true })
     }
   }, [open, creating, readOnly, contentId])
+  useEffect(() => {
+    if (!revealRequest || !open || !creating || readOnly) return
+    const frame = requestAnimationFrame(() => {
+      const textarea = document.getElementById(contentId)?.querySelector('textarea')
+      textarea?.focus({ preventScroll: true })
+      textarea?.closest('form')?.scrollIntoView({ block: 'nearest',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [revealRequest, open, creating, readOnly, contentId])
   function startEditor(next: Parameters<typeof edit>[0]) { setOpen(true); edit(next) }
   function startCreating() { startEditor({ kind: 'create' }) }
   function showLess() { collapseHistory(data?.entries ?? [], () => store.showLess(goalId), headingId) }

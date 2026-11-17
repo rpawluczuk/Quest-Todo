@@ -3469,6 +3469,36 @@
   column-gap: 6px;
 }
 .goal-card[id] { scroll-margin-top: 12px; }
+.goal-review-status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #85601e;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.goal-review-status svg { flex: 0 0 16px; }
+.goal-review-prompt, .goal-sync-error { grid-column: 1 / -1; min-width: 0; }
+.goal-review-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.goal-review-prompt p { flex: 1 1 250px; margin: 0; color: #625b70; font-size: 0.875rem; line-height: 1.5; }
+.goal-review-prompt button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.goal-review-prompt button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.goal-review-next { grid-column: 1 / -1; margin: 0; color: #625b70; font-size: 0.82rem; line-height: 1.5; }
+.goal-sync-error p { margin: 0 0 4px; }
+.goal-journal .goal-entry-create-form { scroll-margin-block: 16px; }
 .goal-title { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
 .goal-title-text {
   grid-area: name;

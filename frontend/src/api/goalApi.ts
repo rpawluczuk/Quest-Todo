@@ -138,6 +138,14 @@ export async function getGoals(signal?: AbortSignal): Promise<Goal[]> {
   return response.json()
 }
 
+export async function getGoal(id: number, signal?: AbortSignal): Promise<Goal> {
+  const response = await apiFetch(`/api/goals/${id}`, { signal })
+  if (!response.ok) throw new Error(await errorMessage(response, 'Nie udało się odświeżyć celu'))
+  const goal: Goal = await response.json()
+  if (goal.id !== id) throw new Error('Nie udało się odświeżyć celu: nieprawidłowa odpowiedź.')
+  return goal
+}
+
 export async function createGoal(title: string, currentState: string, desiredOutcome: string,
   reviewFrequency: GoalReviewFrequency | null = null): Promise<Goal> {
   const response = await apiFetch('/api/goals', {

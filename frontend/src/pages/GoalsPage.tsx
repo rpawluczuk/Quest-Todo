@@ -1,13 +1,17 @@
 import type { JournalEditorHandle } from '../components/useJournalEditor'
-import { Fragment, useImperativeHandle, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
-import { CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
-import { createGoal, deleteGoal, getGoalEntries, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
+import { Fragment, useImperativeHandle, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type SubmitEvent } from 'react'
+import { CalendarClock, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Flag, History, Link2, Plus, PlusCircle, Target } from 'lucide-react'
+import { createGoal, deleteGoal, getGoal, getGoalEntries, getGoals, getMilestones, updateGoal, updateGoalCompletion, type Milestone } from '../api/goalApi'
 import { createGoalJournalStore } from '../goalJournal'
 import GoalJournal, { type GoalJournalHandle } from '../components/GoalJournal'
 import TaskActionsMenu from '../components/TaskActionsMenu'
 import type { Goal, GoalReviewFrequency } from '../types/Goal'
 import GoalReviewFields from '../components/GoalReviewFields'
-import { reviewFrequencyError } from '../goalReviews'
+import { formatReviewDate, goalNeedsReview, reviewCompletedByEntry, reviewFrequencyError } from '../goalReviews'
+import { createGoalState } from '../goalState'
+import { createRefreshGate } from '../habitBonus'
+import { habitToday } from '../weekDates'
+import type { GoalEntry } from '../types/GoalEntry'
 import GoalTasks, { type GoalTasksProps } from '../components/GoalTasks'
 import GoalHabits from '../components/GoalHabits'
 import GoalMilestones from '../components/GoalMilestones'
@@ -52,7 +56,13 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const [creationNotice, setCreationNotice] = useState('')
   const [achievedOpen, setAchievedOpen] = useState(false)
   const [completionGoal, setCompletionGoal] = useState<Goal | null>(null)
-  const [goals, setGoals] = useState<Goal[]>([])
+  const [goalState] = useState(createGoalState)
+  const goals = useSyncExternalStore(goalState.subscribe, goalState.get)
+  const [goalSyncErrors, setGoalSyncErrors] = useState<Record<number, string>>({})
+  const [goalSyncPending, setGoalSyncPending] = useState<Record<number, boolean>>({})
+  const [listSyncError, setListSyncError] = useState('')
+  const reads = useRef<AbortController | null>(null)
+  const pendingReads = useRef(new Map<number, number>())
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -80,8 +90,11 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
 
   useEffect(() => {
     const controller = new AbortController()
+    reads.current = controller
+    const ticket = goalState.beginList()
     getGoals(controller.signal).then(loadedGoals => {
-      setGoals(loadedGoals)
+      if (controller.signal.aborted) return
+      goalState.acceptList(ticket, loadedGoals)
       loadedGoals.forEach(goal => {
         getMilestones(goal.id, controller.signal).then(items => {
           setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))
@@ -91,7 +104,76 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać celów.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [])
+  }, [goalState])
+
+  const refreshGoalList = useCallback(async () => {
+    const signal = reads.current?.signal
+    const ticket = goalState.beginList()
+    try {
+      const updated = await getGoals(signal)
+      if (signal?.aborted) return false
+      const accepted = goalState.acceptList(ticket, updated)
+      if (accepted) {
+        setListSyncError('')
+        setGoalSyncErrors(current => Object.fromEntries(Object.entries(current)
+          .filter(([id]) => !goalState.isCurrent(Number(id), ticket))))
+      }
+      return accepted
+    } catch {
+      if (!signal?.aborted && goalState.isLatestList(ticket)) setListSyncError('Nie udało się odświeżyć statusu celów.')
+      return false
+    }
+  }, [goalState])
+
+  useEffect(() => {
+    if (loading || loadError) return
+    let day = habitToday()
+    const gate = createRefreshGate(60_000, Date.now())
+    const refresh = (onReturn: boolean) => {
+      if (document.visibilityState === 'hidden') return
+      const changedDay = habitToday() !== day
+      if (!changedDay && !onReturn) return
+      void gate(async () => { if (await refreshGoalList()) day = habitToday() }, Date.now(), changedDay)
+    }
+    // Only compare the business day each minute; network reads happen on day changes or stale returns.
+    const timer = window.setInterval(() => refresh(false), 60_000)
+    const returned = () => refresh(true)
+    window.addEventListener('focus', returned)
+    document.addEventListener('visibilitychange', returned)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', returned)
+      document.removeEventListener('visibilitychange', returned)
+    }
+  }, [loading, loadError, refreshGoalList])
+
+  async function refreshGoalStatus(id: number): Promise<Goal | null> {
+    const ticket = goalState.beginRead(id)
+    pendingReads.current.set(id, ticket)
+    const signal = reads.current?.signal
+    setGoalSyncPending(current => ({ ...current, [id]: true }))
+    try {
+      const updated = await getGoal(id, signal)
+      if (signal?.aborted || !goalState.acceptRead(id, ticket, updated)) return null
+      setGoalSyncErrors(current => { const next = { ...current }; delete next[id]; return next })
+      return updated
+    } catch {
+      if (!signal?.aborted && goalState.isCurrent(id, ticket)) {
+        setGoalSyncErrors(current => ({ ...current, [id]: 'Nie udało się odświeżyć danych celu. Zapisane wpisy pozostają w Dzienniku.' }))
+      }
+      return null
+    } finally {
+      if (!signal?.aborted && pendingReads.current.get(id) === ticket) {
+        pendingReads.current.delete(id)
+        setGoalSyncPending(current => ({ ...current, [id]: false }))
+      }
+    }
+  }
+
+  async function entryCreated(before: Goal, entry: GoalEntry): Promise<string> {
+    const updated = await refreshGoalStatus(before.id)
+    return updated && reviewCompletedByEntry(before, updated, entry) ? 'Przegląd celu zaliczony' : 'Wpis został dodany'
+  }
 
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
   useEffect(() => { if (editingId !== null) editInput.current?.focus() }, [editingId])
@@ -239,7 +321,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     try {
       const goal = await createGoal(title.trim(), currentState, desiredOutcome, reviewFrequency)
       createdGoalId.current = goal.id
-      setGoals(current => [...current, goal])
+      goalState.put(goal)
       setMilestonesByGoal(current => ({ ...current, [goal.id]: [] }))
       setActiveTabByGoal(current => ({ ...current, [goal.id]: 'milestones' }))
       setExpandedId(goal.id)
@@ -269,7 +351,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     try {
       const updated = await updateGoal(editingId, editTitle.trim(), editCurrentState, editDesiredOutcome,
         editReviewFrequency === (original.reviewFrequency ?? null) ? undefined : editReviewFrequency)
-      setGoals(current => current.map(goal => goal.id === updated.id ? updated : goal))
+      goalState.put(updated)
       if (updated.title !== original.title) {
         taskProps.onGoalLinksChanged()
         onHabitGoalLinksChanged()
@@ -287,7 +369,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     setError('')
     try {
       await deleteGoal(id)
-      setGoals(current => current.filter(goal => goal.id !== id))
+      goalState.remove(id)
       taskProps.onGoalLinksChanged()
       onHabitGoalLinksChanged()
     } catch (failure) {
@@ -302,7 +384,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     setError('')
     try {
       const updated = await updateGoalCompletion(goal.id, completed)
-      setGoals(current => current.map(item => item.id === updated.id ? updated : item))
+      goalState.put(updated)
       if (expandedId === goal.id) setExpandedId(null)
       if (editingId === goal.id) setEditingId(null)
       setCompletionGoal(null)
@@ -342,6 +424,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     {loading && <p role="status">Ładowanie celów…</p>}
     {loadError && <p className="form-error" role="alert">{loadError}</p>}
     {!loading && !loadError && <>
+      {listSyncError && <div className="goal-sync-error">
+        <p className="form-error" role="alert">{listSyncError}</p>
+        <button type="button" className="goal-picker-link" onClick={() => void refreshGoalList()}>Odśwież cele</button>
+      </div>}
       <div className={goals.length === 0 ? 'task-empty-state task-empty-state-prominent' : undefined}>
         {goals.length === 0 && <>
           <span className="task-empty-icon" aria-hidden="true">
@@ -394,6 +480,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
         const actionLabel = activeTab === 'milestones' ? 'Dodaj kamień milowy'
           : activeTab === 'tasks' ? 'Dodaj zadanie do celu' : 'Dodaj nawyk do celu'
         const isFirstCompleted = goal.completed && completedGoals[0]?.id === goal.id
+        const reviewDue = goalNeedsReview(goal)
         return <Fragment key={goal.id}>
           {isFirstCompleted && <li className="goal-achieved-section">
             <button type="button" className="goal-achieved-toggle" aria-expanded={achievedOpen}
@@ -429,8 +516,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
           </form> : <>
             <button type="button" className="goal-title goal-details-toggle" aria-expanded={expandedId === goal.id}
               aria-label={goal.title}
-              aria-describedby={!goal.completed && expandedId !== goal.id && milestones?.length
-                ? `goal-milestone-summary-${goal.id}` : undefined}
+              aria-describedby={[
+                !goal.completed && expandedId !== goal.id && milestones?.length ? `goal-milestone-summary-${goal.id}` : '',
+                reviewDue ? `goal-review-status-${goal.id}` : '',
+              ].filter(Boolean).join(' ') || undefined}
               aria-controls={expandedId === goal.id ? `goal-tasks-${goal.id} goal-habits-${goal.id} goal-milestones-${goal.id}` : undefined}
               onClick={() => toggleGoal(goal.id)}>
               <span className="goal-title-text">{goal.title}</span>
@@ -467,7 +556,22 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                 { label: 'Usuń', destructive: true, onSelect: () => guardJournals(() => { void remove(goal.id) }) },
               ]} />
             </div>
+            {reviewDue && <p className="goal-review-status" id={`goal-review-status-${goal.id}`}>
+              <CalendarClock size={16} aria-hidden="true" /><span>Wymaga przeglądu</span>
+            </p>}
+            {goalSyncErrors[goal.id] && <div className="goal-sync-error">
+              <p className="form-error" role="alert">{goalSyncErrors[goal.id]}</p>
+              <button type="button" className="goal-picker-link" disabled={goalSyncPending[goal.id]}
+                onClick={() => void refreshGoalStatus(goal.id)}>Odśwież dane celu</button>
+            </div>}
             {expandedId === goal.id && <>
+              {reviewDue ? <div className="goal-review-prompt">
+                <p>Czas na przegląd celu. Dodaj wpis do Dziennika, aby podsumować postępy.</p>
+                <button type="button" className="secondary-button" onClick={() => guardHabitJournal(() => journalRef.current?.openCreate())}>
+                  Dodaj wpis do dziennika
+                </button>
+              </div> : !goal.completed && goal.reviewFrequency != null && goal.nextReviewDate &&
+                <p className="goal-review-next">Następny przegląd: <time dateTime={goal.nextReviewDate}>{formatReviewDate(goal.nextReviewDate)}</time></p>}
               {goal.desiredOutcome ? <section className="goal-success-criterion" aria-labelledby={`goal-success-heading-${goal.id}`}>
                 <h3 id={`goal-success-heading-${goal.id}`}>
                   <Target size={17} strokeWidth={2} aria-hidden="true" />
@@ -587,7 +691,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onCountChange={updateHabitCount} />
               </div>
               <GoalJournal ref={journalRef} key={`journal-${goal.id}`} goalId={goal.id} store={journalStore}
-                readOnly={goal.completed} onNotice={setCreationNotice} />
+                readOnly={goal.completed} onNotice={setCreationNotice} onEntryCreated={entry => entryCreated(goal, entry)} />
               {goal.currentState && <>
                 <button type="button" className="goal-initial-state-toggle"
                   aria-expanded={initialStateOpenId === goal.id} aria-controls={`goal-initial-state-${goal.id}`}

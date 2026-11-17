@@ -32,7 +32,8 @@ try {
       writes.push({ path, method: req.method() })
       return route.fulfill({ json: goal })
     }
-    return route.fulfill({ json: path === '/api/goals' ? goals
+    return route.fulfill({ json: /^\/api\/goals\/\d+$/.test(path) ? goals.find(goal => goal.id === Number(path.split('/')[3]))
+      : path === '/api/goals' ? goals
       : path === '/api/users/me' ? { id: 1, login: 'test', points: 0, theme: 'PURPLE' }
       : path === '/api/tasks/overview' ? { tasks: [], completedCount: 0 } : [] })
   })

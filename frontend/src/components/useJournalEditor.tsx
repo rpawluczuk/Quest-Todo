@@ -11,10 +11,11 @@ type Store = Pick<ReturnType<typeof createGoalJournalStore>, 'get' | 'load' | 'c
 export type JournalEditorHandle = { beforeLeave: (action: () => void) => void }
 
 // Shared form lifecycle and confirmations; each container supplies its own API.
-export function useJournalEditor({ id, store, readOnly, contentId, addButton, onNotice, onSaved, placeholder, api }: {
+export function useJournalEditor({ id, store, readOnly, contentId, addButton, onNotice, onSaved, afterCreate, placeholder, api }: {
   id: number; store: Store; readOnly: boolean; contentId: string
   addButton: RefObject<HTMLButtonElement | null>; onNotice: (message: string) => void
   onSaved?: () => void; placeholder?: string
+  afterCreate?: (entry: GoalEntry) => Promise<string>
   api: { create: (type: GoalEntryType, content: string) => Promise<GoalEntry>
     update: (entry: GoalEntry, type: GoalEntryType, content: string) => Promise<GoalEntry>
     remove: (entry: GoalEntry) => Promise<void> }
@@ -97,10 +98,17 @@ export function useJournalEditor({ id, store, readOnly, contentId, addButton, on
       draft={store.drafts?.get(id)} onDraftChange={draft => store.drafts?.set(id, draft)}
       onDirtyChange={value => { dirty.current = value }} onSave={async (type, content) => {
         requireWritable()
+        let created: GoalEntry | undefined
         if (entry) await store.update(id, () => { requireWritable(); return api.update(entry, type, content) })
-        else await store.create(id, () => { requireWritable(); return api.create(type, content) })
+        else await store.create(id, async () => { requireWritable(); created = await api.create(type, content); return created })
         if (!mounted.current) return
-        closeForm(); onSaved?.(); onNotice(entry ? 'Wpis został zaktualizowany' : 'Wpis został dodany')
+        closeForm(); onSaved?.()
+        let notice = entry ? 'Wpis został zaktualizowany' : 'Wpis został dodany'
+        // POST is already committed. A refresh failure must never offer to repeat it.
+        if (created && afterCreate) {
+          try { notice = await afterCreate(created) } catch { /* Keep the ordinary entry success notice. */ }
+        }
+        if (mounted.current) onNotice(notice)
       }} />
   }
   function startDelete(entry: GoalEntry) {
