@@ -17,6 +17,9 @@ class GoalReviewSecurityTests {
 
     @Test void reviewConfigurationAndJournalRequireAuthentication() throws Exception {
         mvc.perform(get("/api/goals")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/goals/1")).andExpect(status().isUnauthorized());
+        mvc.perform(patch("/api/goals/1/completion").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"completed\":false}")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/goals").with(csrf()).contentType(MediaType.APPLICATION_JSON)
             .content("{\"title\":\"Goal\",\"reviewFrequency\":\"MONTHLY\"}"))
             .andExpect(status().isUnauthorized());

@@ -11,6 +11,8 @@ try {
     reviewFrequency: index === 5 ? null : 'MONTHLY',
     nextReviewDate: index === 7 ? '2027-02-17' : index === 4 ? '2026-12-17' : '2026-12-16', reviewDue: index !== 4 && index !== 7 }))
   const entries = Object.fromEntries(goals.map(goal => [goal.id, []]))
+  Object.assign(goals[0], { title: 'Bardzo długi cel rozwoju zawodowego i osobistego wymagający regularnej refleksji',
+    currentState: 'Punkt początkowy. '.repeat(30), desiredOutcome: 'Mierzalne kryterium sukcesu. '.repeat(30) })
   entries[5] = [4, 3, 2, 1].map(id => ({ id, type: 'NOTE', content: `Historia ${id}`,
     createdAt: '2026-12-01T00:00:00Z', updatedAt: '2026-12-01T00:00:00Z' }))
   const requests = [], errors = []
@@ -40,6 +42,7 @@ try {
       assert.equal(method, 'POST')
       if (failPost) return route.fulfill({ status: 400, json: { detail: 'Nieprawidłowy wpis' } })
       const added = { id: 100 + requests.length, ...req.postDataJSON(),
+        reviewCompleted: goals[id - 1].reviewDue,
         createdAt: '2026-12-17T00:00:00Z', updatedAt: '2026-12-17T00:00:00Z' }
       entries[id].unshift(added)
       if (goals[id - 1].reviewDue) Object.assign(goals[id - 1], { reviewDue: false, nextReviewDate: '2027-01-17' })
@@ -56,7 +59,7 @@ try {
   const form = id => journal(id).getByRole('form')
   const textarea = id => form(id).getByRole('textbox', { name: /Treść/ })
   const prompt = id => card(id).locator('.goal-review-prompt').getByRole('button')
-  const open = id => card(id).getByRole('button', { name: `Cel ${id}`, exact: true }).click()
+  const open = id => card(id).getByRole('button', { name: goals[id - 1].title, exact: true }).click()
   const listCount = () => requests.filter(r => r.path === '/api/goals').length
   const postCount = () => requests.filter(r => r.method === 'POST').length
   await badge(1).waitFor()
@@ -64,7 +67,7 @@ try {
   for (const id of [5, 6, 8]) assert.equal(await badge(id).count(), 0)
   await page.getByRole('button', { name: /Osiągnięte \(/ }).click()
   assert.equal(await badge(7).count(), 0)
-  for (const width of [320, 360, 390, 1280]) {
+  for (const width of [320, 360, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
@@ -80,7 +83,7 @@ try {
   assert.equal(await textarea(1).inputValue(), 'Mój szkic')
   assert.equal(await form(1).count(), 1)
   assert.equal(await page.locator('#goal-tab-tasks-1').getAttribute('aria-selected'), 'true')
-  for (const width of [320, 360, 390, 1280]) {
+  for (const width of [320, 360, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
     assert.ok(await prompt(1).evaluate(el => el.getBoundingClientRect().height >= 44))
@@ -172,6 +175,13 @@ try {
   assert.equal(await textarea(5).inputValue(), '')
   assert.equal(await journal(5).locator('.goal-journal-entry').count(), 4)
   assert.equal(await journal(5).getByRole('button', { name: 'Pokaż mniej' }).isVisible(), true)
+  // Another tab completed the review while this tab still displayed the old due flag.
+  Object.assign(goals[4], { reviewDue: false, nextReviewDate: '2027-01-17' })
+  await textarea(5).fill('Wpis po przeglądzie w innej karcie')
+  await form(5).getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: 'Wpis został dodany' }).waitFor()
+  await badge(5).waitFor({ state: 'detached' })
+  assert.equal(await page.getByRole('status').filter({ hasText: 'Przegląd celu zaliczony' }).count(), 0)
   assert.deepEqual(errors, [])
   assert.ok(requests.filter(r => r.method !== 'GET').every(r => r.method === 'POST' && /\/entries$/.test(r.path)))
   console.log('Goal review status browser checks passed: badges, 4 types, drafts, keyboard, widths, errors, midnight, focus and stale list race')

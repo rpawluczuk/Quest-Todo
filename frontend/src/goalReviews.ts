@@ -1,17 +1,15 @@
 import type { Goal, GoalReviewFrequency } from './types/Goal.ts'
 import type { GoalEntry } from './types/GoalEntry.ts'
-import { dateFromKey, habitToday } from './weekDates.ts'
+import { dateFromKey } from './weekDates.ts'
 
 export function goalNeedsReview(goal: Goal): boolean {
   return !goal.completed && goal.reviewFrequency != null && goal.reviewDue === true
 }
 
-export function reviewCompletedByEntry(before: Goal, after: Goal, entry: GoalEntry): boolean {
-  return !before.completed && !after.completed && before.reviewFrequency != null
-    && before.reviewFrequency === after.reviewFrequency && after.reviewDue === false
-    && !!before.nextReviewDate && !!after.nextReviewDate
-    && before.nextReviewDate <= habitToday(new Date(entry.createdAt))
-    && after.nextReviewDate > before.nextReviewDate
+export function reviewCompletedByEntry(after: Goal | null, entry: GoalEntry): boolean {
+  // A changed deadline alone can belong to another tab/request or a configuration change.
+  return entry.reviewCompleted === true && after !== null && !after.completed
+    && after.reviewFrequency != null && after.reviewDue === false
 }
 
 export const goalReviewLabels: Record<GoalReviewFrequency, string> = {

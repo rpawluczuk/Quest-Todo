@@ -21,6 +21,9 @@ try {
   const requests = [], writes = [], errors = []
   let failStatus = 0, offline = false, release, gate
   page.on('pageerror', error => errors.push(error.message))
+  page.on('console', message => {
+    if (message.type() === 'error' && message.text().includes('React.Fragment')) errors.push(message.text())
+  })
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const req = route.request(), path = new URL(req.url()).pathname, method = req.method()
     if (path === '/api/auth/csrf') return route.fulfill({ json: { headerName: 'X-CSRF-TOKEN', token: 'test' } })

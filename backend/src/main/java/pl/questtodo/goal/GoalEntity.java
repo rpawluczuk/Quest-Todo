@@ -85,8 +85,10 @@ public class GoalEntity {
                 && !nextReviewDate.isAfter(today);
     }
 
-    public void reviewAfterEntry(LocalDate entryDate) {
-        if (reviewDue(entryDate)) restartReviews(entryDate);
+    public boolean reviewAfterEntry(LocalDate entryDate) {
+        if (!reviewDue(entryDate)) return false;
+        restartReviews(entryDate);
+        return true;
     }
 
     protected GoalEntity() {}

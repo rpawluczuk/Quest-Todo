@@ -23,7 +23,7 @@ public class GoalEntryController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public GoalEntryResponse create(@PathVariable long goalId, @Valid @RequestBody CreateGoalEntryRequest request) {
+    public CreatedGoalEntryResponse create(@PathVariable long goalId, @Valid @RequestBody CreateGoalEntryRequest request) {
         return entries.create(goalId, request);
     }
 

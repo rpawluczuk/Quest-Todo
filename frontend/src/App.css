@@ -2335,6 +2335,10 @@
   cursor: not-allowed;
 }
 
+.category-select-value-container {
+  min-width: 0;
+}
+
 .category-select-trigger-value {
   display: flex;
   align-items: center;

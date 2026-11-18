@@ -34,14 +34,14 @@ public class GoalEntryService {
         return new GoalEntries(result.stream().map(GoalEntryEntity::toResponse).toList(), result.hasNext(), result.getTotalElements());
     }
 
-    public GoalEntryResponse create(long goalId, CreateGoalEntryRequest request) {
+    public CreatedGoalEntryResponse create(long goalId, CreateGoalEntryRequest request) {
         GoalEntity goal = ownedForUpdate(goalId);
         GoalService.requireActive(goal);
         Instant createdAt = now();
         var entry = new GoalEntryEntity(goal, request.getType(), request.getContent().strip(), createdAt);
         var response = entries.save(entry).toResponse();
-        goal.reviewAfterEntry(createdAt.atZone(GoalReviewTimeConfiguration.ZONE).toLocalDate());
-        return response;
+        boolean reviewCompleted = goal.reviewAfterEntry(createdAt.atZone(GoalReviewTimeConfiguration.ZONE).toLocalDate());
+        return new CreatedGoalEntryResponse(response, reviewCompleted);
     }
 
     public GoalEntryResponse update(long goalId, long entryId, UpdateGoalEntryRequest request) {

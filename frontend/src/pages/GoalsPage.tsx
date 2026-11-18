@@ -62,6 +62,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const [goalSyncPending, setGoalSyncPending] = useState<Record<number, boolean>>({})
   const [listSyncError, setListSyncError] = useState('')
   const reads = useRef<AbortController | null>(null)
+  const listDay = useRef('')
   const pendingReads = useRef(new Map<number, number>())
   const [milestonesByGoal, setMilestonesByGoal] = useState<Record<number, Milestone[]>>({})
   const [loading, setLoading] = useState(true)
@@ -92,9 +93,10 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     const controller = new AbortController()
     reads.current = controller
     const ticket = goalState.beginList()
+    const requestedDay = habitToday()
     getGoals(controller.signal).then(loadedGoals => {
       if (controller.signal.aborted) return
-      goalState.acceptList(ticket, loadedGoals)
+      if (goalState.acceptList(ticket, loadedGoals)) listDay.current = requestedDay
       loadedGoals.forEach(goal => {
         getMilestones(goal.id, controller.signal).then(items => {
           setMilestonesByGoal(current => ({ ...current, [goal.id]: items }))
@@ -109,11 +111,13 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
   const refreshGoalList = useCallback(async () => {
     const signal = reads.current?.signal
     const ticket = goalState.beginList()
+    const requestedDay = habitToday()
     try {
       const updated = await getGoals(signal)
       if (signal?.aborted) return false
       const accepted = goalState.acceptList(ticket, updated)
       if (accepted) {
+        listDay.current = requestedDay
         setListSyncError('')
         setGoalSyncErrors(current => Object.fromEntries(Object.entries(current)
           .filter(([id]) => !goalState.isCurrent(Number(id), ticket))))
@@ -127,13 +131,12 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
 
   useEffect(() => {
     if (loading || loadError) return
-    let day = habitToday()
     const gate = createRefreshGate(60_000, Date.now())
     const refresh = (onReturn: boolean) => {
       if (document.visibilityState === 'hidden') return
-      const changedDay = habitToday() !== day
+      const changedDay = habitToday() !== listDay.current
       if (!changedDay && !onReturn) return
-      void gate(async () => { if (await refreshGoalList()) day = habitToday() }, Date.now(), changedDay)
+      void gate(async () => { await refreshGoalList() }, Date.now(), changedDay)
     }
     // Only compare the business day each minute; network reads happen on day changes or stale returns.
     const timer = window.setInterval(() => refresh(false), 60_000)
@@ -170,9 +173,9 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
     }
   }
 
-  async function entryCreated(before: Goal, entry: GoalEntry): Promise<string> {
-    const updated = await refreshGoalStatus(before.id)
-    return updated && reviewCompletedByEntry(before, updated, entry) ? 'Przegląd celu zaliczony' : 'Wpis został dodany'
+  async function entryCreated(id: number, entry: GoalEntry): Promise<string> {
+    const updated = await refreshGoalStatus(id)
+    return reviewCompletedByEntry(updated, entry) ? 'Przegląd celu zaliczony' : 'Wpis został dodany'
   }
 
   useEffect(() => { if (createOpen) createInput.current?.focus() }, [createOpen])
@@ -691,7 +694,7 @@ export default function GoalsPage({ onHabitGoalLinksChanged, onCreateTask, onCre
                   onCountChange={updateHabitCount} />
               </div>
               <GoalJournal ref={journalRef} key={`journal-${goal.id}`} goalId={goal.id} store={journalStore}
-                readOnly={goal.completed} onNotice={setCreationNotice} onEntryCreated={entry => entryCreated(goal, entry)} />
+                readOnly={goal.completed} onNotice={setCreationNotice} onEntryCreated={entry => entryCreated(goal.id, entry)} />
               {goal.currentState && <>
                 <button type="button" className="goal-initial-state-toggle"
                   aria-expanded={initialStateOpenId === goal.id} aria-controls={`goal-initial-state-${goal.id}`}

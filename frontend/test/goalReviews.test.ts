@@ -15,22 +15,20 @@ test('review badges use the backend flag and exclude completed and disabled goal
   assert.equal(goalNeedsReview({ ...scheduled, reviewDue: false, nextReviewDate: '2000-01-01' }), false)
 })
 
-test('review success requires a confirmed later deadline and an entry on or after the original deadline', () => {
+test('only an explicit POST result and a successful refresh confirm this entry completed a review', () => {
   const after = { ...scheduled, reviewDue: false, nextReviewDate: '2027-01-20' }
-  assert.equal(reviewCompletedByEntry(scheduled, after, entry), true)
-  for (const different of [scheduled, { ...after, reviewFrequency: null }, { ...after, nextReviewDate: null },
-    { ...after, nextReviewDate: scheduled.nextReviewDate }, { ...after, completed: true },
-    { ...after, reviewFrequency: 'WEEKLY' as const }]) {
-    assert.equal(reviewCompletedByEntry(scheduled, different, entry), false)
+  const confirmed = { ...entry, reviewCompleted: true }
+  assert.equal(reviewCompletedByEntry(after, confirmed), true)
+  for (const different of [null, scheduled, { ...after, reviewFrequency: null }, { ...after, completed: true }]) {
+    assert.equal(reviewCompletedByEntry(different, confirmed), false)
   }
-  assert.equal(reviewCompletedByEntry(scheduled, after, { ...entry, createdAt: '2026-12-05T12:00:00Z' }), false)
+  assert.equal(reviewCompletedByEntry(after, entry), false, 'Old API cannot confirm which request advanced the date')
+  assert.equal(reviewCompletedByEntry(after, { ...entry, reviewCompleted: false }), false, 'Another tab completed it')
 })
 
 test('review confirmation handles midnight when the old cached flag was false', () => {
-  const before = { ...scheduled, reviewDue: false }
-  const after = { ...before, nextReviewDate: '2027-01-17' }
-  assert.equal(reviewCompletedByEntry(before, after, { ...entry, createdAt: '2026-12-16T23:00:00Z' }), true)
-  assert.equal(reviewCompletedByEntry(before, after, { ...entry, createdAt: '2026-12-16T22:59:59Z' }), false)
+  const after = { ...scheduled, reviewDue: false, nextReviewDate: '2027-01-17' }
+  assert.equal(reviewCompletedByEntry(after, { ...entry, reviewCompleted: true, createdAt: '2026-12-16T23:00:00Z' }), true)
 })
 
 test('review frequencies match the four API values and Polish labels', () => {

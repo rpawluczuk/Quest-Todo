@@ -11,7 +11,11 @@ class GoalReviewTests {
     @CsvSource({"WEEKLY,2026-12-29,2027-01-05", "BIWEEKLY,2026-12-29,2027-01-12",
         "MONTHLY,2026-01-31,2026-02-28", "MONTHLY,2024-01-31,2024-02-29",
         "QUARTERLY,2023-11-30,2024-02-29", "MONTHLY,2026-12-17,2027-01-17",
-        "WEEKLY,2026-03-28,2026-04-04", "WEEKLY,2026-10-24,2026-10-31"})
+        "WEEKLY,2026-03-28,2026-04-04", "WEEKLY,2026-10-24,2026-10-31",
+        "MONTHLY,2026-01-28,2026-02-28", "MONTHLY,2026-01-29,2026-02-28",
+        "MONTHLY,2026-01-30,2026-02-28", "MONTHLY,2028-01-31,2028-02-29",
+        "MONTHLY,2028-02-29,2028-03-29", "QUARTERLY,2026-11-30,2027-02-28",
+        "QUARTERLY,2026-12-31,2027-03-31", "BIWEEKLY,2026-03-28,2026-04-11"})
     void calendarIntervals(GoalReviewFrequency frequency, LocalDate from, LocalDate expected) {
         assertEquals(expected, frequency.nextDate(from));
     }

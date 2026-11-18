@@ -33,9 +33,9 @@ const FormSelect = forwardRef<HTMLButtonElement, FormSelectProps>(function FormS
     <Select.Trigger ref={setTrigger} id={id}
       className={`category-select-trigger${triggerClassName ? ` ${triggerClassName}` : ''}`}
       aria-label={ariaLabel} aria-required={required || undefined}>
-      <Select.Value asChild>
-        <span className="category-select-trigger-value">{triggerContent}</span>
-      </Select.Value>
+      <span className="category-select-value-container">
+        <Select.Value><span className="category-select-trigger-value">{triggerContent}</span></Select.Value>
+      </span>
       <Select.Icon className="category-select-chevron">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
       </Select.Icon>

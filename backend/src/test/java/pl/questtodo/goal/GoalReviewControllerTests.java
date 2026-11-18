@@ -52,8 +52,9 @@ class GoalReviewControllerTests {
         jdbc.update("UPDATE goals SET review_frequency='MONTHLY',next_review_date=? WHERE id=1001", LocalDate.parse(date));
     }
     void date(String expected) {
-        assertEquals(expected == null ? null : LocalDate.parse(expected),
-            jdbc.queryForObject("SELECT next_review_date FROM goals WHERE id=1001", LocalDate.class));
+        // Inspect the stored DATE without java.sql.Date's JVM-zone conversion.
+        assertEquals(expected,
+            jdbc.queryForObject("SELECT CAST(next_review_date AS VARCHAR) FROM goals WHERE id=1001", String.class));
     }
     String entry(String type) throws Exception {
         return mvc.perform(post("/api/goals/1001/entries").contentType(MediaType.APPLICATION_JSON)
@@ -99,14 +100,16 @@ class GoalReviewControllerTests {
     @ParameterizedTest @EnumSource(GoalEntryType.class)
     void everyEntryTypeCompletesDueReviewOnlyOnce(GoalEntryType type) throws Exception {
         schedule("2026-11-17");
-        entry(type.name()); date("2026-12-17");
-        entry(type.name()); date("2026-12-17");
+        assertEquals(Boolean.TRUE, read(entry(type.name()), "$.reviewCompleted")); date("2026-12-17");
+        assertEquals(Boolean.FALSE, read(entry(type.name()), "$.reviewCompleted")); date("2026-12-17");
         assertEquals(37, jdbc.queryForObject("SELECT points FROM users WHERE id=1", Integer.class));
     }
     @ParameterizedTest @CsvSource({"2026-11-18,2026-11-18", "2026-11-17,2026-12-17",
         "2026-11-16,2026-12-17", "2026-01-01,2026-12-17"})
     void entryUsesCreationDateOnlyWhenDue(String due, String expected) throws Exception {
-        schedule(due); entry("NOTE"); date(expected);
+        schedule(due);
+        assertEquals(!due.equals(expected), (Boolean) read(entry("NOTE"), "$.reviewCompleted"));
+        date(expected);
     }
     @Test void warsawMidnightControlsDueAndEntryDate() throws Exception {
         schedule("2026-11-18");
@@ -121,7 +124,8 @@ class GoalReviewControllerTests {
         long id = ((Number) read(entry("NOTE"), "$.id")).longValue();
         time("2027-01-01T12:00:00Z");
         mvc.perform(patch("/api/goals/1001/entries/{id}", id).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"content\":\"Edited\"}")).andExpect(status().isOk());
+            .content("{\"content\":\"Edited\",\"type\":\"SUCCESS\"}")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.reviewCompleted").doesNotExist());
         date("2026-12-17");
         mvc.perform(delete("/api/goals/1001/entries/{id}", id)).andExpect(status().isNoContent());
         date("2026-12-17");
@@ -157,7 +161,11 @@ class GoalReviewControllerTests {
         try (var executor = Executors.newFixedThreadPool(2)) {
             Callable<String> action = () -> { start.await(); return entry("NOTE"); };
             var first = executor.submit(action); var second = executor.submit(action);
-            start.countDown(); first.get(15, TimeUnit.SECONDS); second.get(15, TimeUnit.SECONDS);
+            start.countDown();
+            String a = first.get(15, TimeUnit.SECONDS), b = second.get(15, TimeUnit.SECONDS);
+            assertNotEquals((Number) read(a, "$.id"), (Number) read(b, "$.id"));
+            assertNotEquals((Boolean) read(a, "$.reviewCompleted"), (Boolean) read(b, "$.reviewCompleted"),
+                "Exactly one transaction must confirm completing the review");
         }
         date("2026-12-17");
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM goal_entries", Integer.class));
@@ -192,5 +200,76 @@ class GoalReviewControllerTests {
             date("2026-11-17");
             assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM goal_entries", Integer.class));
         } finally { jdbc.execute("ALTER TABLE goal_entries DROP CONSTRAINT test_reject_entry"); }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"UTC,2026-03-28T23:00:00Z,2026-03-29,2026-04-29",
+        "Pacific/Honolulu,2026-10-24T22:00:00Z,2026-10-25,2026-11-25",
+        "Pacific/Kiritimati,2026-12-31T23:00:00Z,2027-01-01,2027-02-01"})
+    void businessDateIsIndependentOfServerZone(String zone, String instant, String due, String expected) throws Exception {
+        // Keep the JVM/database zone stable for their entire lifecycle. Separate Maven forks
+        // exercise server defaults with -Dtest.timezone; this checks clocks from other zones.
+        Clock source = Clock.fixed(Instant.parse(instant), ZoneId.of(zone));
+        when(clock.instant()).thenReturn(source.instant());
+        when(clock.getZone()).thenReturn(source.getZone());
+        when(clock.withZone(org.mockito.ArgumentMatchers.any(ZoneId.class)))
+            .thenAnswer(invocation -> source.withZone(invocation.getArgument(0)));
+        schedule(due);
+        mvc.perform(get("/api/goals/1001")).andExpect(jsonPath("$.reviewDue").value(true));
+        assertEquals(Boolean.TRUE, read(entry("INSIGHT"), "$.reviewCompleted"));
+        date(expected);
+        mvc.perform(get("/api/goals/1001")).andExpect(jsonPath("$.nextReviewDate").value(expected));
+    }
+
+    @Test void anotherOwnersScheduleCannotBeReadDisabledCompletedOrResumed() throws Exception {
+        jdbc.update("UPDATE goals SET review_frequency='MONTHLY',next_review_date=DATE '2026-01-01' WHERE id=2001");
+        mvc.perform(get("/api/goals/2001")).andExpect(status().isNotFound());
+        mvc.perform(put("/api/goals/2001").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"title\":\"Foreign\",\"reviewFrequency\":null}")).andExpect(status().isNotFound());
+        for (boolean completed : new boolean[]{true, false}) {
+            mvc.perform(patch("/api/goals/2001/completion").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"completed\":" + completed + "}")).andExpect(status().isNotFound());
+        }
+        mvc.perform(post("/api/goals/2001/entries").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"content\":\"Foreign review\"}")).andExpect(status().isNotFound());
+        assertEquals(LocalDate.of(2026, 1, 1), jdbc.queryForObject(
+            "SELECT next_review_date FROM goals WHERE id=2001", LocalDate.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM goal_entries", Integer.class));
+    }
+
+    @Test void fullLifecycleUsesRealApiAndDatabaseWithControlledTime() throws Exception {
+        time("2025-12-01T12:00:00Z");
+        String created = mvc.perform(post("/api/goals").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"title\":\"Lifecycle\",\"reviewFrequency\":\"MONTHLY\"}"))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.nextReviewDate").value("2026-01-01"))
+            .andExpect(jsonPath("$.reviewDue").value(false)).andReturn().getResponse().getContentAsString();
+        long id = ((Number) read(created, "$.id")).longValue();
+        time("2026-04-15T12:00:00Z");
+        mvc.perform(get("/api/goals/{id}", id)).andExpect(jsonPath("$.reviewDue").value(true));
+        for (boolean expected : new boolean[]{true, false}) {
+            mvc.perform(post("/api/goals/{id}/entries", id).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"Reflection\"}")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.reviewCompleted").value(expected));
+            mvc.perform(get("/api/goals/{id}", id)).andExpect(jsonPath("$.nextReviewDate").value("2026-05-15"))
+                .andExpect(jsonPath("$.reviewDue").value(false));
+        }
+        for (String frequency : new String[]{"WEEKLY", "QUARTERLY"}) {
+            mvc.perform(put("/api/goals/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Lifecycle\",\"reviewFrequency\":\"" + frequency + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nextReviewDate").value(
+                    frequency.equals("WEEKLY") ? "2026-04-22" : "2026-07-15"));
+        }
+        mvc.perform(patch("/api/goals/{id}/completion", id).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"completed\":true}")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.nextReviewDate").isEmpty()).andExpect(jsonPath("$.reviewDue").value(false));
+        time("2027-03-17T12:00:00Z");
+        mvc.perform(post("/api/goals/{id}/entries", id).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"content\":\"Read only\"}")).andExpect(status().isConflict());
+        mvc.perform(patch("/api/goals/{id}/completion", id).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"completed\":false}")).andExpect(status().isOk())
+            .andExpect(jsonPath("$.nextReviewDate").value("2027-06-17"));
+        mvc.perform(get("/api/goals/{id}/entries", id)).andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.entries[0].reviewCompleted").doesNotExist());
+        assertEquals(37, jdbc.queryForObject("SELECT points FROM users WHERE id=1", Integer.class));
     }
 }
