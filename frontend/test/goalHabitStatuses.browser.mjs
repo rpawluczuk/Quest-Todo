@@ -148,6 +148,7 @@ try {
   await form.getByRole('radio', { name: 'Dodaj do Poczekalni', exact: true }).check()
   await form.getByRole('button', { name: 'Zapisz', exact: true }).click()
   await form.waitFor({ state: 'hidden' })
+  await goalHabits(1).getByRole('button', { name: /^Pokaż wszystkie/ }).click()
   await row(1, 'Z celu do Poczekalni').getByText('Zaplanowany', { exact: true }).waitFor()
   await menu(row(1, 'Z celu do Poczekalni'), 'Edytuj')
   await form.getByRole('textbox', { name: /^Nazwa nawyku/ }).fill('Poprawiona nazwa')

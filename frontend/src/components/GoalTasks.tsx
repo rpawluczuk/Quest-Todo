@@ -3,7 +3,7 @@ import { getAvailableGoalTasks, getGoalTasks, setGoalTask } from '../api/goalApi
 import type { Task } from '../types/Task'
 import GoalTaskRow from './GoalTaskRow'
 import type { GoalSectionActionHandle, GoalSectionActionProps } from './GoalSectionAction'
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export type GoalTasksProps = {
   taskRevision: number
@@ -26,7 +26,7 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [completedOpen, setCompletedOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
   const [active, setActive] = useState<Task[]>([])
@@ -48,7 +48,6 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
     getGoalTasks(goalId, controller.signal).then(loaded => {
       if (!controller.signal.aborted) {
         setAttached(loaded)
-        if (!loaded.some(task => task.completed)) setCompletedOpen(false)
       }
     }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać zadań celu.')
@@ -56,7 +55,9 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
     return () => controller.abort()
   }, [goalId, taskRevision])
 
-  useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
+  const todoTasks = attached.filter(task => !task.completed)
+  const displayedTasks = showAll ? todoTasks : todoTasks.slice(0, 3)
+  useEffect(() => { onCountChange?.(goalId, todoTasks.length) }, [todoTasks.length, goalId, onCountChange])
 
   useEffect(() => {
     if (!pickerOpen || queryInput.trim() === query) return
@@ -109,8 +110,6 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
   }, [actionDisabled, goalId, onActionDisabledChange])
   const priorityTasks = active.filter(task => task.inFocus)
   const backlogTasks = active.filter(task => !task.inFocus)
-  const todoTasks = attached.filter(task => !task.completed)
-  const completedTasks = attached.filter(task => task.completed)
 
   async function run(action: () => Promise<void>) {
     if (sending.current || tasksDisabled) return
@@ -207,24 +206,14 @@ const GoalTasks = forwardRef<GoalSectionActionHandle, GoalTasksProps & {
         <section className="goal-task-group goal-task-todo" aria-labelledby={`goal-task-todo-title-${goalId}`}>
           <h3 id={`goal-task-todo-title-${goalId}`}>Do zrobienia <span>· {todoTasks.length}</span></h3>
           {todoTasks.length > 0
-            ? <ul className="task-list goal-linked-tasks">{todoTasks.map(linkedTask)}</ul>
+            ? <ul className="task-list goal-linked-tasks">{displayedTasks.map(linkedTask)}</ul>
             : <p className="goal-task-all-completed">Wszystkie zadania ukończone</p>}
         </section>
-        {completedTasks.length > 0 && <section className="goal-task-group goal-task-completed">
-          <button type="button" className="goal-task-completed-toggle" aria-expanded={completedOpen}
-            aria-controls={`goal-task-completed-list-${goalId}`}
-            onClick={() => setCompletedOpen(current => !current)}>
-            <span className="goal-task-completed-label">
-              <Check size={17} strokeWidth={2.2} aria-hidden="true" />
-              <span>Ukończone ({completedTasks.length})</span>
-            </span>
-            {completedOpen ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
-              : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
-          </button>
-          <div id={`goal-task-completed-list-${goalId}`} hidden={!completedOpen}>
-            <ul className="task-list goal-linked-tasks">{completedTasks.map(linkedTask)}</ul>
-          </div>
-        </section>}
+        {todoTasks.length > 3 && <button type="button" className="milestone-list-toggle"
+          aria-expanded={showAll} onClick={() => setShowAll(current => !current)}>
+          <span>{showAll ? 'Pokaż mniej' : `Pokaż wszystkie (${todoTasks.length})`}</span>
+          {showAll ? <ChevronUp size={17} aria-hidden="true" /> : <ChevronDown size={17} aria-hidden="true" />}
+        </button>}
       </>}
       {pickerOpen && <dialog ref={dialog} className="password-dialog goal-picker-dialog goal-task-picker-dialog" aria-labelledby="goal-picker-title"
         onCancel={event => { event.preventDefault(); closePicker() }}>

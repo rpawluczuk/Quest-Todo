@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
-import { Clock3, Pause } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clock3, Pause } from 'lucide-react'
 import { getAvailableGoalHabits, getGoalHabits, setGoalHabit, type GoalHabit } from '../api/goalApi'
 import { HabitUpdateConflictError, updateHabit } from '../api/habitApi'
 import { useHabitStore, useHabitJournalStore } from './HabitProvider'
@@ -8,6 +8,7 @@ import { habitJournalReadOnly } from '../habitJournal'
 import type { JournalEditorHandle } from './useJournalEditor'
 import { habitStatusAction } from '../habitStore'
 import EditHabitForm from './EditHabitForm'
+import { hasReachedWeeklyTarget } from '../habitProgress'
 import { formatHabitProgress } from '../habitTarget'
 import type { Habit, HabitSchedule } from '../types/Habit'
 import { habitToday } from '../weekDates'
@@ -46,6 +47,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
+  const [showAll, setShowAll] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
@@ -70,7 +72,11 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
     return () => controller.abort()
   }, [goalId, retry, revision, store, today])
 
-  useEffect(() => { onCountChange?.(goalId, attached.length) }, [attached.length, goalId, onCountChange])
+  const unfinishedHabits = attached.filter(habit => {
+    const details = detailsById.get(habit.id)
+    return !details || !hasReachedWeeklyTarget(details)
+  })
+  useEffect(() => { onCountChange?.(goalId, unfinishedHabits.length) }, [unfinishedHabits.length, goalId, onCountChange])
 
   useEffect(() => {
     if (!pickerOpen || queryInput.trim() === query) return
@@ -161,9 +167,11 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
     const status = detailsById.get(habit.id)?.activityStatus
     return status === 'PAUSED' || status === 'PLANNED'
   }
+  const orderedHabits = [...unfinishedHabits.filter(habit => !isWaiting(habit)), ...unfinishedHabits.filter(isWaiting)]
+  const displayedHabits = showAll ? orderedHabits : orderedHabits.slice(0, 3)
   const groups = [
-    { title: '', items: attached.filter(habit => !isWaiting(habit)) },
-    { title: 'Poczekalnia', items: attached.filter(isWaiting) },
+    { title: '', items: displayedHabits.filter(habit => !isWaiting(habit)) },
+    { title: 'Poczekalnia', items: displayedHabits.filter(isWaiting) },
   ]
 
   function closePicker() {
@@ -210,6 +218,7 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
       }}>Spróbuj ponownie</button>
     </> : <>
       {attached.length === 0 && <p className="empty-state goal-linked-empty">Brak przypisanych nawyków</p>}
+      {attached.length > 0 && unfinishedHabits.length === 0 && <p className="empty-state goal-linked-empty">Cele tygodniowe wszystkich nawyków osiągnięte</p>}
       {groups.filter(group => group.items.length > 0).map(group => <section key={group.title} className="goal-habit-group"
         aria-label={group.title || undefined}>
         {group.title && <h3 className="goal-habit-waiting-heading">{group.title}</h3>}
@@ -260,6 +269,11 @@ const GoalHabits = forwardRef<GoalSectionActionHandle, {
             onClose={() => closeJournal(habit.id)} onNotice={setNotice} />}
         </li>})}
       </ul></section>)}
+      {unfinishedHabits.length > 3 && <button type="button" className="milestone-list-toggle"
+        aria-expanded={showAll} onClick={() => guardJournal(() => { setJournalId(null); setShowAll(current => !current) })}>
+        <span>{showAll ? 'Pokaż mniej' : `Pokaż wszystkie (${unfinishedHabits.length})`}</span>
+        {showAll ? <ChevronUp size={17} aria-hidden="true" /> : <ChevronDown size={17} aria-hidden="true" />}
+      </button>}
       {!pickerOpen && notice && <p role="status" className="goal-picker-notice">{notice}</p>}
       {!pickerOpen && busy && <p role="status">Zapisywanie…</p>}
       {!pickerOpen && error && <p className="form-error" role="alert">{error}</p>}

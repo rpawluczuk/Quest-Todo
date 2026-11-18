@@ -10,10 +10,6 @@ import { Check, CheckCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 
 const COMPACT_MILESTONE_LIMIT = 3
 
-function nextCompactIds(items: Milestone[]) {
-  return items.filter(item => !item.completed).slice(0, COMPACT_MILESTONE_LIMIT).map(item => item.id)
-}
-
 const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   goalId: number
   readOnly?: boolean
@@ -40,9 +36,7 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
   const [ordering, setOrdering] = useState(false)
   const [orderError, setOrderError] = useState('')
   const [showAll, setShowAll] = useState(false)
-  const [compactIds, setCompactIds] = useState<number[]>([])
   const orderBusy = useRef(false)
-  const itemsRef = useRef<Milestone[]>([])
   const onItemsChangeRef = useRef(onItemsChange)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
@@ -54,14 +48,12 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     activate: openCreateForm,
     resetView: () => {
       setShowAll(false)
-      setCompactIds(nextCompactIds(itemsRef.current))
     },
   }), [openCreateForm])
   useEffect(() => {
     onActionDisabledChange?.(goalId, 'milestones', actionDisabled)
   }, [actionDisabled, goalId, onActionDisabledChange])
   useEffect(() => { onItemsChangeRef.current = onItemsChange }, [onItemsChange])
-  useEffect(() => { itemsRef.current = items }, [items])
   useEffect(() => {
     if (!loading && !loadError) onItemsChangeRef.current?.(items)
   }, [items, loading, loadError])
@@ -82,7 +74,6 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         try {
           const refreshed = await getMilestones(goalId)
           setItems(refreshed)
-          setCompactIds(nextCompactIds(refreshed))
         }
         catch { setOrderError('Nie udało się odświeżyć listy po konflikcie. Otwórz cel ponownie.'); return }
       }
@@ -96,7 +87,6 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
     const controller = new AbortController()
     getMilestones(goalId, controller.signal).then(loaded => {
       setItems(loaded)
-      setCompactIds(nextCompactIds(loaded))
     }).catch(failure => {
       if (!controller.signal.aborted) setLoadError(failure instanceof Error ? failure.message : 'Nie udało się pobrać kamieni milowych.')
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
@@ -141,7 +131,6 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         await deleteMilestone(goalId, item.id)
         setItems(current => {
           const next = current.filter(value => value.id !== item.id)
-          setCompactIds(nextCompactIds(next))
           return next
         })
       } else {
@@ -169,7 +158,6 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
       const item = await createMilestone(goalId, title.trim())
       setItems(current => {
         const next = [...current, item].sort((a, b) => a.position - b.position)
-        setCompactIds(nextCompactIds(next))
         return next
       })
       setTitle('')
@@ -199,12 +187,10 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
       setPendingIds(new Set(pending.current))
     }
   }
-  const compactIdSet = new Set(compactIds)
-  const displayedItems = showAll ? items : items.filter(item => compactIdSet.has(item.id))
-  const allCompleted = items.length > 0 && items.every(item => item.completed)
-  const hasHiddenItems = items.some(item => !compactIdSet.has(item.id))
+  const unfinishedItems = items.filter(item => !item.completed)
+  const displayedItems = showAll ? unfinishedItems : unfinishedItems.slice(0, COMPACT_MILESTONE_LIMIT)
+  const allCompleted = items.length > 0 && unfinishedItems.length === 0
   function toggleFullList() {
-    if (showAll) setCompactIds(nextCompactIds(items))
     setShowAll(current => !current)
   }
   return <section className="goal-tasks goal-milestones" id={`goal-milestones-${goalId}`}
@@ -240,7 +226,7 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         </button>
       </div>
         : items.length === 0 ? null
-        : !showAll && allCompleted && displayedItems.length === 0
+        : allCompleted
           ? <p className="milestone-complete-state">Wszystkie kamienie milowe ukończone</p>
         : <DndContext sensors={sensors} collisionDetection={closestCenter}
           onDragStart={() => { setDragging(true); setOrderError('') }}
@@ -249,8 +235,8 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
             screenReaderInstructions: { draggable: 'Naciśnij Space lub Enter, aby przenieść. Strzałki zmieniają pozycję. Space lub Enter zapisuje, Escape anuluje.' },
             announcements: {
               onDragStart: ({ active }) => `Przenosisz: ${items.find(item => item.id === active.id)?.title}.`,
-              onDragOver: ({ over }) => over ? `Nowa pozycja: ${items.findIndex(item => item.id === over.id) + 1} z ${items.length}.` : undefined,
-              onDragEnd: ({ over }) => over ? `Upuszczono na pozycji ${items.findIndex(item => item.id === over.id) + 1}.` : 'Anulowano przenoszenie.',
+              onDragOver: ({ over }) => over ? `Nowa pozycja: ${displayedItems.findIndex(item => item.id === over.id) + 1} z ${displayedItems.length}.` : undefined,
+              onDragEnd: ({ over }) => over ? `Upuszczono na pozycji ${displayedItems.findIndex(item => item.id === over.id) + 1}.` : 'Anulowano przenoszenie.',
               onDragCancel: () => 'Anulowano przenoszenie.',
             },
           }}>
@@ -302,9 +288,9 @@ const GoalMilestones = forwardRef<GoalSectionActionHandle, {
         </>}</SortableMilestone>)}</ol>
           </SortableContext>
         </DndContext>}
-      {items.length > 0 && (showAll || hasHiddenItems) && <button type="button"
+      {unfinishedItems.length > COMPACT_MILESTONE_LIMIT && <button type="button"
         className="milestone-list-toggle" aria-expanded={showAll} onClick={toggleFullList}>
-        <span>{showAll ? 'Pokaż mniej' : `Pokaż wszystkie (${items.length})`}</span>
+        <span>{showAll ? 'Pokaż mniej' : `Pokaż wszystkie (${unfinishedItems.length})`}</span>
         {showAll ? <ChevronUp size={17} strokeWidth={2} aria-hidden="true" />
           : <ChevronDown size={17} strokeWidth={2} aria-hidden="true" />}
       </button>}
