@@ -2,6 +2,9 @@
 
 React, TypeScript i Vite. Publikacja na Render: [instrukcja krok po kroku](RENDER.md).
 
+Roczny kalendarz nawyku przyjmujący dane przez propsy:
+[komponent, kontrakt i weryfikacja](HABIT_HISTORY.md).
+
 ## Lokalnie
 
 ```powershell
