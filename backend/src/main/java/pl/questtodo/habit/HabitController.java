@@ -30,10 +30,17 @@ public class HabitController {
 
     private final HabitService habits;
     private final HabitStatusService statuses;
+    private final HabitHistoryService history;
 
-    public HabitController(HabitService habits, HabitStatusService statuses) {
+    public HabitController(HabitService habits, HabitStatusService statuses, HabitHistoryService history) {
         this.habits = habits;
         this.statuses = statuses;
+        this.history = history;
+    }
+
+    @GetMapping("/{id}/history")
+    public HabitHistory history(@PathVariable long id, @RequestParam int year) {
+        return history.get(id, year);
     }
 
     @GetMapping

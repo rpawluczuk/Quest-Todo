@@ -89,6 +89,9 @@ Blokada rekordu użytkownika chroni saldo przy równoczesnych operacjach.
 
 ## API
 
+- `GET /api/habits/{id}/history?year=2026` — roczna historia wykonań i wyników
+  tygodni, także dla zakończonych nawyków. [Kontrakt i przykład](HABIT_HISTORY.md).
+
 - `PUT /api/rewards/{id}` — edytuje nazwę i koszt nagrody, np.
   `{"title":"Wyjście do kina","cost":100}`. Oba pola są wymagane, odpowiedź 200
   zawiera aktualną nagrodę. Walidacja jak przy tworzeniu; brak nagrody daje 404.

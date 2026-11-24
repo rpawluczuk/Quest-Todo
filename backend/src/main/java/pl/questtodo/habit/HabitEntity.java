@@ -119,6 +119,7 @@ public class HabitEntity {
     }
 
     public long getId() { return id; }
+    public String getName() { return name; }
     public long ownerId() { return user.getId(); }
 
     public LocalDate getCreatedOn() {
