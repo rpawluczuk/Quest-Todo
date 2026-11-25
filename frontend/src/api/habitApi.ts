@@ -2,6 +2,19 @@ import { journalMutation } from './journalApi'
 import { apiFetch } from './apiFetch'
 import type { GoalEntries, GoalEntry, GoalEntryType } from '../types/GoalEntry'
 import type { Habit, HabitCompletionResult, HabitEndReason, HabitSchedule } from '../types/Habit'
+import type { HabitHistory } from '../types/HabitHistory'
+
+export class HabitHistoryError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) { super(message); this.name = 'HabitHistoryError'; this.status = status }
+}
+
+export async function getHabitHistory(id: number, year: number, signal?: AbortSignal): Promise<HabitHistory> {
+  const response = await apiFetch(`/api/habits/${id}/history?year=${year}`, { signal })
+  if (response.status === 404) throw new HabitHistoryError('Nawyk nie istnieje lub nie masz do niego dostępu.', 404)
+  if (!response.ok) throw new HabitHistoryError(await errorMessage(response, 'Nie udało się pobrać historii nawyku'), response.status)
+  return response.json()
+}
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   const problem = await response.json().catch(() => null) as { detail?: string } | null

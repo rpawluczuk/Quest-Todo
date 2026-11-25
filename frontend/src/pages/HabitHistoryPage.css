@@ -1,0 +1,9 @@
+.habit-history-page { min-width: 0; margin-top: 24px; }
+.habit-history-back { display: inline-flex; gap: 8px; align-items: center; }
+.habit-history-page-header { margin: 24px 0 18px; }
+.habit-history-page-header h2 { margin: 6px 0 18px; overflow-wrap: anywhere; }
+.habit-history-page-header h2:focus { outline: none; }
+.habit-history-years { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.habit-history-years button { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.habit-history-selected-year { min-width: 60px; text-align: center; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.habit-history-message { display: grid; justify-items: start; gap: 14px; }

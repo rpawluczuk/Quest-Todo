@@ -3,22 +3,23 @@ import type { HabitHistory } from '../types/HabitHistory'
 import { historyDateLabel, historyDayDescription, historyMonths, historyWeekPresentation } from '../habitHistoryCalendar'
 import './HabitHistoryCalendar.css'
 
-export type HabitHistoryCalendarProps = { history: HabitHistory }
+export type HabitHistoryCalendarProps = { history: HabitHistory; showHeader?: boolean }
 
 const weekdays = [['Pn', 'Poniedziałek'], ['Wt', 'Wtorek'], ['Śr', 'Środa'], ['Cz', 'Czwartek'],
   ['Pt', 'Piątek'], ['So', 'Sobota'], ['Nd', 'Niedziela']]
 
-export default function HabitHistoryCalendar({ history }: HabitHistoryCalendarProps) {
+export default function HabitHistoryCalendar({ history, showHeader = true }: HabitHistoryCalendarProps) {
   const id = useId()
   const days = new Map(history.days.map(day => [day.date, day]))
   const weeks = new Map(history.weeks.map(week => [week.weekStart, week]))
 
-  return <section className="habit-history-calendar" aria-labelledby={`${id}-title`}>
-    <header className="habit-history-header">
+  return <section className="habit-history-calendar" aria-labelledby={showHeader ? `${id}-title` : undefined}
+    aria-label={showHeader ? undefined : 'Kalendarz historii nawyku'}>
+    {showHeader && <header className="habit-history-header">
       <p className="habit-history-eyebrow">Historia nawyku · {history.year}</p>
       <h2 id={`${id}-title`}>{history.name}</h2>
       <p className="habit-history-context">Stan na {historyDateLabel(history.today)}. Wyniki dotyczą całych tygodni.</p>
-    </header>
+    </header>}
     <ul className="habit-history-legend" aria-label="Legenda kalendarza">
       <li><span className="habit-history-sample is-completed" aria-hidden="true" />Wykonano</li>
       <li><span className="habit-history-sample" aria-hidden="true" />Brak wykonania</li>

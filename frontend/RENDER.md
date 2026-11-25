@@ -62,7 +62,16 @@ Dodawanie i edycję sprawdzaj na danych testowych — działasz teraz na zewnęt
 Pierwsze żądanie po uśpieniu backendu może czekać około minuty; sam frontend nie jest usypiany.
 Jeśli wyświetli się błąd podczas wybudzania, zaczekaj i odśwież stronę.
 
-Aplikacja przełącza widoki bez zmiany ścieżki URL, więc nie wymaga reguł rewrite.
+Aplikacja korzysta ze ścieżek URL, m.in. `/habits/42/history?year=2026`.
+Na **Static Site** dodaj w **Redirects/Rewrites** regułę:
+
+| Source | Destination | Action |
+| --- | --- | --- |
+| `/*` | `/index.html` | Rewrite |
+
+Reguła umożliwia odświeżenie strony i wejście z bezpośredniego linku.
+W obrazie Docker ze wspólnym adresem frontend/API odpowiednie ścieżki
+obsługuje już backend Spring Boot.
 Nie dodawaj przekierowania `/api`: zapytania idą bezpośrednio na adres API.
 
 ## Dalszy rozwój lokalnie

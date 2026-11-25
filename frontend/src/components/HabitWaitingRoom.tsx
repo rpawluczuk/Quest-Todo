@@ -4,7 +4,8 @@ import type { Habit } from '../types/Habit'
 import type { ReactNode } from 'react'
 
 export default function HabitWaitingRoom({ paused, planned, pendingIds, disabled, onResume, onStart, onEdit,
-  journalId, onJournal, renderJournal }: {
+  journalId, onJournal, renderJournal, onHistory }: {
+  onHistory: (habit: Habit) => void
   journalId: number | null; onJournal: (habit: Habit) => void; renderJournal: (habit: Habit) => ReactNode
   paused: Habit[]; planned: Habit[]; pendingIds: ReadonlySet<number>; disabled: boolean
   onResume: (habit: Habit) => void
@@ -17,6 +18,7 @@ export default function HabitWaitingRoom({ paused, planned, pendingIds, disabled
           actions={[
             { label: 'Dziennik nawyku', icon: 'notebook-pen', expanded: journalId === habit.id,
               controls: journalId === habit.id ? `habit-journal-${habit.id}` : undefined, onSelect: () => onJournal(habit) },
+            { label: 'Historia', onSelect: () => onHistory(habit) },
             ...(habit.activityStatus === 'PLANNED' ? [{ label: 'Edytuj', icon: 'pencil' as const, onSelect: () => onEdit(habit) }] : []),
           ]} />
   }

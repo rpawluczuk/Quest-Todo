@@ -28,7 +28,8 @@ type AwardNotice = HabitAward & { habitId: number; name: string }
 type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
 export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision,
-  createHabitForm, onHabitCreated, journalEditor, onHabitDeleted }: {
+  createHabitForm, onHabitCreated, journalEditor, onHabitDeleted, onOpenHistory }: {
+  onOpenHistory: (id: number) => void
   onHabitDeleted: () => void
   journalEditor: RefObject<JournalEditorHandle | null>
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
@@ -121,7 +122,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
       else setSelectedDay(day)
     }} disabled={busy} />
     <div className="section-header section-header-with-action">
-      <h2 id="habits-heading">Nawyki</h2>
+      <h2 id="habits-heading" tabIndex={-1}>Nawyki</h2>
       <button type="button" className="add-task-header-button" aria-label="Dodaj nawyk" title="Dodaj nawyk"
         onClick={event => createHabitForm.current?.open(event.currentTarget)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -130,7 +131,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList onHabitDeleted={onHabitDeleted} journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+    <HabitDayList onOpenHistory={onOpenHistory} onHabitDeleted={onHabitDeleted} journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
       onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
@@ -147,7 +148,8 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated, onCreatedNotice, journalStore, journalEditor, onHabitDeleted }: {
+  onHabitCreated, onCreatedNotice, journalStore, journalEditor, onHabitDeleted, onOpenHistory }: {
+  onOpenHistory: (id: number) => void
   onHabitDeleted: () => void
   journalEditor: RefObject<JournalEditorHandle | null>
   journalStore: HabitJournalStore
@@ -370,6 +372,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
                       { label: 'Dziennik nawyku', icon: 'notebook-pen', expanded: journalId === habit.id,
                         controls: journalId === habit.id ? `habit-journal-${habit.id}` : undefined,
                         onSelect: () => openJournal(habit.id) },
+                      { label: 'Historia', onSelect: () => onOpenHistory(habit.id) },
                       { ...habitStatusAction(habit), onSelect: () => guardJournal(() => { void onStatusChange(habit, 'PAUSED') }) },
                       ...(!habit.endedOn ? [{ label: 'Edytuj', onSelect: () => guardJournal(() => setEditingId(habit.id)) }] : []),
                       ...(!habit.endedOn && habit.status !== 'FINISHED'
@@ -435,6 +438,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
               </summary>
               <div id="habit-panel-waiting">
                 <HabitWaitingRoom paused={lists.paused} planned={lists.planned}
+                  onHistory={habit => onOpenHistory(habit.id)}
                   journalId={journalId} onJournal={habit => openJournal(habit.id)} renderJournal={journal}
                   pendingIds={pendingStatusIds} disabled={busy || editingId !== null}
                   onResume={habit => guardJournal(() => { void onStatusChange(habit, 'ACTIVE') })}

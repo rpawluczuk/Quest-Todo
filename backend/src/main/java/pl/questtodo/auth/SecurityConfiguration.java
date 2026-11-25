@@ -57,7 +57,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/email/confirm",
                                 "/api/auth/password/forgot", "/api/auth/password/reset").permitAll()
                         .requestMatchers("/api/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/favicon.svg", "/icons.svg").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/favicon.svg", "/icons.svg",
+                                "/habits", "/habits/{id}/history", "/goals", "/rewards").permitAll()
                         .anyRequest().denyAll())
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")

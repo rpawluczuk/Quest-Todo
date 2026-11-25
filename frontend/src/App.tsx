@@ -22,6 +22,9 @@ import './App.css'
 import type { Theme } from './theme'
 import type { CategoryMutation } from './categoryEvents'
 import { createRefreshGate } from './habitBonus'
+import HabitHistoryPage from './pages/HabitHistoryPage'
+import { habitToday } from './weekDates'
+import { habitHistoryPath, mainPagePath, readAppRoute, type MainPage } from './appRoute'
 
 type AppProps = {
   onThemeChange: (theme: Theme) => Promise<void>
@@ -39,14 +42,48 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
   const createHabitForm = useRef<CreateHabitFormHandle>(null)
   const habitJournalEditor = useRef<JournalEditorHandle>(null)
   const goalJournalEditor = useRef<JournalEditorHandle>(null)
-  function navigate(page: 'tasks' | 'habits' | 'goals' | 'rewards') {
+  const [route, setRoute] = useState(() => readAppRoute(window.location))
+  const activePage = route.page
+  const habitReturnContext = useRef<{ top: number; trigger: HTMLElement | null } | null>(null)
+  const previousPage = useRef(activePage)
+  function changeRoute(path: string) {
+    window.history.pushState(null, '', path)
+    setRoute(readAppRoute(window.location))
+    window.scrollTo(0, 0)
+  }
+  useEffect(() => {
+    const pop = () => setRoute(readAppRoute(window.location))
+    window.addEventListener('popstate', pop)
+    return () => window.removeEventListener('popstate', pop)
+  }, [])
+  useEffect(() => {
+    if (activePage === 'habits' && previousPage.current === 'habit-history') {
+      const context = habitReturnContext.current
+      const frame = requestAnimationFrame(() => {
+        const target = context?.trigger?.isConnected ? context.trigger : document.getElementById('habits-heading')
+        target?.focus({ preventScroll: true })
+        window.scrollTo(0, context?.top ?? 0)
+      })
+      previousPage.current = activePage
+      return () => cancelAnimationFrame(frame)
+    }
+    previousPage.current = activePage
+  }, [activePage])
+  function navigate(page: MainPage) {
     if (page === activePage) return
-    const action = () => { setActivePage(page); if (page === 'habits') synchronizeExternalState() }
+    const action = () => { changeRoute(mainPagePath(page)); if (page === 'habits') synchronizeExternalState() }
     const editor = activePage === 'habits' ? habitJournalEditor.current : activePage === 'goals' ? goalJournalEditor.current : null
     if (editor) editor.beforeLeave(action)
     else action()
   }
-  const [activePage, setActivePage] = useState<'tasks' | 'habits' | 'goals' | 'rewards'>('tasks')
+  function openHabitHistory(id: number) {
+    const action = () => {
+      habitReturnContext.current = { top: window.scrollY, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null }
+      changeRoute(habitHistoryPath(id, Number(habitToday().slice(0, 4))))
+    }
+    if (habitJournalEditor.current) habitJournalEditor.current.beforeLeave(action)
+    else action()
+  }
   const [tasks, setTasks] = useState<Task[]>([])
   const [completedCount, setCompletedCount] = useState(0)
   const [taskRevision, setTaskRevision] = useState(0)
@@ -460,7 +497,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
         )}
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
-        <HabitsPage journalEditor={habitJournalEditor} goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
+        <HabitsPage onOpenHistory={openHabitHistory} journalEditor={habitJournalEditor} goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
           onHabitDeleted={() => setHabitGoalRevision(value => value + 1)}
           createHabitForm={createHabitForm}
           onHabitCreated={() => {
@@ -472,6 +509,9 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
           setPoints(balance)
         }} />
       </div>
+      {route.page === 'habit-history' && <HabitHistoryPage habitId={route.habitId} year={route.year}
+        onBack={() => navigate('habits')}
+        onYearChange={year => { if (route.habitId !== null) changeRoute(habitHistoryPath(route.habitId, year)) }} />}
       <div id="goals-page" hidden={activePage !== 'goals'}>
         <GoalsPage navigationRef={goalJournalEditor} taskRevision={taskRevision} tasksDisabled={editingTaskId !== null} onToggleTask={toggleTask}
           onGoalLinksChanged={refreshTaskGoalLinks}
