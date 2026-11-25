@@ -498,7 +498,7 @@ function App({ user, onLogout, loggingOut, logoutError, onChangePassword, onEmai
       </div>
       <div id="habits-page" hidden={activePage !== 'habits'}>
         <HabitsPage onOpenHistory={openHabitHistory} journalEditor={habitJournalEditor} goalLinksRevision={habitGoalRevision} categoryRevision={categoryRevision}
-          onHabitDeleted={() => setHabitGoalRevision(value => value + 1)}
+          onHabitChanged={() => setHabitGoalRevision(value => value + 1)}
           createHabitForm={createHabitForm}
           onHabitCreated={() => {
             setHabitGoalRevision(value => value + 1)

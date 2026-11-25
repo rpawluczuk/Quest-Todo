@@ -69,25 +69,48 @@ export default function GoalPicker({ selectedIds, onChange, disabled }: GoalPick
   useEffect(() => {
     if (!open) return
 
-    function closeWhenOutside(event: PointerEvent | FocusEvent) {
+    let pointerInside = false
+    let pointerTimer: number | undefined
+    function closeWhenOutsidePointer(event: PointerEvent) {
+      pointerInside = event.target instanceof Node && !!picker.current?.contains(event.target)
+      if (!pointerInside) setOpen(false)
+    }
+
+    function finishPointer() {
+      // Touch devices may move focus during the synthesized click, after pointerup.
+      // Keep the guard until the click's native label activation has finished.
+      window.clearTimeout(pointerTimer)
+      pointerTimer = window.setTimeout(() => { pointerInside = false }, 0)
+    }
+
+    function closeWhenOutsideFocus(event: FocusEvent) {
+      // A label's text can briefly focus the surrounding modal before its click
+      // activates the checkbox. Keep the label mounted until that click completes.
+      if (pointerInside) return
       if (event.target instanceof Node && !picker.current?.contains(event.target)) setOpen(false)
     }
 
     function closeOnEscape(event: globalThis.KeyboardEvent) {
+      pointerInside = false
       if (event.key !== 'Escape') return
       event.preventDefault()
       setOpen(false)
       trigger.current?.focus()
     }
 
-    document.addEventListener('pointerdown', closeWhenOutside)
-    document.addEventListener('focusin', closeWhenOutside)
+    document.addEventListener('pointerdown', closeWhenOutsidePointer)
+    document.addEventListener('click', finishPointer)
+    document.addEventListener('pointercancel', finishPointer)
+    document.addEventListener('focusin', closeWhenOutsideFocus)
     document.addEventListener('keydown', closeOnEscape)
     window.addEventListener('resize', positionPopover)
     window.addEventListener('scroll', positionPopover, true)
     return () => {
-      document.removeEventListener('pointerdown', closeWhenOutside)
-      document.removeEventListener('focusin', closeWhenOutside)
+      document.removeEventListener('pointerdown', closeWhenOutsidePointer)
+      window.clearTimeout(pointerTimer)
+      document.removeEventListener('click', finishPointer)
+      document.removeEventListener('pointercancel', finishPointer)
+      document.removeEventListener('focusin', closeWhenOutsideFocus)
       document.removeEventListener('keydown', closeOnEscape)
       window.removeEventListener('resize', positionPopover)
       window.removeEventListener('scroll', positionPopover, true)

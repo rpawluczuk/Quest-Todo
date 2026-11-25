@@ -28,9 +28,9 @@ type AwardNotice = HabitAward & { habitId: number; name: string }
 type CompletionBonusNotice = { id: number; habitId: number; name: string; points: number }
 
 export default function HabitsPage({ onPointsChanged, goalLinksRevision, categoryRevision, syncRevision,
-  createHabitForm, onHabitCreated, journalEditor, onHabitDeleted, onOpenHistory }: {
+  createHabitForm, onHabitCreated, journalEditor, onHabitChanged, onOpenHistory }: {
   onOpenHistory: (id: number) => void
-  onHabitDeleted: () => void
+  onHabitChanged: () => void
   journalEditor: RefObject<JournalEditorHandle | null>
   onPointsChanged: (balance: number) => void; goalLinksRevision: number; categoryRevision: number; syncRevision: number
   createHabitForm: RefObject<CreateHabitFormHandle | null>; onHabitCreated: () => void
@@ -131,7 +131,7 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
         </svg>
       </button>
     </div>
-    <HabitDayList onOpenHistory={onOpenHistory} onHabitDeleted={onHabitDeleted} journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
+    <HabitDayList onOpenHistory={onOpenHistory} onHabitChanged={onHabitChanged} journalEditor={journalEditor} journalStore={journalStore} habits={habits} setHabits={setHabits} statusUpdates={statusUpdates}
       onCreatedNotice={message => setStatusNotice({ message, error: false })}
       pendingStatusIds={pendingStatusIds} onStatusChange={changeStatus} key={`${selectedDay}:${today}:${refresh}`} date={selectedDay} today={today} busy={busy} onBusy={setBusy}
       syncRevision={syncRevision + goalLinksRevision + categoryRevision}
@@ -148,9 +148,9 @@ export default function HabitsPage({ onPointsChanged, goalLinksRevision, categor
 
 // A separate instance per day keeps delayed requests from changing another day's list.
 function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onStatusChange, date, today, busy, onBusy, onCompletionSaved, createHabitForm, syncRevision,
-  onHabitCreated, onCreatedNotice, journalStore, journalEditor, onHabitDeleted, onOpenHistory }: {
+  onHabitCreated, onCreatedNotice, journalStore, journalEditor, onHabitChanged, onOpenHistory }: {
   onOpenHistory: (id: number) => void
-  onHabitDeleted: () => void
+  onHabitChanged: () => void
   journalEditor: RefObject<JournalEditorHandle | null>
   journalStore: HabitJournalStore
   habits: Habit[]; setHabits: Dispatch<SetStateAction<Habit[]>>
@@ -260,6 +260,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     try {
       const result = await updateHabit(id, name, targetDays, rewardPoints, description, schedule, categoryId, goalIds)
       store.update(result.habit, date)
+      onHabitChanged()
       await load()
       onCompletionSaved(result)
       setEditingId(null)
@@ -304,7 +305,7 @@ function HabitDayList({ habits, setHabits, statusUpdates, pendingStatusIds, onSt
     try {
       await deleteHabit(id)
       store.remove(id)
-      onHabitDeleted()
+      onHabitChanged()
       if (journalId === id) setJournalId(null)
       journalStore.drafts.delete(id)
       setEditingId(current => current === id ? null : current)
